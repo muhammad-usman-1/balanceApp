@@ -1,0 +1,174 @@
+{
+	"info": {
+		"_postman_id": "user-registration-api",
+		"name": "User Registration API",
+		"description": "Public API endpoint for user registration. No authentication required. Creates a new user with phone number, OTP, email, name, date of birth, gender, height, and weight.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Register User",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"phone_number\": \"1234567890\",\n    \"otp\": 123456,\n    \"email\": \"john.doe@example.com\",\n    \"name\": \"John Doe\",\n    \"date_of_birth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"height\": 175.5,\n    \"weight\": 70.5\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/register",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"register"
+					]
+				},
+				"description": "Register a new user in the system.\n\n**Required Fields:**\n- phone_number: User's phone number (string, numeric only, must be unique)\n- otp: One-time password (integer, 4-6 digits)\n- email: User's email address (must be unique)\n- name: User's full name\n- date_of_birth: Date of birth in Y-m-d format (e.g., \"1990-01-15\")\n- gender: User's gender (\"male\", \"female\", or \"other\")\n- height: User's height in cm (numeric, positive)\n- weight: User's weight in kg (numeric, positive)\n\n**Note:** No password or authentication token required. User can login later using /api/login endpoint with mobile and OTP.\n\n**Response:**\n- Success (201): Returns user object with all details\n- Error (422): Validation errors\n- Error (500): Server error"
+			},
+			"response": []
+		},
+		{
+			"name": "Register User - Female Example",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"phone_number\": \"9876543210\",\n    \"otp\": 456789,\n    \"email\": \"jane.smith@example.com\",\n    \"name\": \"Jane Smith\",\n    \"date_of_birth\": \"1995-05-20\",\n    \"gender\": \"female\",\n    \"height\": 165.0,\n    \"weight\": 60.0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/register",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"register"
+					]
+				},
+				"description": "Example registration request for a female user."
+			},
+			"response": []
+		},
+		{
+			"name": "Check User Exists",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"phone_number\": \"1234567890\",\n    \"otp\": 123456\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/check-user",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"check-user"
+					]
+				},
+				"description": "Check if a user exists in the system with the provided phone number and OTP.\n\n**Required Fields:**\n- phone_number: User's phone number (string, numeric only)\n- otp: One-time password (integer, 4-6 digits)\n\n**Response:**\n- Success (200): Returns whether user exists (true/false)\n  - If exists: includes user_id, name, email, mobile\n  - If not exists: data is null\n- Error (422): Validation errors\n- Error (500): Server error"
+			},
+			"response": []
+		},
+		{
+			"name": "Check User Exists - Not Found Example",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"phone_number\": \"9999999999\",\n    \"otp\": 999999\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/check-user",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"check-user"
+					]
+				},
+				"description": "Example request to check for a user that doesn't exist in the system."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}
+
