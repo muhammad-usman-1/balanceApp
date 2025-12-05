@@ -43,6 +43,9 @@ Route::post('login', function (Request $request) {
             'price' => $activeSubscription->price,
             'payment' => $activeSubscription->payment,
             'status' => $activeSubscription->status,
+            'is_personalized' => $activeSubscription->is_personalized ?? false,
+            'protein' => $activeSubscription->protein,
+            'carbs' => $activeSubscription->carbs,
         ];
     }
 
@@ -58,6 +61,10 @@ Route::post('register', 'Api\V1\UserRegistrationController@register')->name('reg
 
 // Check if user exists - No authentication required
 Route::post('check-user', 'Api\V1\UserRegistrationController@checkUserExists')->name('check-user');
+
+// OTP Routes - Public, no authentication required
+Route::post('otp/send', 'Api\V1\OtpController@sendOtp')->name('otp.send');
+Route::post('otp/verify', 'Api\V1\OtpController@verifyOtp')->name('otp.verify');
 
 // Subscription Checkout - Public, no authentication required
 Route::post('v1/subscription/checkout', 'Api\V1\Admin\SubscriptionCheckoutApiController@store')->name('subscription.checkout');
@@ -78,6 +85,13 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
     // Subcrption Plans
     Route::apiResource('subcrption-plans', 'SubcrptionPlansApiController');
 
+    // Payments
+    Route::get('payment/kits', 'HesabePaymentController@reviewKits')->name('payment.kits');
+    Route::post('payment/checkout', 'HesabePaymentController@checkout')->name('payment.checkout');
+
     // Durations
     Route::apiResource('durations', 'DurationsApiController');
+
+    // Subscription Meals - Update meal for any day
+    Route::post('subscription/meals/update', 'SubscriptionMealApiController@updateMeal')->name('subscription.meals.update');
 });

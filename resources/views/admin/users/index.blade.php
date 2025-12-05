@@ -31,12 +31,7 @@
                         <th>
                             {{ trans('cruds.user.fields.email') }}
                         </th>
-                        <th>
-                            {{ trans('cruds.user.fields.email_verified_at') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.user.fields.roles') }}
-                        </th>
+                       
                         <th>
                             {{ trans('cruds.user.fields.otp') }}
                         </th>
@@ -61,11 +56,9 @@
                         <th>
                             {{ trans('cruds.user.fields.updated_at') }}
                         </th>
+                        
                         <th>
-                            {{ trans('cruds.user.fields.deleted_at') }}
-                        </th>
-                        <th>
-                            &nbsp;
+                           Actions
                         </th>
                     </tr>
                 </thead>
@@ -84,14 +77,7 @@
                             <td>
                                 {{ $user->email ?? '' }}
                             </td>
-                            <td>
-                                {{ $user->email_verified_at ?? '' }}
-                            </td>
-                            <td>
-                                @foreach($user->roles as $key => $item)
-                                    <span class="badge badge-info">{{ $item->title }}</span>
-                                @endforeach
-                            </td>
+                        
                             <td>
                                 {{ $user->otp ?? '' }}
                             </td>
@@ -116,9 +102,7 @@
                             <td>
                                 {{ $user->updated_at ?? '' }}
                             </td>
-                            <td>
-                                {{ $user->deleted_at ?? '' }}
-                            </td>
+                          
                             <td>
                                 @can('user_show')
                                     <a class="btn btn-xs btn-primary" href="{{ route('admin.users.show', $user->id) }}">

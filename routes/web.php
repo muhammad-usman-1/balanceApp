@@ -41,9 +41,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // User Subcrption
     Route::delete('user-subcrptions/destroy', 'UserSubcrptionController@massDestroy')->name('user-subcrptions.massDestroy');
+    Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');
     Route::resource('user-subcrptions', 'UserSubcrptionController');
 
-    // Subscription Plan Days
+    // Subscription Plan Days (now shows subscription_days data)
     Route::delete('subscription-plan-days/destroy', 'SubscriptionPlanDaysController@massDestroy')->name('subscription-plan-days.massDestroy');
     Route::resource('subscription-plan-days', 'SubscriptionPlanDaysController');
 

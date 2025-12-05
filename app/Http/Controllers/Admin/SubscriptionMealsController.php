@@ -8,7 +8,7 @@ use App\Http\Requests\StoreSubscriptionMealRequest;
 use App\Http\Requests\UpdateSubscriptionMealRequest;
 use App\Models\Meal;
 use App\Models\SubscriptionMeal;
-use App\Models\SubscriptionPlanDay;
+use App\Models\SubscriptionDay;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +19,7 @@ class SubscriptionMealsController extends Controller
     {
         abort_if(Gate::denies('subscription_meal_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $subscriptionMeals = SubscriptionMeal::with(['subscription_plan_days', 'meal', 'type'])->get();
+        $subscriptionMeals = SubscriptionMeal::with(['subscription_days', 'meal'])->get();
 
         return view('admin.subscriptionMeals.index', compact('subscriptionMeals'));
     }
@@ -28,13 +28,13 @@ class SubscriptionMealsController extends Controller
     {
         abort_if(Gate::denies('subscription_meal_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $subscription_plan_days = SubscriptionPlanDay::pluck('day', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $subscription_days = SubscriptionDay::with('user_subcrption')->get()->mapWithKeys(function ($day) {
+            return [$day->id => $day->day . ' (User Subscription #' . $day->user_subcrptions_id . ')'];
+        })->prepend(trans('global.pleaseSelect'), '');
 
         $meals = Meal::pluck('title', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $types = Meal::pluck('type', 'id')->prepend(trans('global.pleaseSelect'), '');
-
-        return view('admin.subscriptionMeals.create', compact('meals', 'subscription_plan_days', 'types'));
+        return view('admin.subscriptionMeals.create', compact('meals', 'subscription_days'));
     }
 
     public function store(StoreSubscriptionMealRequest $request)
@@ -48,15 +48,15 @@ class SubscriptionMealsController extends Controller
     {
         abort_if(Gate::denies('subscription_meal_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $subscription_plan_days = SubscriptionPlanDay::pluck('day', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $subscription_days = SubscriptionDay::with('user_subcrption')->get()->mapWithKeys(function ($day) {
+            return [$day->id => $day->day . ' (User Subscription #' . $day->user_subcrptions_id . ')'];
+        })->prepend(trans('global.pleaseSelect'), '');
 
         $meals = Meal::pluck('title', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $types = Meal::pluck('type', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $subscriptionMeal->load('subscription_days', 'meal');
 
-        $subscriptionMeal->load('subscription_plan_days', 'meal', 'type');
-
-        return view('admin.subscriptionMeals.edit', compact('meals', 'subscriptionMeal', 'subscription_plan_days', 'types'));
+        return view('admin.subscriptionMeals.edit', compact('meals', 'subscriptionMeal', 'subscription_days'));
     }
 
     public function update(UpdateSubscriptionMealRequest $request, SubscriptionMeal $subscriptionMeal)
@@ -70,7 +70,7 @@ class SubscriptionMealsController extends Controller
     {
         abort_if(Gate::denies('subscription_meal_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $subscriptionMeal->load('subscription_plan_days', 'meal', 'type');
+        $subscriptionMeal->load('subscription_days', 'meal');
 
         return view('admin.subscriptionMeals.show', compact('subscriptionMeal'));
     }

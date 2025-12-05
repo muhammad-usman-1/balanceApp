@@ -31,4 +31,22 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'twilio' => [
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'from_number' => env('TWILIO_FROM_NUMBER'),
+    ],
+
+    'hesabe' => [
+        'base_url' => env('HESABE_BASE_URL', 'https://sandbox.hesabe.com'),
+        'merchant_code' => env('HESABE_MERCHANT_CODE'),
+        'access_code' => env('HESABE_ACCESS_CODE'),
+        'secret_key' => env('HESABE_SECRET_KEY'),
+        'iv_key' => env('HESABE_IV_KEY'),
+        'checkout_endpoint' => env('HESABE_CHECKOUT_ENDPOINT', '/api/encryption/checkout'),
+        'review_kits_endpoint' => env('HESABE_REVIEW_KITS_ENDPOINT', '/api/integration-kits/review'),
+        'return_url' => env('HESABE_PAYMENT_RETURN_URL'),
+        'failure_url' => env('HESABE_PAYMENT_FAILURE_URL'),
+    ],
+
 ];

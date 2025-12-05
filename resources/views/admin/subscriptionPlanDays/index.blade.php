@@ -26,6 +26,9 @@
                             {{ trans('cruds.subscriptionPlanDay.fields.id') }}
                         </th>
                         <th>
+                            {{ trans('cruds.subscriptionPlanDay.fields.user_subcrption') }}
+                        </th>
+                        <th>
                             {{ trans('cruds.subscriptionPlanDay.fields.subscription_plans') }}
                         </th>
                         <th>
@@ -37,35 +40,41 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($subscriptionPlanDays as $key => $subscriptionPlanDay)
-                        <tr data-entry-id="{{ $subscriptionPlanDay->id }}">
+                    @foreach($subscriptionDays as $key => $subscriptionDay)
+                        <tr data-entry-id="{{ $subscriptionDay->id }}">
                             <td>
 
                             </td>
                             <td>
-                                {{ $subscriptionPlanDay->id ?? '' }}
+                                {{ $subscriptionDay->id ?? '' }}
                             </td>
                             <td>
-                                {{ $subscriptionPlanDay->subscription_plans->title ?? '' }}
+                                User Subscription #{{ $subscriptionDay->user_subcrptions_id ?? '' }}
+                                @if($subscriptionDay->user_subcrption)
+                                    <br><small class="text-muted">{{ $subscriptionDay->user_subcrption->user->name ?? 'N/A' }}</small>
+                                @endif
                             </td>
                             <td>
-                                {{ App\Models\SubscriptionPlanDay::DAY_SELECT[$subscriptionPlanDay->day] ?? '' }}
+                                {{ $subscriptionDay->user_subcrption->subcrption_plans->title ?? 'N/A' }}
+                            </td>
+                            <td>
+                                {{ App\Models\SubscriptionDay::DAY_SELECT[$subscriptionDay->day] ?? $subscriptionDay->day }}
                             </td>
                             <td>
                                 @can('subscription_plan_day_show')
-                                    <a class="btn btn-xs btn-primary" href="{{ route('admin.subscription-plan-days.show', $subscriptionPlanDay->id) }}">
+                                    <a class="btn btn-xs btn-primary" href="{{ route('admin.subscription-plan-days.show', $subscriptionDay->id) }}">
                                         {{ trans('global.view') }}
                                     </a>
                                 @endcan
 
                                 @can('subscription_plan_day_edit')
-                                    <a class="btn btn-xs btn-info" href="{{ route('admin.subscription-plan-days.edit', $subscriptionPlanDay->id) }}">
+                                    <a class="btn btn-xs btn-info" href="{{ route('admin.subscription-plan-days.edit', $subscriptionDay->id) }}">
                                         {{ trans('global.edit') }}
                                     </a>
                                 @endcan
 
                                 @can('subscription_plan_day_delete')
-                                    <form action="{{ route('admin.subscription-plan-days.destroy', $subscriptionPlanDay->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
+                                    <form action="{{ route('admin.subscription-plan-days.destroy', $subscriptionDay->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
                                         <input type="hidden" name="_method" value="DELETE">
                                         <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                         <input type="submit" class="btn btn-xs btn-danger" value="{{ trans('global.delete') }}">

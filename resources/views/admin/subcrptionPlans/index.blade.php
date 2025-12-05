@@ -49,11 +49,9 @@
                         <th>
                             {{ trans('cruds.subcrptionPlan.fields.updated_at') }}
                         </th>
+                        
                         <th>
-                            {{ trans('cruds.subcrptionPlan.fields.deleted_at') }}
-                        </th>
-                        <th>
-                            &nbsp;
+                             Actions
                         </th>
                     </tr>
                 </thead>
@@ -91,9 +89,7 @@
                             <td>
                                 {{ $subcrptionPlan->updated_at ?? '' }}
                             </td>
-                            <td>
-                                {{ $subcrptionPlan->deleted_at ?? '' }}
-                            </td>
+                            
                             <td>
                                 @can('subcrption_plan_show')
                                     <a class="btn btn-xs btn-primary" href="{{ route('admin.subcrption-plans.show', $subcrptionPlan->id) }}">

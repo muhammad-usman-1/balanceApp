@@ -17,17 +17,20 @@ class UpdateSubscriptionMealRequest extends FormRequest
     public function rules()
     {
         return [
-            'subscription_plan_days_id' => [
+            'subscription_days_id' => [
                 'required',
                 'integer',
+                'exists:subscription_days,id',
             ],
             'meal_id' => [
                 'required',
                 'integer',
+                'exists:meals,id',
             ],
-            'type_id' => [
+            'type' => [
                 'required',
-                'integer',
+                'string',
+                'in:is meal,is snack',
             ],
         ];
     }

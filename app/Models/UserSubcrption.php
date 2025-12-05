@@ -34,17 +34,31 @@ class UserSubcrption extends Model
 
     protected $fillable = [
         'selected_days',
+        'user_address_id',
         'start_date',
         'end_date',
         'user_id',
         'subcrption_plans_id',
         'duration_id',
         'price',
+        'currency',
         'payment',
+        'payment_reference',
+        'payment_gateway',
+        'card_last_four',
+        'card_brand',
+        'payment_meta',
         'status',
+        'is_personalized',
+        'protein',
+        'carbs',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'payment_meta' => 'array',
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -85,5 +99,10 @@ class UserSubcrption extends Model
     public function duration()
     {
         return $this->belongsTo(Duration::class, 'duration_id');
+    }
+
+    public function address()
+    {
+        return $this->belongsTo(UserAddress::class, 'user_address_id');
     }
 }

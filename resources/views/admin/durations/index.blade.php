@@ -40,11 +40,9 @@
                         <th>
                             {{ trans('cruds.duration.fields.updated_at') }}
                         </th>
+                       
                         <th>
-                            {{ trans('cruds.duration.fields.deleted_at') }}
-                        </th>
-                        <th>
-                            &nbsp;
+                             Actions
                         </th>
                     </tr>
                 </thead>
@@ -72,9 +70,7 @@
                             <td>
                                 {{ $duration->updated_at ?? '' }}
                             </td>
-                            <td>
-                                {{ $duration->deleted_at ?? '' }}
-                            </td>
+                          
                             <td>
                                 @can('duration_show')
                                     <a class="btn btn-xs btn-primary" href="{{ route('admin.durations.show', $duration->id) }}">

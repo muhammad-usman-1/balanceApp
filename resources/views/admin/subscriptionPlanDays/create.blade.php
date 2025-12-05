@@ -10,23 +10,23 @@
         <form method="POST" action="{{ route("admin.subscription-plan-days.store") }}" enctype="multipart/form-data">
             @csrf
             <div class="form-group">
-                <label class="required" for="subscription_plans_id">{{ trans('cruds.subscriptionPlanDay.fields.subscription_plans') }}</label>
-                <select class="form-control select2 {{ $errors->has('subscription_plans') ? 'is-invalid' : '' }}" name="subscription_plans_id" id="subscription_plans_id" required>
-                    @foreach($subscription_plans as $id => $entry)
-                        <option value="{{ $id }}" {{ old('subscription_plans_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                <label class="required" for="user_subcrptions_id">{{ trans('cruds.subscriptionPlanDay.fields.user_subcrption') }}</label>
+                <select class="form-control select2 {{ $errors->has('user_subcrptions_id') ? 'is-invalid' : '' }}" name="user_subcrptions_id" id="user_subcrptions_id" required>
+                    @foreach($user_subscriptions as $id => $entry)
+                        <option value="{{ $id }}" {{ old('user_subcrptions_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
                     @endforeach
                 </select>
-                @if($errors->has('subscription_plans'))
-                    <span class="text-danger">{{ $errors->first('subscription_plans') }}</span>
+                @if($errors->has('user_subcrptions_id'))
+                    <span class="text-danger">{{ $errors->first('user_subcrptions_id') }}</span>
                 @endif
-                <span class="help-block">{{ trans('cruds.subscriptionPlanDay.fields.subscription_plans_helper') }}</span>
+                <span class="help-block">{{ trans('cruds.subscriptionPlanDay.fields.user_subcrption_helper') }}</span>
             </div>
             <div class="form-group">
-                <label>{{ trans('cruds.subscriptionPlanDay.fields.day') }}</label>
-                <select class="form-control {{ $errors->has('day') ? 'is-invalid' : '' }}" name="day" id="day">
+                <label class="required" for="day">{{ trans('cruds.subscriptionPlanDay.fields.day') }}</label>
+                <select class="form-control {{ $errors->has('day') ? 'is-invalid' : '' }}" name="day" id="day" required>
                     <option value disabled {{ old('day', null) === null ? 'selected' : '' }}>{{ trans('global.pleaseSelect') }}</option>
-                    @foreach(App\Models\SubscriptionPlanDay::DAY_SELECT as $key => $label)
-                        <option value="{{ $key }}" {{ old('day', '') === (string) $key ? 'selected' : '' }}>{{ $label }}</option>
+                    @foreach(App\Models\SubscriptionDay::DAY_SELECT as $key => $label)
+                        <option value="{{ $key }}" {{ old('day', '') === (string) $key ? 'selected' : '' }}>{{ ucfirst($label) }}</option>
                     @endforeach
                 </select>
                 @if($errors->has('day'))

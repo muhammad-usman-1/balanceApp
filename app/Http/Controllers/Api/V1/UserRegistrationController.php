@@ -16,9 +16,10 @@ class UserRegistrationController extends Controller
 {
     /**
      * Register a new user
-     * 
+     *
      * This endpoint creates a new user without requiring password or authentication.
-     * It accepts phone number, OTP, email, name, date of birth, gender, height, and weight.
+     * It accepts phone number, OTP, email, name, date of birth, gender, height,
+     * weight, goal, activity level, and food allergy preferences.
      *
      * @param RegisterUserRequest $request
      * @return \Illuminate\Http\JsonResponse
@@ -28,6 +29,9 @@ class UserRegistrationController extends Controller
         DB::beginTransaction();
 
         try {
+            $hasFoodAllergies = $request->boolean('has_food_allergies');
+            $allergies = $hasFoodAllergies ? array_values($request->input('allergies', [])) : null;
+
             // Prepare user data
             // Convert phone_number string to integer to match database schema
             $userData = [
@@ -39,6 +43,10 @@ class UserRegistrationController extends Controller
                 'gender' => $request->gender,
                 'height' => $request->height,
                 'weight' => $request->weight,
+                'goal' => $request->goal,
+                'activity_level' => $request->activity_level,
+                'has_food_allergies' => $hasFoodAllergies,
+                'allergies' => $allergies,
                 // No password required - user can login with mobile + OTP
             ];
 
@@ -116,6 +124,9 @@ class UserRegistrationController extends Controller
                         'price' => $activeSubscription->price,
                         'payment' => $activeSubscription->payment,
                         'status' => $activeSubscription->status,
+                        'is_personalized' => $activeSubscription->is_personalized ?? false,
+                        'protein' => $activeSubscription->protein,
+                        'carbs' => $activeSubscription->carbs,
                     ];
                 }
 

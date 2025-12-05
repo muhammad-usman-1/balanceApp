@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RegisterUserRequest extends FormRequest
 {
@@ -56,6 +57,30 @@ class RegisterUserRequest extends FormRequest
                 'numeric',
                 'min:0',
             ],
+            'goal' => [
+                'required',
+                'string',
+                Rule::in(['eat_healthy', 'lose_weight', 'gain_weight', 'build_muscle', 'maintain_weight']),
+            ],
+            'activity_level' => [
+                'required',
+                'string',
+                Rule::in(['sedentary', 'lightly_active', 'very_active', 'highly_active']),
+            ],
+            'has_food_allergies' => [
+                'required',
+                'boolean',
+            ],
+            'allergies' => [
+                Rule::requiredIf($this->boolean('has_food_allergies')),
+                'nullable',
+                'array',
+                'min:1',
+            ],
+            'allergies.*' => [
+                'string',
+                'max:255',
+            ],
         ];
     }
 
@@ -83,6 +108,17 @@ class RegisterUserRequest extends FormRequest
             'weight.required' => 'Weight is required.',
             'weight.numeric' => 'Weight must be a number.',
             'weight.min' => 'Weight must be a positive number.',
+            'goal.required' => 'Please select a goal.',
+            'goal.in' => 'Goal must be one of: eat_healthy, lose_weight, gain_weight, build_muscle, maintain_weight.',
+            'activity_level.required' => 'Activity level is required.',
+            'activity_level.in' => 'Activity level must be one of: sedentary, lightly_active, very_active, highly_active.',
+            'has_food_allergies.required' => 'Please indicate whether you have food allergies.',
+            'has_food_allergies.boolean' => 'Food allergy response must be true or false.',
+            'allergies.required' => 'Please select at least one allergy option.',
+            'allergies.array' => 'Allergies must be provided as an array.',
+            'allergies.min' => 'Select at least one allergy.',
+            'allergies.*.string' => 'Each allergy entry must be a string value.',
+            'allergies.*.max' => 'Allergy entries may not exceed 255 characters.',
         ];
     }
 }

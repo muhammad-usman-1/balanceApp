@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('content')
-@can('user_subcrption_create')
+{{--  @can('user_subcrption_create')
     <div style="margin-bottom: 10px;" class="row">
         <div class="col-lg-12">
             <a class="btn btn-success" href="{{ route('admin.user-subcrptions.create') }}">
@@ -8,7 +8,7 @@
             </a>
         </div>
     </div>
-@endcan
+@endcan  --}}
 <div class="card">
     <div class="card-header">
         {{ trans('cruds.userSubcrption.title_singular') }} {{ trans('global.list') }}
@@ -25,27 +25,16 @@
                         <th>
                             {{ trans('cruds.userSubcrption.fields.id') }}
                         </th>
-                        <th>
-                            {{ trans('cruds.userSubcrption.fields.selected_days') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.userSubcrption.fields.start_date') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.userSubcrption.fields.end_date') }}
-                        </th>
+
+
                         <th>
                             {{ trans('cruds.userSubcrption.fields.user') }}
                         </th>
                         <th>
                             {{ trans('cruds.userSubcrption.fields.subcrption_plans') }}
                         </th>
-                        <th>
-                            {{ trans('cruds.userSubcrption.fields.duration') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.userSubcrption.fields.price') }}
-                        </th>
+
+
                         <th>
                             {{ trans('cruds.userSubcrption.fields.payment') }}
                         </th>
@@ -53,7 +42,16 @@
                             {{ trans('cruds.userSubcrption.fields.status') }}
                         </th>
                         <th>
-                            &nbsp;
+                            {{ trans('cruds.userSubcrption.fields.is_personalized') }}
+                        </th>
+                        <th>
+                            {{ trans('cruds.userSubcrption.fields.protein') }}
+                        </th>
+                        <th>
+                            {{ trans('cruds.userSubcrption.fields.carbs') }}
+                        </th>
+                        <th>
+                             Actions
                         </th>
                     </tr>
                 </thead>
@@ -66,32 +64,33 @@
                             <td>
                                 {{ $userSubcrption->id ?? '' }}
                             </td>
-                            <td>
-                                {{ $userSubcrption->selected_days ?? '' }}
-                            </td>
-                            <td>
-                                {{ $userSubcrption->start_date ?? '' }}
-                            </td>
-                            <td>
-                                {{ $userSubcrption->end_date ?? '' }}
-                            </td>
+
                             <td>
                                 {{ $userSubcrption->user->name ?? '' }}
                             </td>
                             <td>
                                 {{ $userSubcrption->subcrption_plans->title ?? '' }}
                             </td>
-                            <td>
-                                {{ $userSubcrption->duration->title ?? '' }}
-                            </td>
-                            <td>
-                                {{ $userSubcrption->price ?? '' }}
-                            </td>
+
+
                             <td>
                                 {{ App\Models\UserSubcrption::PAYMENT_SELECT[$userSubcrption->payment] ?? '' }}
                             </td>
                             <td>
                                 {{ App\Models\UserSubcrption::STATUS_SELECT[$userSubcrption->status] ?? '' }}
+                            </td>
+                            <td>
+                                @if($userSubcrption->is_personalized)
+                                    <span class="badge badge-success">Yes</span>
+                                @else
+                                    <span class="badge badge-secondary">No</span>
+                                @endif
+                            </td>
+                            <td>
+                                {{ $userSubcrption->protein ?? '-' }}
+                            </td>
+                            <td>
+                                {{ $userSubcrption->carbs ?? '-' }}
                             </td>
                             <td>
                                 @can('user_subcrption_show')
@@ -100,11 +99,11 @@
                                     </a>
                                 @endcan
 
-                                @can('user_subcrption_edit')
-                                    <a class="btn btn-xs btn-info" href="{{ route('admin.user-subcrptions.edit', $userSubcrption->id) }}">
-                                        {{ trans('global.edit') }}
-                                    </a>
-                                @endcan
+                                <button type="button" class="btn btn-xs btn-success view-subscription-details" data-subscription-id="{{ $userSubcrption->id }}" data-toggle="modal" data-target="#subscriptionDetailsModal">
+                                    <i class="fas fa-utensils"></i> View Meals
+                                </button>
+
+
 
                                 @can('user_subcrption_delete')
                                     <form action="{{ route('admin.user-subcrptions.destroy', $userSubcrption->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
@@ -172,8 +171,57 @@
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
   });
-  
+
 })
 
+</script>
+
+<!-- Subscription Details Modal -->
+<div class="modal fade" id="subscriptionDetailsModal" tabindex="-1" role="dialog" aria-labelledby="subscriptionDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document" style="max-width: 900px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="subscriptionDetailsModalLabel">Subscription Details & Meals</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="subscriptionDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('.view-subscription-details').on('click', function() {
+        var subscriptionId = $(this).data('subscription-id');
+        var modal = $('#subscriptionDetailsModal');
+        var content = $('#subscriptionDetailsContent');
+
+        // Show loading
+        content.html('<div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div></div>');
+
+        // Fetch subscription details
+        $.ajax({
+            url: '{{ route("admin.user-subcrptions.details", ":id") }}'.replace(':id', subscriptionId),
+            method: 'GET',
+            success: function(response) {
+                content.html(response);
+            },
+            error: function(xhr) {
+                content.html('<div class="alert alert-danger">Error loading subscription details. Please try again.</div>');
+            }
+        });
+    });
+});
 </script>
 @endsection

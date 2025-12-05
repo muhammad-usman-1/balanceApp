@@ -8,6 +8,7 @@ use App\Http\Requests\StoreUserSubcrptionRequest;
 use App\Http\Requests\UpdateUserSubcrptionRequest;
 use App\Models\Duration;
 use App\Models\SubcrptionPlan;
+use App\Models\SubscriptionDay;
 use App\Models\User;
 use App\Models\UserSubcrption;
 use Gate;
@@ -94,5 +95,31 @@ class UserSubcrptionController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Get subscription details with days and meals
+     * 
+     * @param UserSubcrption $userSubcrption
+     * @return \Illuminate\View\View
+     */
+    public function details(UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        // Load all relationships
+        $userSubcrption->load([
+            'user',
+            'subcrption_plans',
+            'duration'
+        ]);
+
+        // Get subscription days with meals
+        $subscriptionDays = SubscriptionDay::where('user_subcrptions_id', $userSubcrption->id)
+            ->with(['subscription_meals.meal'])
+            ->orderByRaw("FIELD(day, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
+            ->get();
+
+        return view('admin.userSubcrptions.details', compact('userSubcrption', 'subscriptionDays'));
     }
 }

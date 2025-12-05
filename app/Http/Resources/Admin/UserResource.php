@@ -17,6 +17,10 @@ class UserResource extends JsonResource
             'height' => $this->height,
             'weight' => $this->weight,
             'dob' => $this->dob,
+            'goal' => $this->goal,
+            'activity_level' => $this->activity_level,
+            'has_food_allergies' => (bool) $this->has_food_allergies,
+            'allergies' => $this->allergies ?? [],
             'otp' => $this->otp,
             'roles' => $this->whenLoaded('roles', function () {
                 return $this->roles->map(function ($role) {

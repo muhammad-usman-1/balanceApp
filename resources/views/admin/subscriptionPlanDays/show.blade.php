@@ -20,7 +20,18 @@
                             {{ trans('cruds.subscriptionPlanDay.fields.id') }}
                         </th>
                         <td>
-                            {{ $subscriptionPlanDay->id }}
+                            {{ $subscriptionDay->id }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            {{ trans('cruds.subscriptionPlanDay.fields.user_subcrption') }}
+                        </th>
+                        <td>
+                            User Subscription #{{ $subscriptionDay->user_subcrptions_id }}
+                            @if($subscriptionDay->user_subcrption)
+                                <br><small class="text-muted">User: {{ $subscriptionDay->user_subcrption->user->name ?? 'N/A' }}</small>
+                            @endif
                         </td>
                     </tr>
                     <tr>
@@ -28,7 +39,7 @@
                             {{ trans('cruds.subscriptionPlanDay.fields.subscription_plans') }}
                         </th>
                         <td>
-                            {{ $subscriptionPlanDay->subscription_plans->title ?? '' }}
+                            {{ $subscriptionDay->user_subcrption->subcrption_plans->title ?? 'N/A' }}
                         </td>
                     </tr>
                     <tr>
@@ -36,7 +47,7 @@
                             {{ trans('cruds.subscriptionPlanDay.fields.day') }}
                         </th>
                         <td>
-                            {{ App\Models\SubscriptionPlanDay::DAY_SELECT[$subscriptionPlanDay->day] ?? '' }}
+                            {{ ucfirst(App\Models\SubscriptionDay::DAY_SELECT[$subscriptionDay->day] ?? $subscriptionDay->day) }}
                         </td>
                     </tr>
                 </tbody>

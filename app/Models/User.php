@@ -25,6 +25,7 @@ class User extends Authenticatable
 
     protected $dates = [
         'email_verified_at',
+        'otp_expires_at',
         'dob',
         'created_at',
         'updated_at',
@@ -38,14 +39,25 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'otp',
+        'otp_expires_at',
+        'country_code',
         'mobile',
         'gender',
         'height',
         'weight',
         'dob',
+        'activity_level',
+        'has_food_allergies',
+        'allergies',
+        'goal',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'allergies' => 'array',
+        'has_food_allergies' => 'boolean',
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -88,6 +100,16 @@ class User extends Authenticatable
     public function subscriptions()
     {
         return $this->hasMany(UserSubcrption::class, 'user_id');
+    }
+
+    public function paymentMethods()
+    {
+        return $this->hasMany(UserPaymentMethod::class);
+    }
+
+    public function addresses()
+    {
+        return $this->hasMany(UserAddress::class);
     }
 
     public function getDobAttribute($value)

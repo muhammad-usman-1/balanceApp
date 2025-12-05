@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\SubscriptionPlanDay;
+use App\Models\SubscriptionDay;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Response;
@@ -17,9 +17,15 @@ class UpdateSubscriptionPlanDayRequest extends FormRequest
     public function rules()
     {
         return [
-            'subscription_plans_id' => [
+            'user_subcrptions_id' => [
                 'required',
                 'integer',
+                'exists:user_subcrptions,id',
+            ],
+            'day' => [
+                'required',
+                'string',
+                'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             ],
         ];
     }

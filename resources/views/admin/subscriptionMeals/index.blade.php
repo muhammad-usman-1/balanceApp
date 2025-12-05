@@ -26,7 +26,7 @@
                             {{ trans('cruds.subscriptionMeal.fields.id') }}
                         </th>
                         <th>
-                            {{ trans('cruds.subscriptionMeal.fields.subscription_plan_days') }}
+                            {{ trans('cruds.subscriptionMeal.fields.subscription_days') }}
                         </th>
                         <th>
                             {{ trans('cruds.subscriptionMeal.fields.meal') }}
@@ -49,13 +49,16 @@
                                 {{ $subscriptionMeal->id ?? '' }}
                             </td>
                             <td>
-                                {{ $subscriptionMeal->subscription_plan_days->day ?? '' }}
+                                {{ $subscriptionMeal->subscription_days->day ?? '' }} 
+                                @if($subscriptionMeal->subscription_days)
+                                    <small class="text-muted">(User Sub: #{{ $subscriptionMeal->subscription_days->user_subcrptions_id }})</small>
+                                @endif
                             </td>
                             <td>
                                 {{ $subscriptionMeal->meal->title ?? '' }}
                             </td>
                             <td>
-                                {{ $subscriptionMeal->type->type ?? '' }}
+                                {{ $subscriptionMeal->type ?? '' }}
                             </td>
                             <td>
                                 @can('subscription_meal_show')

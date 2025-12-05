@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'site_title' => 'balanceApp',
+    'site_title' => 'BalanceApp Admin',
 
 ];

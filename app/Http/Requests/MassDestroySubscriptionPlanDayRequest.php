@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\SubscriptionPlanDay;
+use App\Models\SubscriptionDay;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +20,7 @@ class MassDestroySubscriptionPlanDayRequest extends FormRequest
     {
         return [
             'ids'   => 'required|array',
-            'ids.*' => 'exists:subscription_plan_days,id',
+            'ids.*' => 'exists:subscription_days,id',
         ];
     }
 }

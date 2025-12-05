@@ -20,7 +20,6 @@ class SubscriptionMeal extends Model
     ];
 
     protected $fillable = [
-        'subscription_plan_days_id',
         'subscription_days_id',
         'meal_id',
         'type',
@@ -32,11 +31,6 @@ class SubscriptionMeal extends Model
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');
-    }
-
-    public function subscription_plan_days()
-    {
-        return $this->belongsTo(SubscriptionPlanDay::class, 'subscription_plan_days_id');
     }
 
     public function subscription_days()
