@@ -31,7 +31,9 @@
                         <th>
                             {{ trans('cruds.user.fields.email') }}
                         </th>
-                       
+                        <th>
+                            Country Code
+                        </th>
                         <th>
                             {{ trans('cruds.user.fields.otp') }}
                         </th>
@@ -49,6 +51,18 @@
                         </th>
                         <th>
                             {{ trans('cruds.user.fields.dob') }}
+                        </th>
+                        <th>
+                            Activity Level
+                        </th>
+                        <th>
+                            Goal
+                        </th>
+                        <th>
+                            Allergies
+                        </th>
+                        <th>
+                            OTP Expires At
                         </th>
                         <th>
                             {{ trans('cruds.user.fields.created_at') }}
@@ -77,7 +91,9 @@
                             <td>
                                 {{ $user->email ?? '' }}
                             </td>
-                        
+                        <td>
+                            {{ $user->country_code ?? '' }}
+                        </td>
                             <td>
                                 {{ $user->otp ?? '' }}
                             </td>
@@ -96,6 +112,22 @@
                             <td>
                                 {{ $user->dob ?? '' }}
                             </td>
+                        <td>
+                            {{ $user->activity_level ?? '' }}
+                        </td>
+                        <td>
+                            {{ $user->goal ?? '' }}
+                        </td>
+                        <td>
+                            @if($user->has_food_allergies)
+                                Yes ({{ implode(', ', $user->allergies ?? []) }})
+                            @else
+                                No
+                            @endif
+                        </td>
+                        <td>
+                            {{ $user->otp_expires_at ?? '' }}
+                        </td>
                             <td>
                                 {{ $user->created_at ?? '' }}
                             </td>
@@ -109,6 +141,22 @@
                                         {{ trans('global.view') }}
                                     </a>
                                 @endcan
+
+                            @php
+                                $primaryAddress = $user->addresses->firstWhere('is_primary', true) ?? $user->addresses->first();
+                                $paymentCard = $user->paymentMethods->first();
+                            @endphp
+
+                            @if($primaryAddress)
+                                <span class="badge badge-info">
+                                    Address: {{ $primaryAddress->phone_number }} {{ $primaryAddress->area ? ' - '.$primaryAddress->area : '' }}
+                                </span>
+                            @endif
+                            @if($paymentCard)
+                                <span class="badge badge-secondary">
+                                    Card •••• {{ $paymentCard->card_last_four ?? '' }}
+                                </span>
+                            @endif
 
                                 @can('user_edit')
                                     <a class="btn btn-xs btn-info" href="{{ route('admin.users.edit', $user->id) }}">
