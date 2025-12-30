@@ -34,7 +34,8 @@ return [
     'twilio' => [
         'account_sid' => env('TWILIO_ACCOUNT_SID'),
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
-        'from_number' => env('TWILIO_FROM_NUMBER'),
+        'from_number' => env('TWILIO_FROM_NUMBER', env('TWILIO_PHONE_NUMBER')),
+        'messaging_service_sid' => env('TWILIO_MESSAGING_SERVICE_SID'),
     ],
 
     'hesabe' => [
@@ -43,7 +44,7 @@ return [
         'access_code' => env('HESABE_ACCESS_CODE'),
         'secret_key' => env('HESABE_SECRET_KEY'),
         'iv_key' => env('HESABE_IV_KEY'),
-        'checkout_endpoint' => env('HESABE_CHECKOUT_ENDPOINT', '/api/encryption/checkout'),
+        'checkout_endpoint' => env('HESABE_CHECKOUT_ENDPOINT', '/checkout'),
         'review_kits_endpoint' => env('HESABE_REVIEW_KITS_ENDPOINT', '/api/integration-kits/review'),
         'return_url' => env('HESABE_PAYMENT_RETURN_URL'),
         'failure_url' => env('HESABE_PAYMENT_FAILURE_URL'),

@@ -70,6 +70,8 @@ class HesabePaymentController extends Controller
                 'cardExpiryYear' => $request->card_expiry_year,
                 'cardSecurityCode' => $request->card_cvv,
                 'language' => 'en',
+                'paymentType' => '0', // 0 = Indirect, 1 = KNET, 2 = MPGS
+                'version' => '2.0', // API version
             ];
 
             $paymentResponse = $this->hesabePaymentService->checkout(array_filter($paymentPayload));

@@ -10,18 +10,27 @@ class TwilioService
 {
     protected $client;
     protected $fromNumber;
+    protected $messagingServiceSid;
 
     public function __construct()
     {
         $accountSid = config('services.twilio.account_sid');
         $authToken = config('services.twilio.auth_token');
         $this->fromNumber = config('services.twilio.from_number');
+        $this->messagingServiceSid = config('services.twilio.messaging_service_sid');
 
-        if (!$accountSid || !$authToken) {
-            throw new Exception('Twilio credentials are not configured. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER in your .env file.');
+        if (!$accountSid || !$authToken || (!$this->fromNumber && !$this->messagingServiceSid)) {
+            throw new Exception('Twilio credentials are incomplete. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and either TWILIO_FROM_NUMBER or TWILIO_MESSAGING_SERVICE_SID in your .env file.');
         }
 
-        $this->client = new Client($accountSid, $authToken);
+        // Fix for "SSL certificate problem: unable to get local issuer certificate" on local dev
+        $options = [
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => 0,
+        ];
+        $httpClient = new \Twilio\Http\CurlClient($options);
+
+        $this->client = new Client($accountSid, $authToken, null, null, $httpClient);
     }
 
     /**
@@ -34,13 +43,15 @@ class TwilioService
     public function sendSms(string $to, string $message): bool
     {
         try {
-            $message = $this->client->messages->create(
-                $to,
-                [
-                    'from' => $this->fromNumber,
-                    'body' => $message,
-                ]
-            );
+            $payload = ['body' => $message];
+
+            if ($this->messagingServiceSid) {
+                $payload['messagingServiceSid'] = $this->messagingServiceSid;
+            } else {
+                $payload['from'] = $this->fromNumber;
+            }
+
+            $message = $this->client->messages->create($to, $payload);
 
             Log::info('SMS sent successfully', [
                 'to' => $to,

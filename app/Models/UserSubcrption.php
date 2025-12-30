@@ -105,4 +105,9 @@ class UserSubcrption extends Model
     {
         return $this->belongsTo(UserAddress::class, 'user_address_id');
     }
+
+    public function subscription_days()
+    {
+        return $this->hasMany(SubscriptionDay::class, 'user_subcrptions_id');
+    }
 }

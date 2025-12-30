@@ -39,14 +39,12 @@ class OtpController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'OTP stored and marked as sent successfully.',
+                'message' => 'OTP sent successfully.',
                 'data' => [
                     'country_code' => $result['country_code'],
                     'phone_number' => $result['phone_number'],
-                    'otp_code' => $result['otp_code'], // Include OTP for debugging
                     'expires_at' => $result['expires_at'],
                     'is_sms_sent' => true,
-                    'sms_note' => 'Twilio SMS disabled - using canned OTP for QA.',
                 ],
             ], Response::HTTP_OK);
 
@@ -78,28 +76,34 @@ class OtpController extends Controller
                 $responseCountryCode = $result['country_code'] ?? $countryCode;
                 $responsePhoneNumber = $result['phone_number'] ?? '+' . preg_replace('/[^0-9]/', '', $countryCode . $phoneNumber);
 
-                $hasUserData = $this->hasUserProfileData($user);
+                $userExists = $this->hasUserProfileData($user);
 
-                if (! $hasUserData) {
+                if (! $userExists) {
                     return response()->json([
                         'success' => true,
-                        'message' => 'OTP verified. User data not found, please complete registration.',
+                        'message' => 'OTP verified. User profile incomplete.',
+                        'user_exists' => false,
                         'data' => [
                             'country_code' => $responseCountryCode,
                             'phone_number' => $responsePhoneNumber,
-                            'verified' => true,
-                            'user_data_exists' => false,
-                            'user' => null,
-                            'active_subscription' => null,
                         ],
                     ], Response::HTTP_OK);
                 }
+
+                // If user exists (profile complete), fetch details
+
+                // Load addresses
+                $user->load('addresses');
 
                 // Get active subscription
                 $activeSubscription = UserSubcrption::where('user_id', $user->id)
                     ->where('status', 'active')
                     ->whereDate('end_date', '>=', Carbon::today())
-                    ->with(['subcrption_plans', 'duration'])
+                    ->with([
+                        'subcrption_plans', 
+                        'duration', 
+                        'subscription_days.subscription_meals.meal'
+                    ])
                     ->latest()
                     ->first();
 
@@ -120,19 +124,20 @@ class OtpController extends Controller
                         'is_personalized' => $activeSubscription->is_personalized ?? false,
                         'protein' => $activeSubscription->protein,
                         'carbs' => $activeSubscription->carbs,
+                        'subscription_days' => $activeSubscription->subscription_days,
                     ];
                 }
 
                 return response()->json([
                     'success' => true,
-                    'message' => $result['message'],
+                    'message' => 'OTP verified successfully.',
+                    'user_exists' => true,
                     'data' => [
-                            'country_code' => $responseCountryCode,
-                            'phone_number' => $responsePhoneNumber,
-                        'verified' => true,
-                        'user_data_exists' => true,
+                        'country_code' => $responseCountryCode,
+                        'phone_number' => $responsePhoneNumber,
                         'user' => new UserResource($user->load('roles')),
-                        'active_subscription' => $subscriptionData,
+                        'addresses' => $user->addresses,
+                        'subscription' => $subscriptionData,
                     ],
                 ], Response::HTTP_OK);
             } else {

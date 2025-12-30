@@ -10,6 +10,12 @@ use Exception;
 class OtpService
 {
     protected $expirationMinutes = 10;
+    protected $twilioService;
+
+    public function __construct(TwilioService $twilioService)
+    {
+        $this->twilioService = $twilioService;
+    }
 
     /**
      * Generate a random 4-digit OTP code
@@ -18,8 +24,7 @@ class OtpService
      */
     protected function generateOtpCode(): int
     {
-        // Temporary override: always send the canned OTP expected by QA
-        return 1234;
+        return random_int(1000, 9999);
     }
 
     /**
@@ -67,14 +72,10 @@ class OtpService
                 ]);
             }
 
-            // Twilio SMS integration is temporarily disabled; record for auditing instead
             $e164Phone = '+' . $mobileNumber;
 
-            Log::info('SMS sending skipped - using canned OTP', [
-                'phone_number' => $e164Phone,
-                'country_code' => $normalizedCountryCode,
-                'mobile' => $mobileNumber,
-            ]);
+            // Send OTP through Twilio
+            $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
 
             Log::info('OTP generated and sent', [
                 'phone_number' => $e164Phone,
@@ -86,7 +87,6 @@ class OtpService
             return [
                 'success' => true,
                 'message' => 'OTP sent successfully',
-                'otp_code' => $otpCode, // Include OTP for debugging
                 'expires_at' => $expiresAt->toIso8601String(),
                 'phone_number' => $e164Phone,
                 'country_code' => $normalizedCountryCode,
