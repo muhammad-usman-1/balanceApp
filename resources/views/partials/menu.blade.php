@@ -2,7 +2,7 @@
     <!-- Brand Logo -->
     <a href="{{ route('admin.home') }}" class="brand-link brand-link-modern" style=" text-align: center; ">
 
-        <span class="brand-text font-weight-bold" style=" text-align: center; ">{{ trans('panel.site_title') }}</span>
+        <span class="brand-text font-weight-bold" style=" text-align: center; ">BalanceApp Admin Management</span>
     </a>
 
     <!-- Sidebar -->
