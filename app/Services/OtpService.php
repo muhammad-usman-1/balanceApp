@@ -19,12 +19,18 @@ class OtpService
 
     /**
      * Generate a random 4-digit OTP code
+     * 
+     * NOTE: Currently disabled - always returns 1234 for testing
      *
      * @return int
      */
     protected function generateOtpCode(): int
     {
-        return random_int(1000, 9999);
+        // Always generate OTP as 1234 for testing
+        return 1234;
+        
+        // Original random generation (disabled)
+        // return random_int(1000, 9999);
     }
 
     /**
@@ -74,10 +80,11 @@ class OtpService
 
             $e164Phone = '+' . $mobileNumber;
 
+            // Twilio service disabled for testing
             // Send OTP through Twilio
-            $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
+            // $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
 
-            Log::info('OTP generated and sent', [
+            Log::info('OTP generated and saved (Twilio disabled)', [
                 'phone_number' => $e164Phone,
                 'country_code' => $normalizedCountryCode,
                 'mobile' => $mobileNumber,

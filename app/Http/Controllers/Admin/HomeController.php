@@ -7,6 +7,9 @@ use App\Models\Meal;
 use App\Models\UserSubcrption;
 use App\Models\Category;
 use App\Models\SubscriptionMeal;
+use App\Models\Coupon;
+use App\Models\Area;
+use App\Models\Branch;
 use Carbon\Carbon;
 
 class HomeController
@@ -41,6 +44,14 @@ class HomeController
         // Payment statistics
         $paidSubscriptions = UserSubcrption::where('payment', 'paid')->count();
         $pendingSubscriptions = UserSubcrption::where('payment', 'pending')->count();
+        
+        // Coupon statistics
+        $totalCoupons = Coupon::count();
+        $activeCoupons = Coupon::where('status', 'active')->count();
+        
+        // Area and Branch statistics
+        $totalAreas = Area::count();
+        $totalBranches = Branch::count();
 
         return view('home', compact(
             'totalUsers',
@@ -54,7 +65,11 @@ class HomeController
             'todayMeals',
             'monthlySubscriptions',
             'paidSubscriptions',
-            'pendingSubscriptions'
+            'pendingSubscriptions',
+            'totalCoupons',
+            'activeCoupons',
+            'totalAreas',
+            'totalBranches'
         ));
     }
 }

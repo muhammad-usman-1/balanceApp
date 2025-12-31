@@ -103,3 +103,19 @@ div.dt-button-collection {
     background-color: rgba(128, 128, 128, 0.1);
     font-weight: bolder;
 }
+
+/* Sidebar Width Override */
+.main-sidebar {
+    width: 280px !important;
+}
+
+@media (min-width: 769px) {
+    .content-wrapper,
+    .main-footer {
+        margin-left: 280px !important;
+    }
+    
+    .main-header {
+        margin-left: 280px !important;
+    }
+}

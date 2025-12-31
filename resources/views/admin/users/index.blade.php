@@ -28,15 +28,8 @@
                         <th>
                             {{ trans('cruds.user.fields.name') }}
                         </th>
-                        <th>
-                            {{ trans('cruds.user.fields.email') }}
-                        </th>
-                        <th>
-                            Country Code
-                        </th>
-                        <th>
-                            {{ trans('cruds.user.fields.otp') }}
-                        </th>
+
+
                         <th>
                             {{ trans('cruds.user.fields.mobile') }}
                         </th>
@@ -61,16 +54,12 @@
                         <th>
                             Allergies
                         </th>
-                        <th>
-                            OTP Expires At
-                        </th>
+
                         <th>
                             {{ trans('cruds.user.fields.created_at') }}
                         </th>
-                        <th>
-                            {{ trans('cruds.user.fields.updated_at') }}
-                        </th>
-                        
+
+
                         <th>
                            Actions
                         </th>
@@ -88,15 +77,7 @@
                             <td>
                                 {{ $user->name ?? '' }}
                             </td>
-                            <td>
-                                {{ $user->email ?? '' }}
-                            </td>
-                        <td>
-                            {{ $user->country_code ?? '' }}
-                        </td>
-                            <td>
-                                {{ $user->otp ?? '' }}
-                            </td>
+
                             <td>
                                 {{ $user->mobile ?? '' }}
                             </td>
@@ -125,16 +106,11 @@
                                 No
                             @endif
                         </td>
-                        <td>
-                            {{ $user->otp_expires_at ?? '' }}
-                        </td>
+
                             <td>
                                 {{ $user->created_at ?? '' }}
                             </td>
-                            <td>
-                                {{ $user->updated_at ?? '' }}
-                            </td>
-                          
+                        
                             <td>
                                 @can('user_show')
                                     <a class="btn btn-xs btn-primary" href="{{ route('admin.users.show', $user->id) }}">
@@ -230,7 +206,7 @@
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
   });
-  
+
 })
 
 </script>

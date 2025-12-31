@@ -56,6 +56,22 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('categories/{id}/restore', 'CategoryController@restore')->name('categories.restore');
     Route::delete('categories/{id}/force-delete', 'CategoryController@forceDelete')->name('categories.force-delete');
     Route::resource('categories', 'CategoryController');
+
+    // Areas
+    Route::resource('areas', 'AreaController');
+
+    // Branches
+    Route::resource('branches', 'BranchController');
+
+    // Coupons
+    Route::resource('coupons', 'CouponController');
+
+    // Settings (only edit/update, admin only)
+    Route::get('settings', 'SettingsController@edit')->name('settings.edit');
+    Route::put('settings', 'SettingsController@update')->name('settings.update');
+
+    // Notifications
+    Route::resource('notifications', 'NotificationController');
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
     // Change password
