@@ -42,6 +42,9 @@
                             {{ trans('cruds.userSubcrption.fields.status') }}
                         </th>
                         <th>
+                            Pause Status
+                        </th>
+                        <th>
                             {{ trans('cruds.userSubcrption.fields.is_personalized') }}
                         </th>
                         <th>
@@ -80,6 +83,15 @@
                                 {{ App\Models\UserSubcrption::STATUS_SELECT[$userSubcrption->status] ?? '' }}
                             </td>
                             <td>
+                                @if($userSubcrption->is_paused)
+                                    <span class="badge badge-warning">Paused</span>
+                                    <br>
+                                    <small>{{ $userSubcrption->total_paused_days ?? 0 }} days</small>
+                                @else
+                                    <span class="badge badge-success">Active</span>
+                                @endif
+                            </td>
+                            <td>
                                 @if($userSubcrption->is_personalized)
                                     <span class="badge badge-success">Yes</span>
                                 @else
@@ -98,6 +110,12 @@
                                         {{ trans('global.view') }}
                                     </a>
                                 @endcan
+                                
+                                @if($userSubcrption->pause_logs()->count() > 0)
+                                    <a class="btn btn-xs btn-info" href="{{ route('admin.user-subcrptions.pause-logs', $userSubcrption->id) }}" title="View Pause/Resume History">
+                                        <i class="fas fa-history"></i> Logs
+                                    </a>
+                                @endif
 
                                 <button type="button" class="btn btn-xs btn-success view-subscription-details" data-subscription-id="{{ $userSubcrption->id }}" data-toggle="modal" data-target="#subscriptionDetailsModal">
                                     <i class="fas fa-utensils"></i> View Meals

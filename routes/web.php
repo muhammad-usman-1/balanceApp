@@ -42,6 +42,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // User Subcrption
     Route::delete('user-subcrptions/destroy', 'UserSubcrptionController@massDestroy')->name('user-subcrptions.massDestroy');
     Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');
+    Route::post('user-subcrptions/{userSubcrption}/pause', 'UserSubcrptionController@pause')->name('user-subcrptions.pause');
+    Route::post('user-subcrptions/{userSubcrption}/resume', 'UserSubcrptionController@resume')->name('user-subcrptions.resume');
+    Route::get('user-subcrptions/{userSubcrption}/pause-logs', 'UserSubcrptionController@pauseLogs')->name('user-subcrptions.pause-logs');
     Route::resource('user-subcrptions', 'UserSubcrptionController');
 
     // Subscription Plan Days (now shows subscription_days data)
@@ -64,6 +67,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::resource('branches', 'BranchController');
 
     // Coupons
+    Route::get('coupons/{coupon}/usage-history', 'CouponController@usageHistory')->name('coupons.usage-history');
     Route::resource('coupons', 'CouponController');
 
     // Settings (only edit/update, admin only)
@@ -72,6 +76,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // Notifications
     Route::resource('notifications', 'NotificationController');
+
+    // Affiliated Codes
+    Route::post('affiliated-codes/generate-code', 'AffiliatedCodeController@generateCode')->name('affiliated-codes.generate-code');
+    Route::resource('affiliated-codes', 'AffiliatedCodeController');
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
     // Change password

@@ -71,6 +71,12 @@ class RegisterUserRequest extends FormRequest
                 'required',
                 'boolean',
             ],
+            'affiliated_code' => [
+                'nullable',
+                'string',
+                'max:50',
+                'exists:affiliated_codes,code',
+            ],
             'allergies' => [
                 Rule::requiredIf($this->boolean('has_food_allergies')),
                 'nullable',

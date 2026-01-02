@@ -46,6 +46,10 @@ Route::post('login', function (Request $request) {
             'is_personalized' => $activeSubscription->is_personalized ?? false,
             'protein' => $activeSubscription->protein,
             'carbs' => $activeSubscription->carbs,
+            'is_paused' => $activeSubscription->is_paused ?? false,
+            'paused_at' => $activeSubscription->paused_at,
+            'paused_until' => $activeSubscription->paused_until,
+            'total_paused_days' => $activeSubscription->total_paused_days ?? 0,
         ];
     }
 
@@ -94,4 +98,14 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
 
     // Subscription Meals - Update meal for any day
     Route::post('subscription/meals/update', 'SubscriptionMealApiController@updateMeal')->name('subscription.meals.update');
+
+    // Coupon validation
+    Route::post('coupons/validate', 'CouponApiController@validateCoupon')->name('coupons.validate');
+});
+
+// Authenticated user routes for subscription pause/resume
+Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']], function () {
+    Route::post('subscription/{subscriptionId}/pause', 'Api\V1\Admin\SubscriptionPauseApiController@pause')->name('subscription.pause');
+    Route::post('subscription/{subscriptionId}/resume', 'Api\V1\Admin\SubscriptionPauseApiController@resume')->name('subscription.resume');
+    Route::get('subscription/{subscriptionId}/pause-logs', 'Api\V1\Admin\SubscriptionPauseApiController@pauseLogs')->name('subscription.pause-logs');
 });

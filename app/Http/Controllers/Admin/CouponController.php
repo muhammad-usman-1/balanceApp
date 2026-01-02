@@ -11,7 +11,7 @@ class CouponController extends Controller
 {
     public function index()
     {
-        $coupons = Coupon::withTrashed()->orderBy('created_at', 'desc')->get();
+        $coupons = Coupon::withTrashed()->withCount('usages')->orderBy('created_at', 'desc')->get();
         return view('admin.coupons.index', compact('coupons'));
     }
 
@@ -29,6 +29,7 @@ class CouponController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'status' => 'required|in:active,inactive',
+            'usage_limit_per_user' => 'nullable|integer|min:1',
         ]);
 
         // Additional validation for percentage type
@@ -44,7 +45,8 @@ class CouponController extends Controller
             'value',
             'start_date',
             'end_date',
-            'status'
+            'status',
+            'usage_limit_per_user'
         ]));
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon created successfully');
@@ -64,6 +66,7 @@ class CouponController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'status' => 'required|in:active,inactive',
+            'usage_limit_per_user' => 'nullable|integer|min:1',
         ]);
 
         // Additional validation for percentage type
@@ -79,7 +82,8 @@ class CouponController extends Controller
             'value',
             'start_date',
             'end_date',
-            'status'
+            'status',
+            'usage_limit_per_user'
         ]));
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon updated successfully');
@@ -89,6 +93,27 @@ class CouponController extends Controller
     {
         $coupon->delete();
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon deleted successfully');
+    }
+
+    /**
+     * Show coupon usage history
+     * 
+     * @param Coupon $coupon
+     * @return \Illuminate\View\View
+     */
+    public function usageHistory(Coupon $coupon)
+    {
+        $coupon->load(['usages.user']);
+        $usages = $coupon->usages()->with('user')->orderBy('created_at', 'desc')->get();
+        
+        // Group by user to show usage count per user
+        $userUsageCounts = $coupon->usages()
+            ->selectRaw('user_id, COUNT(*) as usage_count')
+            ->groupBy('user_id')
+            ->with('user')
+            ->get();
+
+        return view('admin.coupons.usage-history', compact('coupon', 'usages', 'userUsageCounts'));
     }
 }
 

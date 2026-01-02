@@ -41,7 +41,7 @@
                     </tr>
                     <tr>
                         <th>
-                            {{ trans('cruds.subcrptionPlan.fields.price') }}
+                            Price per Week
                         </th>
                         <td>
                             {{ $subcrptionPlan->price }}

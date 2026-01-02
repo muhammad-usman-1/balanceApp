@@ -50,6 +50,7 @@ class User extends Authenticatable
         'has_food_allergies',
         'allergies',
         'goal',
+        'affiliated_code_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -110,6 +111,11 @@ class User extends Authenticatable
     public function addresses()
     {
         return $this->hasMany(UserAddress::class);
+    }
+
+    public function affiliatedCode()
+    {
+        return $this->belongsTo(AffiliatedCode::class, 'affiliated_code_id');
     }
 
     public function getDobAttribute($value)

@@ -64,9 +64,25 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
-            <button type="submit" class="btn btn-success">Update</button>
-            <a href="{{ route('admin.coupons.index') }}" class="btn btn-secondary">Back</a>
-        </form>
+            <div class="form-group">
+                <label for="usage_limit_per_user">Usage Limit Per User</label>
+                <input type="number" name="usage_limit_per_user" id="usage_limit_per_user" 
+                       class="form-control @error('usage_limit_per_user') is-invalid @enderror" 
+                       value="{{ old('usage_limit_per_user', $coupon->usage_limit_per_user) }}" min="1" placeholder="Leave empty for unlimited">
+                <small class="form-text text-muted">
+                    Maximum number of times a single user can use this coupon. Leave empty for unlimited usage.
+                </small>
+                @error('usage_limit_per_user')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+                <button type="submit" class="btn btn-success">Update</button>
+                <a href="{{ route('admin.coupons.index') }}" class="btn btn-secondary">Back</a>
+            </form>
+            </div>
+        </div>
+    </div>
+</div>
     </div>
 </div>
 

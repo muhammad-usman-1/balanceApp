@@ -32,7 +32,7 @@
                             {{ trans('cruds.subcrptionPlan.fields.description') }}
                         </th>
                         <th>
-                            {{ trans('cruds.subcrptionPlan.fields.price') }}
+                            Price per Week
                         </th>
                         <th>
                             {{ trans('cruds.subcrptionPlan.fields.meal_count') }}
@@ -49,7 +49,7 @@
                         <th>
                             {{ trans('cruds.subcrptionPlan.fields.updated_at') }}
                         </th>
-                        
+
                         <th>
                              Actions
                         </th>
@@ -89,7 +89,7 @@
                             <td>
                                 {{ $subcrptionPlan->updated_at ?? '' }}
                             </td>
-                            
+
                             <td>
                                 @can('subcrption_plan_show')
                                     <a class="btn btn-xs btn-primary" href="{{ route('admin.subcrption-plans.show', $subcrptionPlan->id) }}">
@@ -169,7 +169,7 @@
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
   });
-  
+
 })
 
 </script>

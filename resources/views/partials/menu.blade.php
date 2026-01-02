@@ -53,6 +53,24 @@
                             </a>
                         </li>
                         @endcan
+                        @can('role_access')
+                        <li class="nav-item modern-submenu-item">
+                            <a href="{{ route('admin.roles.index') }}"
+                               class="nav-link modern-submenu-link {{ request()->is('admin/roles*') ? 'active' : '' }}">
+                                <i class="fas fa-circle submenu-dot"></i>
+                                <p>{{ trans('cruds.role.title') }}</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('permission_access')
+                        <li class="nav-item modern-submenu-item">
+                            <a href="{{ route('admin.permissions.index') }}"
+                               class="nav-link modern-submenu-link {{ request()->is('admin/permissions*') ? 'active' : '' }}">
+                                <i class="fas fa-circle submenu-dot"></i>
+                                <p>{{ trans('cruds.permission.title') }}</p>
+                            </a>
+                        </li>
+                        @endcan
                     </ul>
                 </li>
                 @endcan
@@ -181,6 +199,18 @@
                             <i class="nav-icon fas fa-bell"></i>
                         </div>
                         <p class="nav-text">Notification Management</p>
+                        <span class="nav-badge"></span>
+                    </a>
+                </li>
+
+                <!-- Affiliated Codes -->
+                <li class="nav-item modern-nav-item">
+                    <a href="{{ route('admin.affiliated-codes.index') }}"
+                       class="nav-link modern-nav-link {{ request()->is('admin/affiliated-codes*') ? 'active' : '' }}">
+                        <div class="nav-icon-wrapper">
+                            <i class="nav-icon fas fa-ticket-alt"></i>
+                        </div>
+                        <p class="nav-text">Affiliated Codes</p>
                         <span class="nav-badge"></span>
                     </a>
                 </li>

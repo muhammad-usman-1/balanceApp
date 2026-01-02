@@ -27,7 +27,7 @@
                 <span class="help-block">{{ trans('cruds.subcrptionPlan.fields.description_helper') }}</span>
             </div>
             <div class="form-group">
-                <label for="price">{{ trans('cruds.subcrptionPlan.fields.price') }}</label>
+                <label for="price">Price per Week</label>
                 <input class="form-control {{ $errors->has('price') ? 'is-invalid' : '' }}" type="number" name="price" id="price" value="{{ old('price', $subcrptionPlan->price) }}" step="0.01">
                 @if($errors->has('price'))
                     <span class="text-danger">{{ $errors->first('price') }}</span>

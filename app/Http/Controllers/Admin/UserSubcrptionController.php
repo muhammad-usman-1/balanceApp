@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateUserSubcrptionRequest;
 use App\Models\Duration;
 use App\Models\SubcrptionPlan;
 use App\Models\SubscriptionDay;
+use App\Models\SubscriptionPauseLog;
 use App\Models\User;
 use App\Models\UserSubcrption;
 use Gate;
@@ -121,5 +122,97 @@ class UserSubcrptionController extends Controller
             ->get();
 
         return view('admin.userSubcrptions.details', compact('userSubcrption', 'subscriptionDays'));
+    }
+
+    /**
+     * Pause a subscription
+     * 
+     * @param Request $request
+     * @param UserSubcrption $userSubcrption
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function pause(Request $request, UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validate([
+            'days' => 'required|integer|min:1|max:365',
+            'reason' => 'nullable|string|max:1000',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $performedByName = auth()->user()->name ?? 'Admin';
+        $performedById = auth()->id();
+
+        $result = $userSubcrption->pause(
+            $request->days,
+            $request->reason,
+            'admin',
+            $performedById,
+            $performedByName,
+            $request->notes
+        );
+
+        if (is_array($result) && $result['success']) {
+            return redirect()->back()->with('success', $result['message']);
+        }
+
+        $errorMessage = is_array($result) && isset($result['message']) 
+            ? $result['message'] 
+            : 'Unable to pause subscription. It may already be paused or inactive.';
+        
+        return redirect()->back()->with('error', $errorMessage);
+    }
+
+    /**
+     * Resume a subscription
+     * 
+     * @param Request $request
+     * @param UserSubcrption $userSubcrption
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function resume(Request $request, UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validate([
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $performedByName = auth()->user()->name ?? 'Admin';
+        $performedById = auth()->id();
+
+        $result = $userSubcrption->resume(
+            'admin',
+            $performedById,
+            $performedByName,
+            $request->notes
+        );
+
+        if (is_array($result) && $result['success']) {
+            return redirect()->back()->with('success', $result['message']);
+        }
+
+        $errorMessage = is_array($result) && isset($result['message']) 
+            ? $result['message'] 
+            : 'Unable to resume subscription. It may not be paused or may be inactive.';
+        
+        return redirect()->back()->with('error', $errorMessage);
+    }
+
+    /**
+     * Show pause/resume logs for a subscription
+     * 
+     * @param UserSubcrption $userSubcrption
+     * @return \Illuminate\View\View
+     */
+    public function pauseLogs(UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $userSubcrption->load('user', 'subcrption_plans');
+        $pauseLogs = $userSubcrption->pause_logs()->orderBy('action_timestamp', 'desc')->get();
+
+        return view('admin.userSubcrptions.pause-logs', compact('userSubcrption', 'pauseLogs'));
     }
 }

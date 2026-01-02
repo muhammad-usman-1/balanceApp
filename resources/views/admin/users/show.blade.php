@@ -38,6 +38,28 @@
                     <tr><th>Goal</th><td>{{ $user->goal }}</td></tr>
                     <tr><th>Has Food Allergies</th><td>{{ $user->has_food_allergies ? 'Yes' : 'No' }}</td></tr>
                     <tr><th>Allergies</th><td>{{ $user->allergies ? implode(', ', $user->allergies) : '' }}</td></tr>
+                    <tr>
+                        <th>Affiliated Code</th>
+                        <td>
+                            @if($user->affiliatedCode)
+                                <span class="badge badge-info">{{ $user->affiliatedCode->code }}</span>
+                                <br>
+                                <small>
+                                    <strong>Name:</strong> {{ $user->affiliatedCode->full_name }}<br>
+                                    <strong>Gift:</strong> 
+                                    @if($user->affiliatedCode->gift_type === 'percentage')
+                                        {{ number_format($user->affiliatedCode->gift_value, 2) }}%
+                                    @else
+                                        {{ number_format($user->affiliatedCode->gift_value, 2) }}
+                                    @endif
+                                </small>
+                            @else
+                                <span class="badge badge-secondary">No affiliated code</span>
+                                <br>
+                                <small class="text-muted">User registered without an affiliated code</small>
+                            @endif
+                        </td>
+                    </tr>
                     <tr><th>OTP Expires At</th><td>{{ $user->otp_expires_at }}</td></tr>
                     <tr><th>Created At</th><td>{{ $user->created_at }}</td></tr>
                     <tr><th>Updated At</th><td>{{ $user->updated_at }}</td></tr>

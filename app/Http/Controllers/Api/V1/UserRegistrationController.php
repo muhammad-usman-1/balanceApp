@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CheckUserExistsRequest;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Resources\Admin\UserResource;
+use App\Models\AffiliatedCode;
 use App\Models\User;
 use App\Models\UserSubcrption;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,20 @@ class UserRegistrationController extends Controller
             $hasFoodAllergies = $request->boolean('has_food_allergies');
             $allergies = $hasFoodAllergies ? array_values($request->input('allergies', [])) : null;
 
+            // Handle affiliated code if provided
+            $affiliatedCodeId = null;
+            if ($request->has('affiliated_code') && !empty($request->affiliated_code)) {
+                $affiliatedCode = AffiliatedCode::where('code', strtoupper($request->affiliated_code))
+                    ->where('is_active', true)
+                    ->first();
+                
+                if ($affiliatedCode) {
+                    $affiliatedCodeId = $affiliatedCode->id;
+                    // Increment usage count
+                    $affiliatedCode->incrementUsage();
+                }
+            }
+
             // Prepare user data
             // Convert phone_number string to integer to match database schema
             $userData = [
@@ -47,6 +62,7 @@ class UserRegistrationController extends Controller
                 'activity_level' => $request->activity_level,
                 'has_food_allergies' => $hasFoodAllergies,
                 'allergies' => $allergies,
+                'affiliated_code_id' => $affiliatedCodeId,
                 // No password required - user can login with mobile + OTP
             ];
 

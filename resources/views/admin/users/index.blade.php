@@ -58,8 +58,9 @@
                         <th>
                             {{ trans('cruds.user.fields.created_at') }}
                         </th>
-
-
+                        <th>
+                            Affiliated Code
+                        </th>
                         <th>
                            Actions
                         </th>
@@ -110,7 +111,15 @@
                             <td>
                                 {{ $user->created_at ?? '' }}
                             </td>
-                        
+                            <td>
+                                @if($user->affiliatedCode)
+                                    <span class="badge badge-info" title="{{ $user->affiliatedCode->full_name }}">
+                                        {{ $user->affiliatedCode->code }}
+                                    </span>
+                                @else
+                                    <span class="badge badge-secondary">None</span>
+                                @endif
+                            </td>
                             <td>
                                 @can('user_show')
                                     <a class="btn btn-xs btn-primary" href="{{ route('admin.users.show', $user->id) }}">
