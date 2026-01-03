@@ -36,8 +36,6 @@
                                 <th>ID</th>
                                 <th>Full Name</th>
                                 <th>Code</th>
-                                <th>Gift Type</th>
-                                <th>Gift Value</th>
                                 <th>Status</th>
                                 <th>Usage Count</th>
                                 <th>Actions</th>
@@ -50,16 +48,6 @@
                                 <td>{{ $code->full_name }}</td>
                                 <td>
                                     <strong class="text-primary">{{ $code->code }}</strong>
-                                </td>
-                                <td>
-                                    <span class="badge badge-info">{{ ucfirst($code->gift_type) }}</span>
-                                </td>
-                                <td>
-                                    @if($code->gift_type === 'percentage')
-                                        {{ number_format($code->gift_value, 2) }}%
-                                    @else
-                                        {{ number_format($code->gift_value, 2) }}
-                                    @endif
                                 </td>
                                 <td>
                                     @if($code->is_active)
@@ -79,6 +67,9 @@
                                         <a href="{{ route('admin.affiliated-codes.edit', $code->id) }}" class="btn btn-sm btn-warning" title="Edit">
                                             <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
                                         </a>
+                                        <a href="{{ route('admin.affiliated-codes.logs', $code->id) }}" class="btn btn-sm btn-secondary" title="Logs">
+                                            <i class="fas fa-list"></i> <span class="d-none d-md-inline">Logs</span>
+                                        </a>
                                         <form action="{{ route('admin.affiliated-codes.destroy', $code->id) }}" method="POST" style="display:inline-block;">
                                             @csrf
                                             @method('DELETE')
@@ -91,7 +82,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center">No affiliated codes found.</td>
+                                <td colspan="6" class="text-center">No affiliated codes found.</td>
                             </tr>
                             @endforelse
                         </tbody>

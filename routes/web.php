@@ -79,6 +79,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // Affiliated Codes
     Route::post('affiliated-codes/generate-code', 'AffiliatedCodeController@generateCode')->name('affiliated-codes.generate-code');
+    Route::get('affiliated-codes/{affiliatedCode}/logs', 'AffiliatedCodeController@logs')->name('affiliated-codes.logs');
     Route::resource('affiliated-codes', 'AffiliatedCodeController');
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

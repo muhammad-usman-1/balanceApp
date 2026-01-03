@@ -175,6 +175,24 @@
 <script>
     $(function () {
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
+  
+  // Affiliate Users Filter Button
+  let affiliateUsersFilterActive = {{ request('affiliate_users') ? 'true' : 'false' }};
+  let affiliateUsersButton = {
+    text: 'Affiliate Users',
+    className: affiliateUsersFilterActive ? 'btn-info active' : 'btn-info',
+    action: function (e, dt, node, config) {
+      var url = new URL(window.location.href);
+      if (affiliateUsersFilterActive) {
+        url.searchParams.delete('affiliate_users');
+      } else {
+        url.searchParams.set('affiliate_users', '1');
+      }
+      window.location.href = url.toString();
+    }
+  }
+  dtButtons.push(affiliateUsersButton)
+
 @can('user_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}'
   let deleteButton = {

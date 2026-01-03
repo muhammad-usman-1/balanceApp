@@ -40,37 +40,6 @@
             </div>
 
             <div class="form-group">
-                <label for="gift_type">Gift Type <span class="text-danger">*</span></label>
-                <select class="form-control @error('gift_type') is-invalid @enderror" 
-                        id="gift_type" name="gift_type" required>
-                    <option value="">Select Gift Type</option>
-                    <option value="percentage" {{ old('gift_type') === 'percentage' ? 'selected' : '' }}>Percentage</option>
-                    <option value="fixed" {{ old('gift_type') === 'fixed' ? 'selected' : '' }}>Fixed Amount</option>
-                </select>
-                @error('gift_type')
-                    <span class="invalid-feedback">{{ $message }}</span>
-                @enderror
-            </div>
-
-            <div class="form-group">
-                <label for="gift_value">Gift Value <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <input type="number" step="0.01" min="0" 
-                           class="form-control @error('gift_value') is-invalid @enderror" 
-                           id="gift_value" name="gift_value" value="{{ old('gift_value') }}" required>
-                    <div class="input-group-append">
-                        <span class="input-group-text" id="gift_type_suffix">%</span>
-                    </div>
-                </div>
-                <small class="form-text text-muted" id="gift_value_help">
-                    Enter percentage value (0-100)
-                </small>
-                @error('gift_value')
-                    <span class="invalid-feedback d-block">{{ $message }}</span>
-                @enderror
-            </div>
-
-            <div class="form-group">
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="1"
                            {{ old('is_active') === '1' || old('is_active') === 1 ? 'checked' : '' }}>
@@ -134,27 +103,6 @@ $(document).ready(function() {
         });
     });
 
-    // Update gift type suffix and help text
-    $('#gift_type').on('change', function() {
-        var type = $(this).val();
-        var suffix = $('#gift_type_suffix');
-        var help = $('#gift_value_help');
-        
-        if (type === 'percentage') {
-            suffix.text('%');
-            help.text('Enter percentage value (0-100)');
-            $('#gift_value').attr('max', '100');
-        } else if (type === 'fixed') {
-            suffix.text('');
-            help.text('Enter fixed amount value');
-            $('#gift_value').removeAttr('max');
-        }
-    });
-
-    // Trigger on page load if value exists
-    if ($('#gift_type').val()) {
-        $('#gift_type').trigger('change');
-    }
 });
 </script>
 @endsection

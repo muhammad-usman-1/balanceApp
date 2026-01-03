@@ -14,11 +14,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UsersController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('user_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $users = User::with(['roles', 'addresses', 'paymentMethods', 'affiliatedCode'])->get();
+        $query = User::with(['roles', 'addresses', 'paymentMethods', 'affiliatedCode']);
+
+        // Filter for affiliate users if requested
+        if ($request->has('affiliate_users') && $request->affiliate_users == '1') {
+            $query->whereNotNull('affiliated_code_id');
+        }
+
+        $users = $query->get();
 
         return view('admin.users.index', compact('users'));
     }

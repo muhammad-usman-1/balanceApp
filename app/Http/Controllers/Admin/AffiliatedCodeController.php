@@ -24,8 +24,6 @@ class AffiliatedCodeController extends Controller
         $request->validate([
             'full_name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50|unique:affiliated_codes,code',
-            'gift_type' => 'required|in:percentage,fixed',
-            'gift_value' => 'required|numeric|min:0',
             'is_active' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -37,18 +35,11 @@ class AffiliatedCodeController extends Controller
             $code = strtoupper($request->code);
         }
 
-        // Validate gift value based on type
-        if ($request->gift_type === 'percentage' && $request->gift_value > 100) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['gift_value' => 'Percentage value cannot exceed 100.']);
-        }
-
         AffiliatedCode::create([
             'full_name' => $request->full_name,
             'code' => $code,
-            'gift_type' => $request->gift_type,
-            'gift_value' => $request->gift_value,
+            'gift_type' => 'percentage', // Dummy value - will be handled properly later
+            'gift_value' => 0, // Dummy value - will be handled properly later
             'is_active' => $request->has('is_active') && $request->is_active == '1' ? true : false,
             'notes' => $request->notes,
         ]);
@@ -62,6 +53,14 @@ class AffiliatedCodeController extends Controller
         return view('admin.affiliatedCodes.show', compact('affiliatedCode'));
     }
 
+    public function logs(AffiliatedCode $affiliatedCode)
+    {
+        $affiliatedCode->load(['users' => function($query) {
+            $query->orderBy('created_at', 'desc');
+        }]);
+        return view('admin.affiliatedCodes.logs', compact('affiliatedCode'));
+    }
+
     public function edit(AffiliatedCode $affiliatedCode)
     {
         return view('admin.affiliatedCodes.edit', compact('affiliatedCode'));
@@ -72,24 +71,14 @@ class AffiliatedCodeController extends Controller
         $request->validate([
             'full_name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:affiliated_codes,code,' . $affiliatedCode->id,
-            'gift_type' => 'required|in:percentage,fixed',
-            'gift_value' => 'required|numeric|min:0',
             'is_active' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        // Validate gift value based on type
-        if ($request->gift_type === 'percentage' && $request->gift_value > 100) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['gift_value' => 'Percentage value cannot exceed 100.']);
-        }
-
         $affiliatedCode->update([
             'full_name' => $request->full_name,
             'code' => strtoupper($request->code),
-            'gift_type' => $request->gift_type,
-            'gift_value' => $request->gift_value,
+            // Keep existing gift_type and gift_value (dummy values) - will be handled properly later
             'is_active' => $request->has('is_active') && $request->is_active == '1' ? true : false,
             'notes' => $request->notes,
         ]);
