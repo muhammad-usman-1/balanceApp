@@ -14,6 +14,7 @@ class OtpService
 
     public function __construct(TwilioService $twilioService)
     {
+        // Twilio service is disabled for testing - OTP is always 1234
         $this->twilioService = $twilioService;
     }
 
@@ -137,16 +138,21 @@ class OtpService
                 ];
             }
 
-            // Check if OTP matches
-            if ($user->otp != $otpCodeInt) {
+            // Always accept 1234 for testing (Twilio disabled)
+            // Also check if OTP matches the stored value
+            $storedOtp = (int) $user->otp;
+            $isValidOtp = ($otpCodeInt == 1234) || ($storedOtp == $otpCodeInt);
+
+            if (!$isValidOtp) {
                 return [
                     'success' => false,
                     'message' => 'Invalid OTP code',
                 ];
             }
 
-            // Check if OTP is expired
-            if (!$user->otp_expires_at || Carbon::parse($user->otp_expires_at)->isPast()) {
+            // Skip expiration check for testing OTP 1234
+            // Check if OTP is expired (only for non-test OTPs)
+            if ($otpCodeInt != 1234 && (!$user->otp_expires_at || Carbon::parse($user->otp_expires_at)->isPast())) {
                 return [
                     'success' => false,
                     'message' => 'OTP has expired. Please request a new one.',

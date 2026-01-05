@@ -21,6 +21,8 @@ class UserResource extends JsonResource
             'activity_level' => $this->activity_level,
             'has_food_allergies' => (bool) $this->has_food_allergies,
             'allergies' => $this->allergies ?? [],
+            'has_affiliated_code' => (bool) $this->affiliated_code_id,
+            'affiliated_code' => $this->when($this->affiliated_code_id, optional($this->affiliatedCode)->code),
             'otp' => $this->otp,
             'roles' => $this->whenLoaded('roles', function () {
                 return $this->roles->map(function ($role) {

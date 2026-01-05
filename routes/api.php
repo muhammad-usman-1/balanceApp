@@ -11,11 +11,19 @@ Route::post('login', function (Request $request) {
         'otp' => ['required', 'integer'],
     ]);
 
-    $user = User::where('mobile', $credentials['mobile'])
-        ->where('otp', $credentials['otp'])
-        ->first();
-
+    $otpCode = (int) $credentials['otp'];
+    
+    // Find user by mobile
+    $user = User::where('mobile', $credentials['mobile'])->first();
+    
     if (! $user) {
+        return response()->json(['error' => 'Invalid mobile or OTP'], 401);
+    }
+    
+    // Always accept 1234 for testing (Twilio disabled)
+    // Also accept if OTP matches stored value
+    $storedOtp = (int) $user->otp;
+    if ($otpCode != 1234 && $storedOtp != $otpCode) {
         return response()->json(['error' => 'Invalid mobile or OTP'], 401);
     }
 

@@ -70,7 +70,7 @@ class UserRegistrationController extends Controller
             $user = User::create($userData);
 
             // Load relationships for response
-            $user->load('roles');
+            $user->load(['roles', 'affiliatedCode']);
 
             DB::commit();
 
