@@ -12,6 +12,7 @@ use App\Models\UserSubcrption;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
+use Carbon\Carbon;
 
 class UserRegistrationController extends Controller
 {
@@ -30,6 +31,36 @@ class UserRegistrationController extends Controller
         DB::beginTransaction();
 
         try {
+            $mobile = (int) $request->phone_number;
+            $otpProvided = (int) $request->otp;
+
+            $user = User::where('mobile', $mobile)->first();
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found for this phone number. Please request OTP first.',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Verify OTP (accept test code 1234 or matching stored OTP; check expiry for non-test codes)
+            $storedOtp = (int) $user->otp;
+            $isOtpValid = ($otpProvided === 1234) || ($otpProvided === $storedOtp);
+
+            if (! $isOtpValid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid OTP code.',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            if ($otpProvided !== 1234 && $user->otp_expires_at && Carbon::parse($user->otp_expires_at)->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'OTP has expired. Please request a new one.',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
             $hasFoodAllergies = $request->boolean('has_food_allergies');
             $allergies = $hasFoodAllergies ? array_values($request->input('allergies', [])) : null;
 
@@ -47,11 +78,24 @@ class UserRegistrationController extends Controller
                 }
             }
 
-            // Prepare user data
-            // Convert phone_number string to integer to match database schema
-            $userData = [
-                'mobile' => (int) $request->phone_number,
-                'otp' => $request->otp,
+            // Prevent email collision with another user
+            $emailInUse = User::where('email', $request->email)
+                ->where('id', '!=', $user->id)
+                ->exists();
+
+            if ($emailInUse) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This email is already registered.',
+                    'errors' => [
+                        'email' => ['This email is already registered.'],
+                    ],
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            // Update existing user profile instead of creating a new record
+            $user->update([
+                'otp' => $otpProvided,
                 'email' => $request->email,
                 'name' => $request->name,
                 'dob' => $request->date_of_birth,
@@ -63,11 +107,7 @@ class UserRegistrationController extends Controller
                 'has_food_allergies' => $hasFoodAllergies,
                 'allergies' => $allergies,
                 'affiliated_code_id' => $affiliatedCodeId,
-                // No password required - user can login with mobile + OTP
-            ];
-
-            // Create user
-            $user = User::create($userData);
+            ]);
 
             // Load relationships for response
             $user->load(['roles', 'affiliatedCode']);
@@ -78,7 +118,7 @@ class UserRegistrationController extends Controller
                 'success' => true,
                 'message' => 'User registered successfully',
                 'data' => new UserResource($user),
-            ], Response::HTTP_CREATED);
+            ], Response::HTTP_OK);
 
         } catch (\Exception $e) {
             DB::rollBack();

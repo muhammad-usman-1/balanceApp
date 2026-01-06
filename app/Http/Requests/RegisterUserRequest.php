@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Models\User;
 
 class RegisterUserRequest extends FormRequest
 {
@@ -14,12 +15,14 @@ class RegisterUserRequest extends FormRequest
 
     public function rules()
     {
+        $userId = $this->getUserIdByPhone();
+
         return [
             'phone_number' => [
                 'required',
                 'string',
                 'regex:/^[0-9]+$/',
-                'unique:users,mobile',
+                'exists:users,mobile',
             ],
             'otp' => [
                 'required',
@@ -30,8 +33,8 @@ class RegisterUserRequest extends FormRequest
             'email' => [
                 'required',
                 'email',
-                'unique:users,email',
                 'max:255',
+                Rule::unique('users', 'email')->ignore($userId),
             ],
             'name' => [
                 'required',
@@ -88,6 +91,18 @@ class RegisterUserRequest extends FormRequest
                 'max:255',
             ],
         ];
+    }
+
+    private function getUserIdByPhone(): ?int
+    {
+        $phone = $this->input('phone_number');
+        if (! $phone) {
+            return null;
+        }
+
+        $user = User::where('mobile', (int) $phone)->first();
+
+        return $user?->id;
     }
 
     public function messages()
