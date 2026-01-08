@@ -127,11 +127,16 @@ class CouponApiController extends Controller
         }
 
         // All validations passed - coupon is valid
+        $readableDiscount = $coupon->type === 'percentage' 
+            ? number_format($coupon->value, 0) . '%' 
+            : number_format($coupon->value, 3) . ' KD';
+
         $responseData = [
             'coupon_id' => $coupon->id,
             'coupon_code' => $coupon->coupon_code,
-            'type' => $coupon->type,
-            'value' => (float) $coupon->value,
+            'discount_type' => $coupon->type,
+            'discount_value' => (float) $coupon->value,
+            'readable_discount' => $readableDiscount,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'status' => $coupon->status,
@@ -143,7 +148,7 @@ class CouponApiController extends Controller
             $usageCount = $coupon->getUserUsageCount($userId);
             $responseData['user_usage_count'] = $usageCount;
             $responseData['remaining_uses'] = $coupon->usage_limit_per_user !== null 
-                ? ($coupon->usage_limit_per_user - $usageCount) 
+                ? max(0, $coupon->usage_limit_per_user - $usageCount) 
                 : null;
         }
 

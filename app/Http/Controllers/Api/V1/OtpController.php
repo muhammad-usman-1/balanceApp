@@ -79,6 +79,9 @@ class OtpController extends Controller
                 $userExists = $this->hasUserProfileData($user);
 
                 if (! $userExists) {
+                    // Load basic relations if user exists
+                    $user->load(['roles', 'addresses']);
+
                     return response()->json([
                         'success' => true,
                         'message' => 'OTP verified. User profile incomplete.',
@@ -86,6 +89,8 @@ class OtpController extends Controller
                         'data' => [
                             'country_code' => $responseCountryCode,
                             'phone_number' => $responsePhoneNumber,
+                            'user' => new UserResource($user),
+                            'addresses' => $user->addresses,
                         ],
                     ], Response::HTTP_OK);
                 }
