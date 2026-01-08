@@ -20,10 +20,9 @@ Route::post('login', function (Request $request) {
         return response()->json(['error' => 'Invalid mobile or OTP'], 401);
     }
     
-    // Always accept 1234 for testing (Twilio disabled)
-    // Also accept if OTP matches stored value
+    // Check if OTP matches stored value
     $storedOtp = (int) $user->otp;
-    if ($otpCode != 1234 && $storedOtp != $otpCode) {
+    if ($storedOtp != $otpCode) {
         return response()->json(['error' => 'Invalid mobile or OTP'], 401);
     }
 

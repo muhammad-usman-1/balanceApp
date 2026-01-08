@@ -19,9 +19,9 @@ class TwilioService
         $this->fromNumber = config('services.twilio.from_number');
         $this->messagingServiceSid = config('services.twilio.messaging_service_sid');
 
-        // Twilio is disabled for testing - don't initialize if credentials are missing
+        // Don't initialize if credentials are missing
         if (!$accountSid || !$authToken || (!$this->fromNumber && !$this->messagingServiceSid)) {
-            // Log warning but don't throw exception - Twilio is disabled for testing
+            // Log warning but don't throw exception
             Log::warning('Twilio credentials are incomplete. Twilio SMS service is disabled.');
             $this->client = null;
             return;
@@ -46,9 +46,9 @@ class TwilioService
      */
     public function sendSms(string $to, string $message): bool
     {
-        // Twilio is disabled for testing - return true without sending
+        // Return false if client is not configured
         if (!$this->client) {
-            Log::info('Twilio SMS service is disabled. SMS not sent.', [
+            Log::warning('Twilio SMS service is not configured. SMS not sent.', [
                 'to' => $to,
                 'message' => $message,
             ]);

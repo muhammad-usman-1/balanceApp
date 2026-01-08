@@ -44,7 +44,7 @@ class OtpController extends Controller
                     'country_code' => $result['country_code'],
                     'phone_number' => $result['phone_number'],
                     'expires_at' => $result['expires_at'],
-                    'is_sms_sent' => false, // Twilio disabled - OTP is always 1234
+                    'is_sms_sent' => true,
                 ],
             ], Response::HTTP_OK);
 

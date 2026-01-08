@@ -22,7 +22,7 @@ class SendOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'country_code' => ['required', 'string', 'regex:/^[0-9]{1,4}$/'],
+            'country_code' => ['required', 'string', 'regex:/^\+?[0-9]{1,4}$/'],
             'phone_number' => ['required', 'string', 'regex:/^[0-9]{4,14}$/'],
         ];
     }

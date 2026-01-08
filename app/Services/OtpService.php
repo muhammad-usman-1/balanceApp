@@ -14,43 +14,51 @@ class OtpService
 
     public function __construct(TwilioService $twilioService)
     {
-        // Twilio service is disabled for testing - OTP is always 1234
         $this->twilioService = $twilioService;
     }
 
     /**
      * Generate a random 4-digit OTP code
-     * 
-     * NOTE: Currently disabled - always returns 1234 for testing
      *
      * @return int
      */
     protected function generateOtpCode(): int
     {
-        // Always generate OTP as 1234 for testing
-        return 1234;
-        
-        // Original random generation (disabled)
-        // return random_int(1000, 9999);
+        return random_int(1000, 9999);
     }
 
-    /**
-     * Send OTP to phone number
-     *
-     * @param string $countryCode
-     * @param string $phoneNumber
-     * @return array
-     * @throws Exception
-     */
     public function sendOtp(string $countryCode, string $phoneNumber): array
     {
         try {
+            Log::debug('OTP send request raw data', [
+                'country_code' => $countryCode,
+                'phone_number' => $phoneNumber
+            ]);
+
             // Normalize country code and phone number to digits only
             $normalizedCountryCode = preg_replace('/[^0-9]/', '', $countryCode);
             $normalizedPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
 
+            // Strip leading zeros (common for 00XXX or 0XXX formats)
+            $normalizedCountryCode = ltrim($normalizedCountryCode, '0');
+            $normalizedPhone = ltrim($normalizedPhone, '0');
+
+            // If phone number starts with the country code, strip it to avoid duplication in E.164
+            if (!empty($normalizedCountryCode) && str_starts_with($normalizedPhone, $normalizedCountryCode) && strlen($normalizedPhone) > strlen($normalizedCountryCode)) {
+                $normalizedPhone = substr($normalizedPhone, strlen($normalizedCountryCode));
+                // Again strip any leading zeros after removing country code
+                $normalizedPhone = ltrim($normalizedPhone, '0');
+            }
+
             // Combine for E.164-like display only (no spaces)
             $mobileNumber = $normalizedCountryCode . $normalizedPhone;
+            $e164Phone = '+' . $mobileNumber;
+
+            Log::debug('OTP normalized phone data', [
+                'normalized_country_code' => $normalizedCountryCode,
+                'normalized_phone' => $normalizedPhone,
+                'e164_format' => $e164Phone
+            ]);
 
             // Generate new 4-digit OTP
             $otpCode = $this->generateOtpCode();
@@ -79,13 +87,12 @@ class OtpService
                 ]);
             }
 
-            $e164Phone = '+' . $mobileNumber;
 
-            // Twilio service disabled for testing
+
             // Send OTP through Twilio
-            // $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
+            $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
 
-            Log::info('OTP generated and saved (Twilio disabled)', [
+            Log::info('OTP generated and sent via Twilio', [
                 'phone_number' => $e164Phone,
                 'country_code' => $normalizedCountryCode,
                 'mobile' => $mobileNumber,
@@ -123,6 +130,17 @@ class OtpService
             // Normalize country code and phone number to digits only
             $normalizedCountryCode = preg_replace('/[^0-9]/', '', $countryCode);
             $normalizedPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
+
+            // Strip leading zeros from phone number (common national trunk prefix)
+            $normalizedPhone = ltrim($normalizedPhone, '0');
+
+            // If phone number starts with the country code, strip it to avoid duplication in E.164
+            if (!empty($normalizedCountryCode) && str_starts_with($normalizedPhone, $normalizedCountryCode) && strlen($normalizedPhone) > strlen($normalizedCountryCode)) {
+                $normalizedPhone = substr($normalizedPhone, strlen($normalizedCountryCode));
+                // Again strip any leading zeros after removing country code
+                $normalizedPhone = ltrim($normalizedPhone, '0');
+            }
+
             $mobileNumber = $normalizedCountryCode . $normalizedPhone;
             $otpCodeInt = (int) $otpCode;
 
@@ -138,10 +156,9 @@ class OtpService
                 ];
             }
 
-            // Always accept 1234 for testing (Twilio disabled)
-            // Also check if OTP matches the stored value
+            // Check if OTP matches the stored value
             $storedOtp = (int) $user->otp;
-            $isValidOtp = ($otpCodeInt == 1234) || ($storedOtp == $otpCodeInt);
+            $isValidOtp = ($storedOtp == $otpCodeInt);
 
             if (!$isValidOtp) {
                 return [
@@ -150,9 +167,8 @@ class OtpService
                 ];
             }
 
-            // Skip expiration check for testing OTP 1234
-            // Check if OTP is expired (only for non-test OTPs)
-            if ($otpCodeInt != 1234 && (!$user->otp_expires_at || Carbon::parse($user->otp_expires_at)->isPast())) {
+            // Check if OTP is expired
+            if (!$user->otp_expires_at || Carbon::parse($user->otp_expires_at)->isPast()) {
                 return [
                     'success' => false,
                     'message' => 'OTP has expired. Please request a new one.',
