@@ -19,12 +19,10 @@ class TwilioService
         $this->fromNumber = config('services.twilio.from_number');
         $this->messagingServiceSid = config('services.twilio.messaging_service_sid');
 
-        // Don't initialize if credentials are missing
+        // Fail fast when credentials are missing so callers know SMS is unavailable
         if (!$accountSid || !$authToken || (!$this->fromNumber && !$this->messagingServiceSid)) {
-            // Log warning but don't throw exception
-            Log::warning('Twilio credentials are incomplete. Twilio SMS service is disabled.');
-            $this->client = null;
-            return;
+            Log::error('Twilio credentials are incomplete. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER or TWILIO_MESSAGING_SERVICE_SID.');
+            throw new Exception('Twilio SMS service is not configured.');
         }
 
         // Fix for "SSL certificate problem: unable to get local issuer certificate" on local dev
@@ -46,13 +44,13 @@ class TwilioService
      */
     public function sendSms(string $to, string $message): bool
     {
-        // Return false if client is not configured
+        // Return a hard failure if the client was not initialized
         if (!$this->client) {
-            Log::warning('Twilio SMS service is not configured. SMS not sent.', [
+            Log::error('Twilio SMS service is not configured. SMS not sent.', [
                 'to' => $to,
                 'message' => $message,
             ]);
-            return true;
+            throw new Exception('Twilio SMS service is not configured.');
         }
 
         try {
@@ -91,8 +89,8 @@ class TwilioService
      */
     public function sendOtp(string $phoneNumber, string $otpCode): bool
     {
-        $message = "Your OTP code is: {$otpCode}. This code will expire in 10 minutes. Do not share this code with anyone.";
-        
+        $message = "Your OTP code for Balance is: {$otpCode}. This code will expire in 10 minutes. Do not share this code with anyone.";
+
         return $this->sendSms($phoneNumber, $message);
     }
 }

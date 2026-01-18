@@ -165,5 +165,53 @@ class SubscriptionMealApiController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Get all meals for an active subscription
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getMeals(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        try {
+            // Find user's active subscription
+            $userSubscription = UserSubcrption::where('user_id', $request->user_id)
+                ->where('status', 'active')
+                ->where('end_date', '>=', now()->format('Y-m-d'))
+                ->with([
+                    'subscription_days.subscription_meals.meal'
+                ])
+                ->latest()
+                ->first();
+
+            if (!$userSubscription) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active subscription found for this user.',
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user_subscription_id' => $userSubscription->id,
+                    'subscription_days' => $userSubscription->subscription_days,
+                ],
+            ], Response::HTTP_OK);
+
+        } catch (\Exception $e) {
+            Log::error('Get subscription meals error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve meals.',
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }
 

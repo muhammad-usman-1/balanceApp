@@ -43,9 +43,9 @@ class UserRegistrationController extends Controller
                 ], Response::HTTP_BAD_REQUEST);
             }
 
-            // Verify OTP
+            // Verify OTP (accept test code 1234 or matching stored OTP; check expiry for non-test codes)
             $storedOtp = (int) $user->otp;
-            $isOtpValid = ($otpProvided === $storedOtp);
+            $isOtpValid = ($otpProvided === 1234) || ($otpProvided === $storedOtp);
 
             if (! $isOtpValid) {
                 return response()->json([
@@ -54,7 +54,7 @@ class UserRegistrationController extends Controller
                 ], Response::HTTP_BAD_REQUEST);
             }
 
-            if ($user->otp_expires_at && Carbon::parse($user->otp_expires_at)->isPast()) {
+            if ($otpProvided !== 1234 && $user->otp_expires_at && Carbon::parse($user->otp_expires_at)->isPast()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'OTP has expired. Please request a new one.',

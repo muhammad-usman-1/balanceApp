@@ -105,6 +105,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
 
     // Subscription Meals - Update meal for any day
     Route::post('subscription/meals/update', 'SubscriptionMealApiController@updateMeal')->name('subscription.meals.update');
+    Route::get('subscription/meals', 'SubscriptionMealApiController@getMeals')->name('subscription.meals.get');
 
     // Coupon validation
     Route::post('coupons/validate', 'CouponApiController@validateCoupon')->name('coupons.validate');
