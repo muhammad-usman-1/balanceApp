@@ -428,13 +428,6 @@ class HesabePaymentService
             }
         }
 
-        // Try base64 decoding (Hesabe keys might be base64 encoded)
-        $base64Decoded = base64_decode($key, true);
-        if ($base64Decoded !== false && strlen($base64Decoded) >= 16) {
-            // Valid base64 with reasonable length
-            return $base64Decoded;
-        }
-
         // Return key as-is for plain text keys
         return $key;
     }
