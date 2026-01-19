@@ -421,12 +421,18 @@ class HesabePaymentService
         }
 
         // If key is hex-encoded (all hex digits and even length), convert to binary
-        // Otherwise, use as-is (for plain text keys like PkW64zMe5NVdr1PVNnjo2Jy9n0b7v1Xg)
         if (ctype_xdigit($key) && strlen($key) % 2 === 0) {
             $decoded = hex2bin($key);
             if ($decoded !== false) {
                 return $decoded;
             }
+        }
+
+        // Try base64 decoding (Hesabe keys might be base64 encoded)
+        $base64Decoded = base64_decode($key, true);
+        if ($base64Decoded !== false && strlen($base64Decoded) >= 16) {
+            // Valid base64 with reasonable length
+            return $base64Decoded;
         }
 
         // Return key as-is for plain text keys
