@@ -393,11 +393,22 @@ class HesabePaymentService
 
         $decrypted = openssl_decrypt($encryptedData, $cipher, $secret, OPENSSL_RAW_DATA, $iv);
 
+        // If default decryption fails, try with NO_PADDING (Hesabe sometimes uses it)
+        if ($decrypted === false) {
+            $decrypted = openssl_decrypt($encryptedData, $cipher, $secret, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING, $iv);
+            
+            if ($decrypted !== false) {
+                // Trim null bytes or other padding characters
+                $decrypted = rtrim($decrypted, "\0..\x1F");
+            }
+        }
+
         if ($decrypted === false) {
             $error = openssl_error_string();
             Log::error('OpenSSL decryption failed', [
                 'openssl_error' => $error,
                 'data_length' => strlen($encryptedData),
+                'full_hex' => bin2hex($encryptedData),
             ]);
             throw new PaymentException('Failed to decrypt Hesabe response payload. OpenSSL error: ' . ($error ?: 'Unknown error') . '. likely due to incorrect HESABE_SECRET_KEY or HESABE_IV_KEY.');
         }

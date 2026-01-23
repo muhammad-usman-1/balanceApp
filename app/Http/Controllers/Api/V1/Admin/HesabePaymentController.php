@@ -74,15 +74,16 @@ class HesabePaymentController extends Controller
                 'version' => '2.0', // API version
             ];
 
-            $paymentResponse = $this->hesabePaymentService->checkout(array_filter($paymentPayload));
+            $paymentResponse = $this->hesabePaymentService->checkout($paymentPayload);
             $paymentData = $paymentResponse['data'] ?? [];
-            $paymentStatus = strtolower($paymentData['status'] ?? '');
+            
+            $paymentStatus = $paymentData['status'] ?? null;
 
-            if (! in_array($paymentStatus, ['success', 'paid', 'captured'], true)) {
+            if ($paymentStatus !== true && ! in_array(strtolower((string)$paymentStatus), ['success', 'paid', 'captured', 'true', '1'], true)) {
                 throw new PaymentException($paymentData['message'] ?? 'Payment failed with Hesabe.');
             }
 
-            $transactionReference = $paymentData['transactionReference'] ?? $paymentData['paymentId'] ?? $reference;
+            $transactionReference = $paymentData['transactionReference'] ?? $paymentData['paymentId'] ?? $paymentData['token'] ?? $reference;
 
             $cardNumber = preg_replace('/\D/', '', $request->card_number);
             $lastFour = $cardNumber ? substr($cardNumber, -4) : null;
@@ -117,7 +118,7 @@ class HesabePaymentController extends Controller
                 'save_card',
                 'amount',
                 'currency',
-            ])->toArray();
+            ]);
 
             $subscriptionPayload['price'] = $amount;
             $subscriptionPayload['currency'] = $currency;
