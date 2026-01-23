@@ -81,12 +81,14 @@ class OtpController extends Controller
                 if (! $userExists) {
                     // Load basic relations if user exists
                     $user->load(['roles', 'addresses']);
+                    $token = $user->createToken('api-token')->plainTextToken;
 
                     return response()->json([
                         'success' => true,
                         'message' => 'OTP verified. User profile incomplete.',
                         'user_exists' => false,
                         'data' => [
+                            'token' => $token,
                             'country_code' => $responseCountryCode,
                             'phone_number' => $responsePhoneNumber,
                             'user' => new UserResource($user),
@@ -133,11 +135,14 @@ class OtpController extends Controller
                     ];
                 }
 
+                $token = $user->createToken('api-token')->plainTextToken;
+
                 return response()->json([
                     'success' => true,
                     'message' => 'OTP verified successfully.',
                     'user_exists' => true,
                     'data' => [
+                        'token' => $token,
                         'country_code' => $responseCountryCode,
                         'phone_number' => $responsePhoneNumber,
                         'user' => new UserResource($user->load('roles')),

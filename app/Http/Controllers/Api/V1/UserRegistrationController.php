@@ -114,10 +114,15 @@ class UserRegistrationController extends Controller
 
             DB::commit();
 
+            $token = $user->createToken('api-token')->plainTextToken;
+
             return response()->json([
                 'success' => true,
                 'message' => 'User registered successfully',
-                'data' => new UserResource($user),
+                'data' => [
+                    'token' => $token,
+                    'user' => new UserResource($user),
+                ],
             ], Response::HTTP_OK);
 
         } catch (\Exception $e) {
