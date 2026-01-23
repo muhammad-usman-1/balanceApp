@@ -55,7 +55,7 @@
                         </tr>
                         <tr>
                             <th>Price:</th>
-                            <td><strong>${{ number_format($userSubcrption->price ?? 0, 2) }}</strong></td>
+                            <td><strong>{{ number_format($userSubcrption->price ?? 0, 3) }} KWD</strong></td>
                         </tr>
                         <tr>
                             <th>Payment Status:</th>

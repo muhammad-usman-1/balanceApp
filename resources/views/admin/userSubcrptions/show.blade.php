@@ -76,7 +76,7 @@
                             {{ trans('cruds.userSubcrption.fields.price') }}
                         </th>
                         <td>
-                            {{ $userSubcrption->price }}
+                            {{ number_format($userSubcrption->price, 3) }} KWD
                         </td>
                     </tr>
                     <tr>
