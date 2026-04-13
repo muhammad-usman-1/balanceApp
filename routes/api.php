@@ -113,6 +113,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
 
 // Authenticated user routes for subscription pause/resume/my-subscriptions
 Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']], function () {
+    // Logout - revokes the current API token
+    Route::post('logout', 'Api\V1\UserRegistrationController@logout')->name('logout');
     Route::post('subscription/{subscriptionId}/pause', 'Api\V1\Admin\SubscriptionPauseApiController@pause')->name('subscription.pause');
     Route::post('subscription/{subscriptionId}/resume', 'Api\V1\Admin\SubscriptionPauseApiController@resume')->name('subscription.resume');
     Route::get('subscription/{subscriptionId}/pause-logs', 'Api\V1\Admin\SubscriptionPauseApiController@pauseLogs')->name('subscription.pause-logs');

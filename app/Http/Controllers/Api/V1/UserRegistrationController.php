@@ -114,15 +114,10 @@ class UserRegistrationController extends Controller
 
             DB::commit();
 
-            $token = $user->createToken('api-token')->plainTextToken;
-
             return response()->json([
                 'success' => true,
                 'message' => 'User registered successfully',
-                'data' => [
-                    'token' => $token,
-                    'user' => new UserResource($user),
-                ],
+                'data' => new UserResource($user),
             ], Response::HTTP_OK);
 
         } catch (\Exception $e) {
@@ -139,6 +134,24 @@ class UserRegistrationController extends Controller
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Logout the authenticated user
+     *
+     * Revokes the current API token so the app user is logged out.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function logout(\Illuminate\Http\Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully.',
+        ]);
     }
 
     /**
