@@ -27,13 +27,13 @@
                             </label>
                         </div>
                     @empty
-                        <p class="text-muted">No areas available. Please create areas first.</p>
+                        <p class="text-muted">No available areas. All active areas are already assigned to other branches.</p>
                     @endforelse
                 </div>
                 @error('areas')
-                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                    <div class="text-danger mt-1">{{ $message }}</div>
                 @enderror
-                <small class="form-text text-muted">Select one or more areas for this branch</small>
+                <small class="form-text text-muted">Each area can only belong to one branch. Shown areas are either unassigned or already in this branch.</small>
             </div>
             <div class="form-group">
                 <label for="status">Status <span class="text-danger">*</span></label>
@@ -51,4 +51,3 @@
     </div>
 </div>
 @endsection
-

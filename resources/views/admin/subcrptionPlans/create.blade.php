@@ -50,6 +50,20 @@
                 <span class="help-block">{{ trans('cruds.subcrptionPlan.fields.snack_count_helper') }}</span>
             </div>
             <div class="form-group">
+                <label for="min_days">Min Days</label>
+                <input class="form-control {{ $errors->has('min_days') ? 'is-invalid' : '' }}" type="number" name="min_days" id="min_days" value="{{ old('min_days', '') }}" min="1" step="1" placeholder="Minimum subscription days">
+                @if($errors->has('min_days'))
+                    <span class="text-danger">{{ $errors->first('min_days') }}</span>
+                @endif
+            </div>
+            <div class="form-group">
+                <label for="max_days">Max Days</label>
+                <input class="form-control {{ $errors->has('max_days') ? 'is-invalid' : '' }}" type="number" name="max_days" id="max_days" value="{{ old('max_days', '') }}" min="1" step="1" placeholder="Maximum subscription days">
+                @if($errors->has('max_days'))
+                    <span class="text-danger">{{ $errors->first('max_days') }}</span>
+                @endif
+            </div>
+            <div class="form-group">
                 <div class="form-check {{ $errors->has('is_active') ? 'is-invalid' : '' }}">
                     <input type="hidden" name="is_active" value="0">
                     <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', 0) == 1 ? 'checked' : '' }}>

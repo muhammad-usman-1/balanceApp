@@ -1,297 +1,380 @@
-/* Modern Sidebar Design - Black/Grey Theme */
+/* ============================================================
+   BalanceApp Sidebar — Deep Navy Redesign
+   Sections: base, brand, nav, icons, submenu, states,
+             collapsed (desktop), mobile overlay
+   ============================================================ */
 
-/* Sidebar Base Styles - Increased Width */
-.modern-sidebar {
-    background: #343a40 !important;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-    width: 280px !important;
-    min-width: 280px !important;
+/* ── CSS variables ── */
+:root {
+    --sb-width:        260px;
+    --sb-width-mini:   68px;
+    --sb-bg:           #0f172a;
+    --sb-brand-bg:     #1e293b;
+    --sb-border:       rgba(255, 255, 255, 0.06);
+    --sb-text:         #94a3b8;
+    --sb-text-hover:   #e2e8f0;
+    --sb-text-active:  #60a5fa;
+    --sb-active-bg:    rgba(59, 130, 246, 0.14);
+    --sb-hover-bg:     rgba(255, 255, 255, 0.055);
+    --sb-section-fg:   #334155;
+    --sb-radius:       10px;
+    --sb-transition:   0.2s ease;
 }
 
-.main-sidebar {
-    width: 280px !important;
+/* ── Sidebar shell ── */
+.main-sidebar,
+.sb-sidebar {
+    width: var(--sb-width) !important;
+    background: var(--sb-bg) !important;
+    box-shadow: 1px 0 0 var(--sb-border), 4px 0 20px rgba(0,0,0,0.35) !important;
+    display: flex;
+    flex-direction: column;
+    border-right: none !important;
+    transition: width var(--sb-transition), transform var(--sb-transition);
 }
 
-/* Adjust content wrapper margin for wider sidebar */
-.content-wrapper {
-    margin-left: 280px !important;
-}
+/* Kill default AdminLTE elevation */
+.elevation-4 { box-shadow: none !important; }
 
-@media (max-width: 768px) {
-    .modern-sidebar,
-    .main-sidebar {
-        width: 280px !important;
+/* ── Desktop layout push ── */
+@media (min-width: 769px) {
+    .content-wrapper,
+    .main-footer {
+        margin-left: var(--sb-width) !important;
+        transition: margin-left var(--sb-transition);
     }
-    
-    .content-wrapper {
+    .main-header {
+        margin-left: var(--sb-width) !important;
+        transition: margin-left var(--sb-transition);
+    }
+}
+
+/* ── Brand header ── */
+.sb-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 16px;
+    background: var(--sb-brand-bg);
+    border-bottom: 1px solid var(--sb-border);
+    text-decoration: none !important;
+    flex-shrink: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: padding var(--sb-transition);
+}
+.sb-brand:hover { text-decoration: none; }
+
+.sb-brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.sb-brand-text { overflow: hidden; }
+
+.sb-brand-name {
+    display: block;
+    color: #f1f5f9;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+.sb-brand-sub {
+    display: block;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-top: 1px;
+}
+
+/* ── Scrollable nav area ── */
+.sb-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 0 24px;
+}
+.sb-scroll::-webkit-scrollbar { width: 3px; }
+.sb-scroll::-webkit-scrollbar-track { background: transparent; }
+.sb-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+/* ── Nav list ── */
+.sb-nav {
+    padding: 0 !important;
+    list-style: none;
+    margin: 0;
+}
+
+/* ── Section labels ── */
+.sb-section-label {
+    list-style: none;
+    color: var(--sb-section-fg);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 18px 20px 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity var(--sb-transition);
+}
+
+/* ── Nav item container ── */
+.sb-item {
+    padding: 0 8px 1px !important;
+    margin: 0 !important;
+}
+
+/* ── Nav link ── */
+.sb-link {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px !important;
+    border-radius: var(--sb-radius);
+    color: var(--sb-text) !important;
+    text-decoration: none !important;
+    font-size: 0.845rem;
+    font-weight: 400;
+    transition: background var(--sb-transition), color var(--sb-transition);
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    border: none !important;
+    background: transparent !important;
+}
+
+.sb-link:hover {
+    background: var(--sb-hover-bg) !important;
+    color: var(--sb-text-hover) !important;
+    text-decoration: none !important;
+}
+
+.sb-link.active {
+    background: var(--sb-active-bg) !important;
+    color: var(--sb-text-active) !important;
+}
+
+/* Left accent bar on active */
+.sb-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 22%;
+    bottom: 22%;
+    width: 3px;
+    background: #3b82f6;
+    border-radius: 0 3px 3px 0;
+}
+
+/* ── Per-item icon boxes ── */
+.sb-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+    transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.sb-link:hover  .sb-icon { transform: scale(1.08); }
+.sb-link.active .sb-icon { filter: brightness(1.15); }
+
+/* Icon colour palette */
+.si-amber   { background: rgba(245,158, 11,0.15); color: #f59e0b; }
+.si-cyan    { background: rgba(  6,182,212,0.15); color: #06b6d4; }
+.si-orange  { background: rgba(249,115, 22,0.15); color: #f97316; }
+.si-violet  { background: rgba(139, 92,246,0.15); color: #8b5cf6; }
+.si-emerald { background: rgba( 16,185,129,0.15); color: #10b981; }
+.si-blue    { background: rgba( 59,130,246,0.15); color: #3b82f6; }
+.si-purple  { background: rgba(168, 85,247,0.15); color: #a855f7; }
+.si-green   { background: rgba( 34,197, 94,0.15); color: #22c55e; }
+.si-pink    { background: rgba(236, 72,153,0.15); color: #ec4899; }
+.si-teal    { background: rgba( 20,184,166,0.15); color: #14b8a6; }
+.si-slate   { background: rgba(100,116,139,0.15); color: #64748b; }
+.si-rose    { background: rgba(244, 63, 94,0.15); color: #f43f5e; }
+.si-red     { background: rgba(239, 68, 68,0.15); color: #ef4444; }
+
+/* ── Text label ── */
+.sb-label {
+    flex: 1;
+    font-size: 0.845rem;
+    color: inherit;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Chevron (expandable parent) ── */
+.sb-chevron {
+    font-size: 0.62rem;
+    color: #334155;
+    flex-shrink: 0;
+    margin-left: auto;
+    transition: transform 0.22s ease, color 0.18s ease;
+}
+
+.menu-open > .sb-link .sb-chevron {
+    transform: rotate(90deg);
+    color: #3b82f6;
+}
+
+.menu-open > .sb-link {
+    background: rgba(255,255,255,0.04) !important;
+    color: var(--sb-text-hover) !important;
+}
+
+/* ── Submenu ── */
+.sb-submenu {
+    padding: 3px 0 6px !important;
+    margin: 2px 8px 2px 20px !important;
+    border-left: 1px solid rgba(255,255,255,0.07) !important;
+    background: transparent !important;
+}
+
+.sb-sublink {
+    display: flex !important;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 10px 6px 16px !important;
+    border-radius: 8px;
+    color: #475569 !important;
+    font-size: 0.8rem;
+    text-decoration: none !important;
+    transition: background var(--sb-transition), color var(--sb-transition);
+    margin: 0 4px 1px !important;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sb-sublink .fa-circle {
+    font-size: 0.28rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.sb-sublink:hover {
+    background: rgba(255,255,255,0.05) !important;
+    color: #94a3b8 !important;
+    text-decoration: none !important;
+}
+
+.sb-sublink.active {
+    background: rgba(59,130,246,0.12) !important;
+    color: #60a5fa !important;
+}
+
+.sb-sublink.active .fa-circle { opacity: 1; }
+
+/* ── Logout special state ── */
+.sb-logout .sb-link {
+    color: #64748b !important;
+    margin-top: 4px;
+}
+.sb-logout .sb-link:hover {
+    background: rgba(239,68,68,0.1) !important;
+    color: #fca5a5 !important;
+}
+.sb-logout .sb-link.active {
+    background: rgba(239,68,68,0.12) !important;
+    color: #f87171 !important;
+}
+
+/* ============================================================
+   COLLAPSED (desktop icon-only mode)
+   ============================================================ */
+@media (min-width: 769px) {
+
+    body.sidebar-collapse .main-sidebar,
+    body.sidebar-collapse .sb-sidebar {
+        width: var(--sb-width-mini) !important;
+    }
+
+    body.sidebar-collapse .content-wrapper,
+    body.sidebar-collapse .main-footer {
+        margin-left: var(--sb-width-mini) !important;
+    }
+    body.sidebar-collapse .main-header {
+        margin-left: var(--sb-width-mini) !important;
+    }
+
+    /* Hide text elements */
+    body.sidebar-collapse .sb-label,
+    body.sidebar-collapse .sb-chevron,
+    body.sidebar-collapse .sb-brand-name,
+    body.sidebar-collapse .sb-brand-sub,
+    body.sidebar-collapse .sb-section-label,
+    body.sidebar-collapse .sb-submenu {
+        display: none !important;
+    }
+
+    /* Center the icon */
+    body.sidebar-collapse .sb-link {
+        justify-content: center !important;
+        padding: 9px !important;
+    }
+    body.sidebar-collapse .sb-brand {
+        justify-content: center;
+        padding: 16px;
+    }
+
+    /* Tooltip-like title on hover — icons only hint */
+    body.sidebar-collapse .sb-link {
+        position: relative;
+    }
+}
+
+/* ============================================================
+   MOBILE (hidden off-screen by default, overlay when open)
+   ============================================================ */
+@media (max-width: 768px) {
+
+    .main-sidebar {
+        transform: translateX(calc(-1 * var(--sb-width)));
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        height: 100% !important;
+        z-index: 1050;
+        transition: transform 0.28s cubic-bezier(.4,0,.2,1) !important;
+    }
+
+    body.sidebar-open .main-sidebar {
+        transform: translateX(0) !important;
+    }
+
+    .content-wrapper,
+    .main-footer,
+    .main-header {
         margin-left: 0 !important;
     }
 }
 
-/* Brand Logo Compact Design */
-.brand-link-modern {
-    background: #2c3136;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0.75rem 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
+/* ============================================================
+   Navbar top bar tweaks
+   ============================================================ */
+.main-header.navbar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06) !important;
 }
-
-.brand-link-modern:hover {
-    background: #2c3136;
-    text-decoration: none;
+.main-header .navbar-nav .nav-link {
+    color: #475569 !important;
 }
-
-.brand-logo-modern {
-    width: 28px;
-    height: 28px;
-    background: #495057;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    font-size: 0.85rem;
-}
-
-.brand-text {
-    color: #ffffff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-}
-
-/* Modern Navigation Items - Compact */
-.modern-nav {
-    padding: 0.4rem 0;
-}
-
-.modern-nav-item {
-    margin: 0.15rem 0.5rem;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.modern-nav-link {
-    color: rgba(255, 255, 255, 0.8);
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.2s ease;
-    position: relative;
-    margin-bottom: 2px;
-    background: transparent;
-    border: none;
-    font-size: 0.85rem;
-}
-
-.modern-nav-link:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-    text-decoration: none;
-}
-
-.modern-nav-link.active {
-    background: #495057;
-    color: #ffffff;
-}
-
-.modern-nav-link.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: #007bff;
-    border-radius: 0 2px 2px 0;
-}
-
-/* Icon Wrapper - Smaller */
-.nav-icon-wrapper {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.modern-nav-link:hover .nav-icon-wrapper,
-.modern-nav-link.active .nav-icon-wrapper {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.nav-icon {
-    font-size: 0.9rem;
-    color: inherit;
-}
-
-.nav-text {
-    flex: 1;
-    margin: 0;
-    font-size: 0.85rem;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-    line-height: 1.3;
-}
-
-/* Navigation Groups (Parent Items) */
-.modern-nav-group {
-    margin-bottom: 0.3rem;
-}
-
-.modern-nav-parent {
-    position: relative;
-}
-
-.modern-nav-parent .nav-arrow {
-    font-size: 0.7rem;
-    transition: transform 0.3s ease;
-    margin-left: auto;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.modern-nav-group.menu-open .nav-arrow {
-    transform: rotate(180deg);
-}
-
-.modern-nav-group.menu-open > .modern-nav-parent {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-}
-
-/* Submenu Styles - Compact */
-.modern-submenu {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    padding: 0.3rem 0;
-    margin: 0.3rem 0 0.3rem 0.75rem;
-    border-left: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.modern-submenu-item {
-    margin: 0.15rem 0.4rem;
-}
-
-.modern-submenu-link {
-    color: rgba(255, 255, 255, 0.65);
-    padding: 0.45rem 0.75rem 0.45rem 1.5rem;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-    position: relative;
-    font-size: 0.8rem;
-}
-
-.modern-submenu-link:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-    text-decoration: none;
-}
-
-.modern-submenu-link.active {
-    background: rgba(0, 123, 255, 0.2);
-    color: #ffffff;
-    font-weight: 500;
-}
-
-.submenu-dot {
-    font-size: 0.35rem;
-    color: rgba(255, 255, 255, 0.4);
-    transition: all 0.2s ease;
-}
-
-.modern-submenu-link:hover .submenu-dot,
-.modern-submenu-link.active .submenu-dot {
-    color: #ffffff;
-}
-
-/* Divider */
-.modern-divider {
-    padding: 1rem 0.75rem 0.4rem;
-    margin-top: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.modern-divider span {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-}
-
-/* Logout Button Special Styling */
-.modern-nav-logout {
-    margin-top: auto;
-}
-
-.modern-nav-link-logout {
-    background: rgba(220, 53, 69, 0.15);
-    border: 1px solid rgba(220, 53, 69, 0.2);
-}
-
-.modern-nav-link-logout:hover {
-    background: rgba(220, 53, 69, 0.25);
-    border-color: rgba(220, 53, 69, 0.3);
-}
-
-/* Badge */
-.nav-badge {
-    display: none;
-}
-
-/* Remove animations for cleaner look */
-.modern-nav-item {
-    animation: none;
-}
-
-/* Scrollbar Styling */
-.sidebar-modern::-webkit-scrollbar {
-    width: 5px;
-}
-
-.sidebar-modern::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.sidebar-modern::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 3px;
-}
-
-.sidebar-modern::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-/* Override AdminLTE default sidebar width */
-.main-sidebar {
-    width: 280px !important;
-}
-
-/* Ensure sidebar stays black/grey */
-.sidebar-dark-primary {
-    background-color: #343a40 !important;
-}
-
-/* Adjust content area when sidebar is wider */
-@media (min-width: 769px) {
-    .content-wrapper {
-        margin-left: 280px !important;
-    }
-    
-    .main-header {
-        margin-left: 280px !important;
-    }
+.main-header .navbar-nav .nav-link:hover {
+    color: #1e293b !important;
 }

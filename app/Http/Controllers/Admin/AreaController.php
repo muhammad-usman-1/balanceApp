@@ -10,7 +10,7 @@ class AreaController extends Controller
 {
     public function index()
     {
-        $areas = Area::withTrashed()->get();
+        $areas = Area::all();
         return view('admin.areas.index', compact('areas'));
     }
 

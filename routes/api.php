@@ -81,6 +81,10 @@ Route::post('otp/verify', 'Api\V1\OtpController@verifyOtp')->name('otp.verify');
 Route::post('v1/subscription/checkout', 'Api\V1\Admin\SubscriptionCheckoutApiController@store')->name('subscription.checkout');
 
 Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], function () {
+    // Branches and Areas (for user app branch/area selection)
+    Route::get('branches', 'BranchApiController@index')->name('branches.index');
+    Route::get('branches/{branch}/areas', 'BranchApiController@areas')->name('branches.areas');
+
     // Category CRUD
     Route::apiResource('categories', 'CategoryApiController');
     // Get all categories for meal creation dropdown

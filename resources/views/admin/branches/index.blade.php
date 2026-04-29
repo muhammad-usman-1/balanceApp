@@ -35,14 +35,9 @@
             </thead>
             <tbody>
                 @forelse($branches as $branch)
-                <tr class="{{ $branch->trashed() ? 'table-secondary' : '' }}">
+                <tr>
                     <td>{{ $branch->id }}</td>
-                    <td>
-                        {{ $branch->name }}
-                        @if($branch->trashed())
-                            <span class="badge badge-warning">Deleted</span>
-                        @endif
-                    </td>
+                    <td>{{ $branch->name }}</td>
                     <td>
                         @if($branch->areas->count() > 0)
                             @foreach($branch->areas as $area)
@@ -58,16 +53,12 @@
                         </span>
                     </td>
                     <td>
-                        @if(!$branch->trashed())
-                            <a href="{{ route('admin.branches.edit', $branch->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('admin.branches.destroy', $branch->id) }}" method="POST" style="display:inline-block;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                            </form>
-                        @else
-                            <span class="text-muted">Deleted</span>
-                        @endif
+                        <a href="{{ route('admin.branches.edit', $branch->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        <form action="{{ route('admin.branches.destroy', $branch->id) }}" method="POST" style="display:inline-block;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 @empty
@@ -80,4 +71,3 @@
     </div>
 </div>
 @endsection
-

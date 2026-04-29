@@ -25,6 +25,8 @@ class SubcrptionPlan extends Model
         'price',
         'meal_count',
         'snack_count',
+        'min_days',
+        'max_days',
         'is_active',
         'created_at',
         'updated_at',

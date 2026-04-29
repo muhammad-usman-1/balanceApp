@@ -61,6 +61,8 @@ class UserSubscriptionApiController extends Controller
                 'subcrption_plans',
                 'duration',
                 'address',
+                'branch',
+                'area',
                 'subscription_days.subscription_meals.meal'
             ])
             ->first();

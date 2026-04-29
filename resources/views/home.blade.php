@@ -1,876 +1,700 @@
 @extends('layouts.admin')
 
-@section('content')
-<div class="dashboard-modern">
-    @if(session('status'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('status') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
-
-    <!-- Welcome Header -->
-    <div class="dashboard-header">
-        <div class="header-content">
-            <div class="header-left">
-                <h1 class="dashboard-title">Dashboard</h1>
-                <p class="dashboard-subtitle">{{ now()->format('l, F j, Y') }} • {{ now()->format('g:i A') }}</p>
-            </div>
-            <div class="header-right">
-                <div class="quick-stats">
-                    <div class="quick-stat-item">
-                        <i class="fas fa-calendar-day"></i>
-                        <span>{{ $todaySubscriptions }} Today</span>
-                    </div>
-                    <div class="quick-stat-item">
-                        <i class="fas fa-chart-line"></i>
-                        <span>{{ $monthlySubscriptions }} This Month</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Statistics Cards -->
-    <div class="stats-grid">
-        <!-- Total Users -->
-        <div class="stat-card dark-card" data-aos="fade-up" data-aos-delay="0">
-            <div class="stat-card-header">
-                <div class="stat-icon-wrapper icon-blue">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-trend">
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-            </div>
-            <div class="stat-card-body">
-                <h3 class="stat-value">{{ number_format($totalUsers) }}</h3>
-                <p class="stat-label">Total Users</p>
-            </div>
-            <div class="stat-card-footer">
-                <a href="{{ route('admin.users.index') }}" class="stat-link">
-                    View All <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Active Subscriptions -->
-        <div class="stat-card dark-card" data-aos="fade-up" data-aos-delay="100">
-            <div class="stat-card-header">
-                <div class="stat-icon-wrapper icon-green">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="stat-trend">
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-            </div>
-            <div class="stat-card-body">
-                <h3 class="stat-value">{{ number_format($activeSubscriptions) }}</h3>
-                <p class="stat-label">Active Subscriptions</p>
-                <p class="stat-sublabel">{{ $totalSubscriptions }} total</p>
-            </div>
-            <div class="stat-card-footer">
-                <a href="{{ route('admin.user-subcrptions.index') }}" class="stat-link">
-                    View All <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Total Meals -->
-        <div class="stat-card dark-card" data-aos="fade-up" data-aos-delay="200">
-            <div class="stat-card-header">
-                <div class="stat-icon-wrapper icon-orange">
-                    <i class="fas fa-utensils"></i>
-                </div>
-                <div class="stat-trend">
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-            </div>
-            <div class="stat-card-body">
-                <h3 class="stat-value">{{ number_format($totalMeals) }}</h3>
-                <p class="stat-label">Total Meals</p>
-            </div>
-            <div class="stat-card-footer">
-                <a href="{{ route('admin.meals.index') }}" class="stat-link">
-                    View All <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Total Coupons -->
-        <div class="stat-card dark-card" data-aos="fade-up" data-aos-delay="300">
-            <div class="stat-card-header">
-                <div class="stat-icon-wrapper icon-purple">
-                    <i class="fas fa-ticket-alt"></i>
-                </div>
-                <div class="stat-trend">
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-            </div>
-            <div class="stat-card-body">
-                <h3 class="stat-value">{{ number_format($totalCoupons) }}</h3>
-                <p class="stat-label">Total Coupons</p>
-                <p class="stat-sublabel">{{ $activeCoupons }} active</p>
-            </div>
-            <div class="stat-card-footer">
-                <a href="{{ route('admin.coupons.index') }}" class="stat-link">
-                    View All <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Secondary Stats Row -->
-    <div class="secondary-stats-grid">
-        <!-- Payment Status -->
-        <div class="info-card dark-card" data-aos="fade-up" data-aos-delay="0">
-            <div class="info-card-header">
-                <div class="info-icon icon-green">
-                    <i class="fas fa-credit-card"></i>
-                </div>
-                <h5>Payment Status</h5>
-            </div>
-            <div class="info-card-body">
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $paidSubscriptions }}</h4>
-                        <p>Paid</p>
-                    </div>
-                    <div class="info-progress">
-                        <div class="progress-bar" style="width: {{ $totalSubscriptions > 0 ? ($paidSubscriptions / $totalSubscriptions * 100) : 0 }}%"></div>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $pendingSubscriptions }}</h4>
-                        <p>Pending</p>
-                    </div>
-                    <div class="info-progress">
-                        <div class="progress-bar warning" style="width: {{ $totalSubscriptions > 0 ? ($pendingSubscriptions / $totalSubscriptions * 100) : 0 }}%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Today's Activity -->
-        <div class="info-card dark-card" data-aos="fade-up" data-aos-delay="100">
-            <div class="info-card-header">
-                <div class="info-icon icon-blue">
-                    <i class="fas fa-calendar-day"></i>
-                </div>
-                <h5>Today's Activity</h5>
-            </div>
-            <div class="info-card-body">
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $todaySubscriptions }}</h4>
-                        <p>New Subscriptions</p>
-                    </div>
-                    <div class="info-badge success">
-                        <i class="fas fa-check"></i>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $todayMeals }}</h4>
-                        <p>New Meals</p>
-                    </div>
-                    <div class="info-badge success">
-                        <i class="fas fa-check"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Management Overview -->
-        <div class="info-card dark-card" data-aos="fade-up" data-aos-delay="200">
-            <div class="info-card-header">
-                <div class="info-icon icon-orange">
-                    <i class="fas fa-cog"></i>
-                </div>
-                <h5>Management</h5>
-            </div>
-            <div class="info-card-body">
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $totalCategories }}</h4>
-                        <p>Categories</p>
-                    </div>
-                    <a href="{{ route('admin.categories.index') }}" class="info-link">
-                        <i class="fas fa-external-link-alt"></i>
-                    </a>
-                </div>
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $totalAreas }}</h4>
-                        <p>Areas</p>
-                    </div>
-                    <a href="{{ route('admin.areas.index') }}" class="info-link">
-                        <i class="fas fa-external-link-alt"></i>
-                    </a>
-                </div>
-                <div class="info-item">
-                    <div class="info-value-wrapper">
-                        <h4>{{ $totalBranches }}</h4>
-                        <p>Branches</p>
-                    </div>
-                    <a href="{{ route('admin.branches.index') }}" class="info-link">
-                        <i class="fas fa-external-link-alt"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Subscriptions Table -->
-    <div class="table-card dark-card" data-aos="fade-up" data-aos-delay="300">
-        <div class="table-card-header">
-            <div class="table-header-left">
-                <div class="table-icon">
-                    <i class="fas fa-history"></i>
-                </div>
-                <div>
-                    <h5>Recent Subscriptions</h5>
-                    <p>Latest subscription activity</p>
-                </div>
-            </div>
-            <a href="{{ route('admin.user-subcrptions.index') }}" class="btn-view-all">
-                View All <i class="fas fa-arrow-right"></i>
-            </a>
-        </div>
-        <div class="table-card-body">
-            @if($recentSubscriptions->count() > 0)
-                <div class="table-responsive">
-                    <table class="table-modern">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>User</th>
-                                <th>Plan</th>
-                                <th>Status</th>
-                                <th>Payment</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($recentSubscriptions as $subscription)
-                                <tr>
-                                    <td><span class="table-id">#{{ $subscription->id }}</span></td>
-                                    <td>{{ $subscription->user->name ?? 'N/A' }}</td>
-                                    <td>{{ $subscription->subcrption_plans->title ?? 'N/A' }}</td>
-                                    <td>
-                                        <span class="badge-modern {{ $subscription->status == 'active' ? 'badge-success' : 'badge-secondary' }}">
-                                            {{ ucfirst($subscription->status ?? 'Inactive') }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge-modern {{ $subscription->payment == 'paid' ? 'badge-success' : 'badge-warning' }}">
-                                            {{ ucfirst($subscription->payment ?? 'Pending') }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $subscription->start_date ?? 'N/A' }}</td>
-                                    <td>{{ $subscription->end_date ?? 'N/A' }}</td>
-                                    <td>
-                                        <a href="{{ route('admin.user-subcrptions.show', $subscription->id) }}" class="btn-action">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>No subscriptions found</p>
-                </div>
-            @endif
-        </div>
-    </div>
-</div>
-
+@section('styles')
 <style>
-/* Modern Dashboard Styles - Matching Sidebar Theme */
-.dashboard-modern {
-    padding: 20px;
-    background: #f8f9fa;
-    min-height: calc(100vh - 60px);
+/* ── Root variables ── */
+:root {
+    --db-bg:       #f0f2f5;
+    --db-card:     #ffffff;
+    --db-border:   #e2e8f0;
+    --db-text:     #1e293b;
+    --db-muted:    #64748b;
+    --db-accent:   #3b82f6;
+    --db-green:    #22c55e;
+    --db-orange:   #f97316;
+    --db-purple:   #a855f7;
+    --db-red:      #ef4444;
+    --db-shadow:   0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --db-radius:   14px;
 }
 
-/* Dashboard Header */
-.dashboard-header {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 25px 30px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e9ecef;
+/* ── Page wrapper ── */
+.db-page {
+    background: var(--db-bg);
+    min-height: 100vh;
+    padding: 28px 28px 40px;
 }
 
-.header-content {
+/* ── Top bar ── */
+.db-topbar {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 16px;
+    margin-bottom: 32px;
 }
-
-.dashboard-title {
-    font-size: 2rem;
+.db-greeting h1 {
+    font-size: 1.65rem;
     font-weight: 700;
-    color: #212529;
+    color: var(--db-text);
+    margin: 0 0 4px;
+}
+.db-greeting p {
+    font-size: 0.9rem;
+    color: var(--db-muted);
     margin: 0;
-    letter-spacing: -0.5px;
 }
-
-.dashboard-subtitle {
-    font-size: 0.95rem;
-    color: #6c757d;
-    margin: 5px 0 0;
-}
-
-.quick-stats {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.quick-stat-item {
+.db-date-pill {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 15px;
-    background: #e9ecef;
-    border-radius: 8px;
-    color: #495057;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+    background: var(--db-card);
+    border: 1px solid var(--db-border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    color: var(--db-muted);
+    box-shadow: var(--db-shadow);
+}
+.db-date-pill i { color: var(--db-accent); }
+
+/* ── Generic card ── */
+.db-card {
+    background: var(--db-card);
+    border: 1px solid var(--db-border);
+    border-radius: var(--db-radius);
+    box-shadow: var(--db-shadow);
 }
 
-.quick-stat-item:hover {
-    background: #dee2e6;
-    transform: translateY(-2px);
-}
-
-.quick-stat-item i {
-    font-size: 0.85rem;
-}
-
-/* Stats Grid */
-.stats-grid {
+/* ── KPI grid ── */
+.db-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 }
-
-/* Light Card Base */
-.dark-card {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid #e9ecef;
-}
-
-.dark-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    border-color: #dee2e6;
-}
-
-/* Stat Card */
-.stat-card {
+.db-kpi {
+    padding: 24px;
+    border-radius: var(--db-radius);
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
     position: relative;
     overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
-
-.stat-card::before {
+.db-kpi:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+.db-kpi::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: #007bff;
-    transition: width 0.3s ease;
+    bottom: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: 0.12;
+    background: #fff;
 }
+.kpi-blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.kpi-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.kpi-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+.kpi-purple { background: linear-gradient(135deg, #a855f7, #9333ea); }
 
-.stat-card:hover::before {
-    width: 100%;
-    opacity: 0.1;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.stat-icon-wrapper {
-    width: 50px;
-    height: 50px;
+.db-kpi-icon {
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
+    background: rgba(255,255,255,0.25);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    color: #ffffff;
-    transition: all 0.3s ease;
+    font-size: 1.3rem;
+    color: #fff;
+    flex-shrink: 0;
 }
-
-.stat-card:hover .stat-icon-wrapper {
-    transform: scale(1.1) rotate(5deg);
-}
-
-.icon-blue { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); }
-.icon-green { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
-.icon-orange { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
-.icon-purple { background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); }
-
-.stat-trend {
-    color: #28a745;
-    font-size: 0.9rem;
-}
-
-.stat-card-body {
-    margin-bottom: 20px;
-}
-
-.stat-value {
-    font-size: 2.5rem;
+.db-kpi-body { color: #fff; }
+.db-kpi-value {
+    font-size: 2rem;
     font-weight: 700;
-    color: #212529;
-    margin: 0 0 8px;
     line-height: 1;
+    margin-bottom: 4px;
 }
-
-.stat-label {
-    font-size: 0.95rem;
-    color: #6c757d;
+.db-kpi-label {
+    font-size: 0.85rem;
+    opacity: 0.85;
     margin: 0;
-    font-weight: 500;
 }
-
-.stat-sublabel {
-    font-size: 0.8rem;
-    color: #868e96;
-    margin: 5px 0 0;
+.db-kpi-sub {
+    font-size: 0.78rem;
+    opacity: 0.7;
+    margin-top: 2px;
 }
-
-.stat-card-footer {
-    padding-top: 15px;
-    border-top: 1px solid #e9ecef;
-}
-
-.stat-link {
-    color: #495057;
+.db-kpi-link {
+    position: absolute;
+    bottom: 14px;
+    right: 16px;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.8);
     text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
+    gap: 4px;
 }
+.db-kpi-link:hover { color: #fff; text-decoration: none; }
 
-.stat-link:hover {
-    color: #212529;
-    transform: translateX(5px);
+/* ── Secondary stat grid ── */
+.db-sec-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+.db-stat {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-radius: var(--db-radius);
+    transition: transform 0.2s;
+}
+.db-stat:hover { transform: translateY(-2px); }
+.db-stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.si-blue   { background: rgba(59,130,246,.12);  color: #3b82f6; }
+.si-green  { background: rgba(34,197,94,.12);   color: #22c55e; }
+.si-orange { background: rgba(249,115,22,.12);  color: #f97316; }
+.si-purple { background: rgba(168,85,247,.12);  color: #a855f7; }
+.si-red    { background: rgba(239,68,68,.12);   color: #ef4444; }
+.si-teal   { background: rgba(20,184,166,.12);  color: #14b8a6; }
+.si-indigo { background: rgba(99,102,241,.12);  color: #6366f1; }
+.si-pink   { background: rgba(236,72,153,.12);  color: #ec4899; }
+
+.db-stat-body { flex: 1; min-width: 0; }
+.db-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--db-text);
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.db-stat-label {
+    font-size: 0.8rem;
+    color: var(--db-muted);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.db-stat-link {
+    font-size: 0.8rem;
+    color: var(--db-accent);
     text-decoration: none;
 }
+.db-stat-link:hover { text-decoration: underline; }
 
-/* Secondary Stats Grid */
-.secondary-stats-grid {
+/* ── Middle two-column row ── */
+.db-mid-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 }
+.db-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--db-border);
+}
+.db-panel-header h6 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--db-text);
+    margin: 0;
+    flex: 1;
+}
+.db-panel-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+.db-panel-body { padding: 16px 20px; }
 
-/* Info Card */
-.info-card-header {
+/* Payment status */
+.db-pay-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.db-pay-row:last-child { margin-bottom: 0; }
+.db-pay-info { display: flex; flex-direction: column; gap: 4px; }
+.db-pay-label { font-size: 0.82rem; color: var(--db-muted); }
+.db-pay-value { font-size: 1.1rem; font-weight: 700; color: var(--db-text); }
+.db-bar-track {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin: 0 16px;
+    overflow: hidden;
+}
+.db-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease;
+}
+.fill-green  { background: #22c55e; }
+.fill-orange { background: #f97316; }
+.db-pay-pct { font-size: 0.8rem; font-weight: 600; color: var(--db-muted); min-width: 36px; text-align: right; }
+
+/* Today's activity */
+.db-activity-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #e9ecef;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--db-border);
 }
-
-.info-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+.db-activity-item:last-child { border-bottom: none; }
+.db-activity-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.db-activity-text { flex: 1; }
+.db-activity-text strong { font-size: 0.88rem; color: var(--db-text); display: block; }
+.db-activity-text span  { font-size: 0.78rem; color: var(--db-muted); }
+.db-activity-count {
     font-size: 1.2rem;
-    color: #ffffff;
-}
-
-.info-card-header h5 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #212529;
-}
-
-.info-card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-}
-
-.info-value-wrapper h4 {
-    font-size: 1.5rem;
     font-weight: 700;
-    color: #212529;
-    margin: 0 0 5px;
+    color: var(--db-text);
 }
 
-.info-value-wrapper p {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin: 0;
-}
-
-.info-progress {
-    width: 100px;
-    height: 6px;
-    background: #e9ecef;
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progress-bar {
-    height: 100%;
-    background: #28a745;
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
-.progress-bar.warning {
-    background: #ffc107;
-}
-
-.info-badge {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    color: #ffffff;
-}
-
-.info-badge.success {
-    background: #28a745;
-}
-
-.info-link {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #e9ecef;
-    color: #495057;
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.info-link:hover {
-    background: #dee2e6;
-    color: #212529;
-    transform: scale(1.1);
-}
-
-/* Table Card */
-.table-card {
-    padding: 0;
-    overflow: hidden;
-}
-
-.table-card-header {
-    padding: 25px 30px;
+/* ── Recent subscriptions table ── */
+.db-table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #e9ecef;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--db-border);
 }
-
-.table-header-left {
+.db-table-title {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
-
-.table-icon {
-    width: 45px;
-    height: 45px;
-    border-radius: 10px;
-    background: #e9ecef;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #495057;
-    font-size: 1.2rem;
-}
-
-.table-header-left h5 {
-    margin: 0;
-    font-size: 1.1rem;
+.db-table-title h6 {
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #212529;
+    color: var(--db-text);
+    margin: 0;
 }
-
-.table-header-left p {
-    margin: 3px 0 0;
-    font-size: 0.85rem;
-    color: #6c757d;
+.db-table-title p {
+    font-size: 0.78rem;
+    color: var(--db-muted);
+    margin: 0;
 }
-
-.btn-view-all {
-    padding: 8px 16px;
-    background: #e9ecef;
-    color: #495057;
+.db-btn-sm {
+    font-size: 0.8rem;
+    padding: 6px 14px;
     border-radius: 8px;
+    background: var(--db-bg);
+    border: 1px solid var(--db-border);
+    color: var(--db-muted);
     text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
+    gap: 6px;
+    transition: all 0.2s;
 }
+.db-btn-sm:hover { background: var(--db-border); color: var(--db-text); text-decoration: none; }
 
-.btn-view-all:hover {
-    background: #dee2e6;
-    color: #212529;
-    text-decoration: none;
-    transform: translateX(3px);
-}
-
-.table-card-body {
-    padding: 0;
-}
-
-.table-responsive {
-    overflow-x: auto;
-}
-
-.table-modern {
+.db-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0;
 }
-
-.table-modern thead {
-    background: #e9ecef;
-}
-
-.table-modern th {
-    padding: 15px 20px;
-    text-align: left;
-    font-size: 0.85rem;
+.db-table thead th {
+    padding: 11px 16px;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--db-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #dee2e6;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--db-border);
+    text-align: left;
+    white-space: nowrap;
 }
-
-.table-modern td {
-    padding: 15px 20px;
-    color: #212529;
-    border-bottom: 1px solid #e9ecef;
-    transition: all 0.3s ease;
+.db-table tbody td {
+    padding: 13px 16px;
+    font-size: 0.875rem;
+    color: var(--db-text);
+    border-bottom: 1px solid var(--db-border);
+    vertical-align: middle;
 }
+.db-table tbody tr:last-child td { border-bottom: none; }
+.db-table tbody tr:hover td { background: #f8fafc; }
 
-.table-modern tbody tr {
-    transition: all 0.3s ease;
-}
-
-.table-modern tbody tr:hover {
-    background: #f8f9fa;
-}
-
-.table-id {
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.badge-modern {
+.db-pill {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
     font-weight: 500;
 }
+.pill-green  { background: rgba(34,197,94,.12);  color: #16a34a; }
+.pill-orange { background: rgba(249,115,22,.12); color: #ea580c; }
+.pill-gray   { background: rgba(100,116,139,.12); color: #64748b; }
+.pill-blue   { background: rgba(59,130,246,.12);  color: #2563eb; }
 
-.badge-success {
-    background: rgba(40, 167, 69, 0.2);
-    color: #28a745;
-    border: 1px solid rgba(40, 167, 69, 0.3);
-}
-
-.badge-warning {
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.badge-secondary {
-    background: rgba(108, 117, 125, 0.2);
-    color: #6c757d;
-    border: 1px solid rgba(108, 117, 125, 0.3);
-}
-
-.btn-action {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: #e9ecef;
-    color: #495057;
+.db-action-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: var(--db-bg);
+    border: 1px solid var(--db-border);
+    color: var(--db-muted);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    transition: all 0.2s;
 }
+.db-action-btn:hover { background: var(--db-accent); border-color: var(--db-accent); color: #fff; text-decoration: none; }
 
-.btn-action:hover {
-    background: #dee2e6;
-    color: #212529;
-    transform: scale(1.1);
-}
-
-.empty-state {
-    padding: 60px 20px;
+/* Empty state */
+.db-empty {
+    padding: 48px 20px;
     text-align: center;
-    color: #6c757d;
+    color: var(--db-muted);
 }
+.db-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 12px; }
+.db-empty p { margin: 0; font-size: 0.9rem; }
 
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    opacity: 0.5;
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+    .db-kpi-grid  { grid-template-columns: repeat(2, 1fr); }
+    .db-sec-grid  { grid-template-columns: repeat(2, 1fr); }
 }
-
-.empty-state p {
-    margin: 0;
-    font-size: 1rem;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-    .dashboard-modern {
-        padding: 15px;
-    }
-
-    .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .secondary-stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .table-card-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-
-    .table-modern {
-        font-size: 0.85rem;
-    }
-
-    .table-modern th,
-    .table-modern td {
-        padding: 10px 12px;
-    }
+    .db-page       { padding: 16px 14px 32px; }
+    .db-kpi-grid   { grid-template-columns: 1fr; gap: 14px; }
+    .db-sec-grid   { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .db-mid-row    { grid-template-columns: 1fr; }
+    .db-kpi-value  { font-size: 1.6rem; }
+    .db-table-header { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
-
-/* Animation */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.dark-card {
-    animation: fadeInUp 0.5s ease forwards;
+@media (max-width: 480px) {
+    .db-sec-grid { grid-template-columns: 1fr; }
 }
 </style>
+@endsection
 
-<script>
-// Add interactive animations
-document.addEventListener('DOMContentLoaded', function() {
-    // Animate numbers on scroll
-    const observerOptions = {
-        threshold: 0.5,
-        rootMargin: '0px'
-    };
+@section('content')
+@php
+    $paidPct    = $totalSubscriptions > 0 ? round($paidSubscriptions / $totalSubscriptions * 100) : 0;
+    $pendingPct = $totalSubscriptions > 0 ? round($pendingSubscriptions / $totalSubscriptions * 100) : 0;
+@endphp
 
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const statValue = entry.target.querySelector('.stat-value');
-                if (statValue) {
-                    const finalValue = parseInt(statValue.textContent.replace(/,/g, ''));
-                    if (!isNaN(finalValue)) {
-                        animateValue(statValue, 0, finalValue, 1000);
-                    }
-                }
-            }
-        });
-    }, observerOptions);
+<div class="db-page">
 
-    document.querySelectorAll('.stat-card').forEach(card => {
-        observer.observe(card);
-    });
+    @if(session('status'))
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            {{ session('status') }}
+            <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+        </div>
+    @endif
 
-    function animateValue(element, start, end, duration) {
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            const value = Math.floor(progress * (end - start) + start);
-            element.textContent = value.toLocaleString();
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            }
-        };
-        window.requestAnimationFrame(step);
-    }
-});
-</script>
+    {{-- ── Top bar ── --}}
+    <div class="db-topbar">
+        <div class="db-greeting">
+            <h1>Welcome back, {{ auth()->user()->name ?? 'Admin' }}</h1>
+            <p>Here's what's happening with BalanceApp today.</p>
+        </div>
+        <div class="db-date-pill">
+            <i class="fas fa-calendar-alt"></i>
+            {{ now()->format('l, F j, Y') }}
+        </div>
+    </div>
+
+    {{-- ── Primary KPI cards ── --}}
+    <div class="db-kpi-grid">
+        <div class="db-card db-kpi kpi-blue">
+            <div class="db-kpi-icon"><i class="fas fa-users"></i></div>
+            <div class="db-kpi-body">
+                <div class="db-kpi-value">{{ number_format($totalUsers) }}</div>
+                <p class="db-kpi-label">Total Users</p>
+            </div>
+            <a href="{{ route('admin.users.index') }}" class="db-kpi-link">View <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <div class="db-card db-kpi kpi-green">
+            <div class="db-kpi-icon"><i class="fas fa-user-check"></i></div>
+            <div class="db-kpi-body">
+                <div class="db-kpi-value">{{ number_format($activeSubscriptions) }}</div>
+                <p class="db-kpi-label">Active Subscriptions</p>
+                <p class="db-kpi-sub">{{ number_format($totalSubscriptions) }} total</p>
+            </div>
+            <a href="{{ route('admin.user-subcrptions.index') }}" class="db-kpi-link">View <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <div class="db-card db-kpi kpi-orange">
+            <div class="db-kpi-icon"><i class="fas fa-calendar-day"></i></div>
+            <div class="db-kpi-body">
+                <div class="db-kpi-value">{{ number_format($todaySubscriptions) }}</div>
+                <p class="db-kpi-label">New Today</p>
+                <p class="db-kpi-sub">{{ number_format($monthlySubscriptions) }} this month</p>
+            </div>
+        </div>
+
+        <div class="db-card db-kpi kpi-purple">
+            <div class="db-kpi-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="db-kpi-body">
+                <div class="db-kpi-value">{{ number_format($paidSubscriptions) }}</div>
+                <p class="db-kpi-label">Paid Subscriptions</p>
+                <p class="db-kpi-sub">{{ number_format($pendingSubscriptions) }} pending</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Secondary stats row ── --}}
+    <div class="db-sec-grid">
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-orange"><i class="fas fa-utensils"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($totalMeals) }}</div>
+                <p class="db-stat-label">Meals</p>
+            </div>
+            <a href="{{ route('admin.meals.index') }}" class="db-stat-link"><i class="fas fa-external-link-alt"></i></a>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-blue"><i class="fas fa-list-alt"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($totalCategories) }}</div>
+                <p class="db-stat-label">Categories</p>
+            </div>
+            <a href="{{ route('admin.categories.index') }}" class="db-stat-link"><i class="fas fa-external-link-alt"></i></a>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-teal"><i class="fas fa-code-branch"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($totalBranches) }}</div>
+                <p class="db-stat-label">Branches</p>
+            </div>
+            <a href="{{ route('admin.branches.index') }}" class="db-stat-link"><i class="fas fa-external-link-alt"></i></a>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-indigo"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($totalAreas) }}</div>
+                <p class="db-stat-label">Areas</p>
+            </div>
+            <a href="{{ route('admin.areas.index') }}" class="db-stat-link"><i class="fas fa-external-link-alt"></i></a>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-pink"><i class="fas fa-ticket-alt"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($totalCoupons) }}</div>
+                <p class="db-stat-label">Coupons</p>
+                <p class="db-stat-label" style="font-size:.72rem;">{{ $activeCoupons }} active</p>
+            </div>
+            <a href="{{ route('admin.coupons.index') }}" class="db-stat-link"><i class="fas fa-external-link-alt"></i></a>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-purple"><i class="fas fa-th-large"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($totalMealAssignments) }}</div>
+                <p class="db-stat-label">Meal Assignments</p>
+            </div>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-green"><i class="fas fa-chart-line"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($monthlySubscriptions) }}</div>
+                <p class="db-stat-label">Monthly Subs</p>
+            </div>
+        </div>
+
+        <div class="db-card db-stat">
+            <div class="db-stat-icon si-orange"><i class="fas fa-calendar-day"></i></div>
+            <div class="db-stat-body">
+                <div class="db-stat-value">{{ number_format($todayMeals) }}</div>
+                <p class="db-stat-label">Meals Added Today</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Middle row: Payment status + Today's activity ── --}}
+    <div class="db-mid-row">
+
+        {{-- Payment status --}}
+        <div class="db-card">
+            <div class="db-panel-header">
+                <div class="db-panel-icon si-green"><i class="fas fa-credit-card"></i></div>
+                <h6>Payment Status</h6>
+            </div>
+            <div class="db-panel-body">
+                <div class="db-pay-row">
+                    <div class="db-pay-info">
+                        <span class="db-pay-label">Paid</span>
+                        <span class="db-pay-value">{{ number_format($paidSubscriptions) }}</span>
+                    </div>
+                    <div class="db-bar-track">
+                        <div class="db-bar-fill fill-green" style="width:{{ $paidPct }}%"></div>
+                    </div>
+                    <span class="db-pay-pct">{{ $paidPct }}%</span>
+                </div>
+                <div class="db-pay-row">
+                    <div class="db-pay-info">
+                        <span class="db-pay-label">Pending</span>
+                        <span class="db-pay-value">{{ number_format($pendingSubscriptions) }}</span>
+                    </div>
+                    <div class="db-bar-track">
+                        <div class="db-bar-fill fill-orange" style="width:{{ $pendingPct }}%"></div>
+                    </div>
+                    <span class="db-pay-pct">{{ $pendingPct }}%</span>
+                </div>
+                <p class="mt-3 mb-0" style="font-size:.8rem;color:var(--db-muted);">
+                    {{ number_format($totalSubscriptions) }} total subscriptions recorded.
+                </p>
+            </div>
+        </div>
+
+        {{-- Today's activity --}}
+        <div class="db-card">
+            <div class="db-panel-header">
+                <div class="db-panel-icon si-blue"><i class="fas fa-bolt"></i></div>
+                <h6>Today's Activity</h6>
+                <span style="font-size:.78rem;color:var(--db-muted);">{{ now()->format('M j, Y') }}</span>
+            </div>
+            <div class="db-panel-body">
+                <div class="db-activity-item">
+                    <div class="db-activity-dot si-green"><i class="fas fa-user-plus"></i></div>
+                    <div class="db-activity-text">
+                        <strong>New Subscriptions</strong>
+                        <span>Signed up today</span>
+                    </div>
+                    <span class="db-activity-count">{{ $todaySubscriptions }}</span>
+                </div>
+                <div class="db-activity-item">
+                    <div class="db-activity-dot si-orange"><i class="fas fa-utensils"></i></div>
+                    <div class="db-activity-text">
+                        <strong>Meals Added</strong>
+                        <span>New items today</span>
+                    </div>
+                    <span class="db-activity-count">{{ $todayMeals }}</span>
+                </div>
+                <div class="db-activity-item">
+                    <div class="db-activity-dot si-blue"><i class="fas fa-user-check"></i></div>
+                    <div class="db-activity-text">
+                        <strong>Active Subscriptions</strong>
+                        <span>Currently running</span>
+                    </div>
+                    <span class="db-activity-count">{{ $activeSubscriptions }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- ── Recent subscriptions table ── --}}
+    <div class="db-card">
+        <div class="db-table-header">
+            <div class="db-table-title">
+                <div class="db-panel-icon si-blue"><i class="fas fa-history"></i></div>
+                <div>
+                    <h6>Recent Subscriptions</h6>
+                    <p>Latest subscription activity</p>
+                </div>
+            </div>
+            <a href="{{ route('admin.user-subcrptions.index') }}" class="db-btn-sm">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        @if($recentSubscriptions->count() > 0)
+            <div class="table-responsive">
+                <table class="db-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($recentSubscriptions as $sub)
+                        <tr>
+                            <td style="color:var(--db-muted);font-weight:500;">#{{ $sub->id }}</td>
+                            <td>{{ $sub->user->name ?? '—' }}</td>
+                            <td>{{ $sub->subcrption_plans->title ?? '—' }}</td>
+                            <td>
+                                @if($sub->status === 'active')
+                                    <span class="db-pill pill-green">Active</span>
+                                @else
+                                    <span class="db-pill pill-gray">{{ ucfirst($sub->status ?? 'Inactive') }}</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($sub->payment === 'paid')
+                                    <span class="db-pill pill-blue">Paid</span>
+                                @else
+                                    <span class="db-pill pill-orange">Pending</span>
+                                @endif
+                            </td>
+                            <td style="white-space:nowrap;">{{ $sub->start_date ?? '—' }}</td>
+                            <td style="white-space:nowrap;">{{ $sub->end_date ?? '—' }}</td>
+                            <td>
+                                <a href="{{ route('admin.user-subcrptions.show', $sub->id) }}" class="db-action-btn" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="db-empty">
+                <i class="fas fa-inbox"></i>
+                <p>No subscriptions yet.</p>
+            </div>
+        @endif
+    </div>
+
+</div>
 @endsection

@@ -35,14 +35,9 @@
             </thead>
             <tbody>
                 @forelse($areas as $area)
-                <tr class="{{ $area->trashed() ? 'table-secondary' : '' }}">
+                <tr>
                     <td>{{ $area->id }}</td>
-                    <td>
-                        {{ $area->name }}
-                        @if($area->trashed())
-                            <span class="badge badge-warning">Deleted</span>
-                        @endif
-                    </td>
+                    <td>{{ $area->name }}</td>
                     <td>{{ number_format($area->delivery_charges, 2) }}</td>
                     <td>
                         <span class="badge badge-{{ $area->status === 'active' ? 'success' : 'secondary' }}">
@@ -50,16 +45,12 @@
                         </span>
                     </td>
                     <td>
-                        @if(!$area->trashed())
-                            <a href="{{ route('admin.areas.edit', $area->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('admin.areas.destroy', $area->id) }}" method="POST" style="display:inline-block;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                            </form>
-                        @else
-                            <span class="text-muted">Deleted</span>
-                        @endif
+                        <a href="{{ route('admin.areas.edit', $area->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        <form action="{{ route('admin.areas.destroy', $area->id) }}" method="POST" style="display:inline-block;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 @empty
@@ -72,4 +63,3 @@
     </div>
 </div>
 @endsection
-

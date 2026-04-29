@@ -38,6 +38,8 @@ class UserSubcrption extends Model
     protected $fillable = [
         'selected_days',
         'user_address_id',
+        'branch_id',
+        'area_id',
         'start_date',
         'end_date',
         'user_id',
@@ -112,6 +114,16 @@ class UserSubcrption extends Model
     public function address()
     {
         return $this->belongsTo(UserAddress::class, 'user_address_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(\App\Models\Branch::class, 'branch_id');
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(\App\Models\Area::class, 'area_id');
     }
 
     public function subscription_days()

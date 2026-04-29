@@ -39,6 +39,17 @@ class UpdateSubcrptionPlanRequest extends FormRequest
                 'min:-2147483648',
                 'max:2147483647',
             ],
+            'min_days' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
+            'max_days' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'gte:min_days',
+            ],
         ];
     }
 }
