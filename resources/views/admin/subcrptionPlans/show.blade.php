@@ -41,10 +41,18 @@
                     </tr>
                     <tr>
                         <th>
-                            Price per Week
+                            Price
                         </th>
                         <td>
                             {{ $subcrptionPlan->price }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            No of Weeks
+                        </th>
+                        <td>
+                            {{ $subcrptionPlan->no_of_weeks }}
                         </td>
                     </tr>
                     <tr>

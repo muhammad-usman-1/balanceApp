@@ -135,16 +135,6 @@
             </li>
             @endcan
 
-            @can('duration_access')
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.durations.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/durations*') ? 'active' : '' }}">
-                    <span class="sb-icon si-purple"><i class="fas fa-clock"></i></span>
-                    <span class="sb-label">{{ trans('cruds.duration.title') }}</span>
-                </a>
-            </li>
-            @endcan
-
             @can('user_subcrption_access')
             <li class="nav-item sb-item">
                 <a href="{{ route('admin.user-subcrptions.index') }}"

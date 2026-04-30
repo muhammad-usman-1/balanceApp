@@ -43,12 +43,19 @@ class StoreSubcrptionPlanRequest extends FormRequest
                 'nullable',
                 'integer',
                 'min:1',
+                'max:6',
             ],
             'max_days' => [
                 'nullable',
                 'integer',
                 'min:1',
+                'max:7',
                 'gte:min_days',
+            ],
+            'no_of_weeks' => [
+                'nullable',
+                'integer',
+                'min:1',
             ],
         ];
     }

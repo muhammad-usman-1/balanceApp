@@ -27,6 +27,7 @@ class SubcrptionPlan extends Model
         'snack_count',
         'min_days',
         'max_days',
+        'no_of_weeks',
         'is_active',
         'created_at',
         'updated_at',

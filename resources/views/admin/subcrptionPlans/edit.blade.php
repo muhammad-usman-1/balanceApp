@@ -27,12 +27,19 @@
                 <span class="help-block">{{ trans('cruds.subcrptionPlan.fields.description_helper') }}</span>
             </div>
             <div class="form-group">
-                <label for="price">Price per Week</label>
+                <label for="price">Price</label>
                 <input class="form-control {{ $errors->has('price') ? 'is-invalid' : '' }}" type="number" name="price" id="price" value="{{ old('price', $subcrptionPlan->price) }}" step="0.01">
                 @if($errors->has('price'))
                     <span class="text-danger">{{ $errors->first('price') }}</span>
                 @endif
                 <span class="help-block">{{ trans('cruds.subcrptionPlan.fields.price_helper') }}</span>
+            </div>
+            <div class="form-group">
+                <label for="no_of_weeks">No of Weeks</label>
+                <input class="form-control {{ $errors->has('no_of_weeks') ? 'is-invalid' : '' }}" type="number" name="no_of_weeks" id="no_of_weeks" value="{{ old('no_of_weeks', $subcrptionPlan->no_of_weeks) }}" min="1" step="1">
+                @if($errors->has('no_of_weeks'))
+                    <span class="text-danger">{{ $errors->first('no_of_weeks') }}</span>
+                @endif
             </div>
             <div class="form-group">
                 <label for="meal_count">{{ trans('cruds.subcrptionPlan.fields.meal_count') }}</label>
@@ -52,14 +59,14 @@
             </div>
             <div class="form-group">
                 <label for="min_days">Min Days</label>
-                <input class="form-control {{ $errors->has('min_days') ? 'is-invalid' : '' }}" type="number" name="min_days" id="min_days" value="{{ old('min_days', $subcrptionPlan->min_days) }}" min="1" step="1" placeholder="Minimum subscription days">
+                <input class="form-control {{ $errors->has('min_days') ? 'is-invalid' : '' }}" type="number" name="min_days" id="min_days" value="{{ old('min_days', $subcrptionPlan->min_days) }}" min="1" max="6" step="1" placeholder="Minimum subscription days">
                 @if($errors->has('min_days'))
                     <span class="text-danger">{{ $errors->first('min_days') }}</span>
                 @endif
             </div>
             <div class="form-group">
                 <label for="max_days">Max Days</label>
-                <input class="form-control {{ $errors->has('max_days') ? 'is-invalid' : '' }}" type="number" name="max_days" id="max_days" value="{{ old('max_days', $subcrptionPlan->max_days) }}" min="1" step="1" placeholder="Maximum subscription days">
+                <input class="form-control {{ $errors->has('max_days') ? 'is-invalid' : '' }}" type="number" name="max_days" id="max_days" value="{{ old('max_days', $subcrptionPlan->max_days) }}" min="1" max="7" step="1" placeholder="Maximum subscription days">
                 @if($errors->has('max_days'))
                     <span class="text-danger">{{ $errors->first('max_days') }}</span>
                 @endif

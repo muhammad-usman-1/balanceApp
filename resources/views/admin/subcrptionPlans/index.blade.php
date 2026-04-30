@@ -32,7 +32,10 @@
                             {{ trans('cruds.subcrptionPlan.fields.description') }}
                         </th>
                         <th>
-                            Price per Week
+                            Price
+                        </th>
+                        <th>
+                            No of Weeks
                         </th>
                         <th>
                             {{ trans('cruds.subcrptionPlan.fields.meal_count') }}
@@ -72,6 +75,9 @@
                             </td>
                             <td>
                                 {{ $subcrptionPlan->price ?? '' }}
+                            </td>
+                            <td>
+                                {{ $subcrptionPlan->no_of_weeks ?? '' }}
                             </td>
                             <td>
                                 {{ $subcrptionPlan->meal_count ?? '' }}

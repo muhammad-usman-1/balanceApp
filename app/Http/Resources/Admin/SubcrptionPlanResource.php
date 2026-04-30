@@ -17,6 +17,7 @@ class SubcrptionPlanResource extends JsonResource
             'snack_count' => $this->snack_count,
             'min_days' => $this->min_days,
             'max_days' => $this->max_days,
+            'no_of_weeks' => $this->no_of_weeks,
             'is_active' => $this->is_active,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
