@@ -31,8 +31,8 @@ class HesabePaymentController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Kits fetched successfully.',
-                'data' => $kits,
+                'message' => 'Payment kits fetched successfully.',
+                'data'    => $kits,
             ]);
         } catch (PaymentException $e) {
             return response()->json([
@@ -40,105 +40,182 @@ class HesabePaymentController extends Controller
                 'message' => $e->getMessage(),
             ], Response::HTTP_BAD_GATEWAY);
         } catch (\Throwable $e) {
-            Log::error('Hesabe review kits error: ' . $e->getMessage());
+            Log::error('Hesabe reviewKits error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to fetch review kits.',
+                'message' => 'Unable to fetch payment methods.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     public function checkout(ProcessHesabePaymentRequest $request): JsonResponse
     {
+        $paymentMethod = $request->payment_method; // cash | debit_card | credit_card
+
+        return $paymentMethod === 'cash'
+            ? $this->handleCashCheckout($request)
+            : $this->handleCardCheckout($request, $paymentMethod);
+    }
+
+    // -------------------------------------------------------------------------
+    // Cash — no gateway, subscription is created with payment status "pending"
+    // -------------------------------------------------------------------------
+    private function handleCashCheckout(ProcessHesabePaymentRequest $request): JsonResponse
+    {
         try {
-            $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
-            $user = User::findOrFail($request->user_id);
-            $amount = $request->amount ?? $plan->price;
+            $plan     = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
+            $amount   = $request->amount ?? $plan->price;
             $currency = strtoupper($request->currency ?? 'KWD');
-            $reference = 'SUB-' . now()->timestamp . '-' . strtoupper(Str::random(4));
+            $reference = 'CASH-' . now()->timestamp . '-' . strtoupper(Str::random(6));
+
+            $subscriptionPayload = $request->safe()->except([
+                'payment_method', 'amount', 'currency',
+                'card_holder_name', 'card_number',
+                'card_expiry_month', 'card_expiry_year',
+                'card_cvv', 'save_card',
+            ]);
+
+            $subscriptionPayload['price']    = $amount;
+            $subscriptionPayload['currency'] = $currency;
+
+            $subscriptionResult = $this->subscriptionService->createSubscription(
+                $subscriptionPayload->toArray(),
+                [
+                    'status'    => 'pending',   // cash is collected on delivery
+                    'reference' => $reference,
+                    'gateway'   => 'cash',
+                    'currency'  => $currency,
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order placed successfully. Cash will be collected on delivery.',
+                'data'    => [
+                    'payment' => [
+                        'method'    => 'cash',
+                        'reference' => $reference,
+                        'amount'    => $amount,
+                        'currency'  => $currency,
+                        'status'    => 'pending',
+                    ],
+                    'subscription' => $subscriptionResult,
+                ],
+            ], Response::HTTP_CREATED);
+        } catch (\Throwable $e) {
+            Log::error('Cash checkout error: ' . $e->getMessage(), [
+                'user_id' => $request->user_id ?? null,
+                'plan_id' => $request->subcrption_plans_id ?? null,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to place order. Please try again.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Debit / Credit Card — processes through Hesabe gateway
+    // -------------------------------------------------------------------------
+    private function handleCardCheckout(ProcessHesabePaymentRequest $request, string $paymentMethod): JsonResponse
+    {
+        try {
+            $plan     = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
+            $user     = User::findOrFail($request->user_id);
+            $amount   = $request->amount ?? $plan->price;
+            $currency = strtoupper($request->currency ?? 'KWD');
+            $reference = 'SUB-' . now()->timestamp . '-' . strtoupper(Str::random(6));
 
             $paymentPayload = [
-                'amount' => number_format($amount, 3, '.', ''),
-                'currencyCode' => $currency,
+                'amount'                       => number_format((float) $amount, 3, '.', ''),
+                'currencyCode'                 => $currency,
                 'merchantOrderReferenceNumber' => $reference,
-                'customerEmail' => $user->email,
-                'customerMobileNumber' => $user->mobile,
-                'cardHolderName' => $request->card_holder_name,
-                'cardNumber' => $request->card_number,
-                'cardExpiryMonth' => $request->card_expiry_month,
-                'cardExpiryYear' => $request->card_expiry_year,
-                'cardSecurityCode' => $request->card_cvv,
-                'language' => 'en',
-                'paymentType' => '0', // 0 = Indirect, 1 = KNET, 2 = MPGS
-                'version' => '2.0', // API version
+                'customerEmail'                => $user->email ?? '',
+                'customerMobileNumber'         => $user->mobile,
+                'cardHolderName'               => $request->card_holder_name,
+                'cardNumber'                   => $request->card_number,
+                'cardExpiryMonth'              => $request->card_expiry_month,
+                'cardExpiryYear'               => $request->card_expiry_year,
+                'cardSecurityCode'             => $request->card_cvv,
+                'language'                     => 'en',
+                'paymentType'                  => '0',
+                'version'                      => '2.0',
             ];
 
             $paymentResponse = $this->hesabePaymentService->checkout($paymentPayload);
-            $paymentData = $paymentResponse['data'] ?? [];
-            
-            $paymentStatus = $paymentData['status'] ?? null;
+            $paymentData     = $paymentResponse['data'] ?? [];
+            $paymentStatus   = $paymentData['status'] ?? null;
 
-            if ($paymentStatus !== true && ! in_array(strtolower((string)$paymentStatus), ['success', 'paid', 'captured', 'true', '1'], true)) {
-                throw new PaymentException($paymentData['message'] ?? 'Payment failed with Hesabe.');
+            $successStatuses = ['success', 'paid', 'captured', 'true', '1'];
+            if ($paymentStatus !== true && ! in_array(strtolower((string) $paymentStatus), $successStatuses, true)) {
+                throw new PaymentException($paymentData['message'] ?? 'Payment was not successful. Please try again.');
             }
 
-            $transactionReference = $paymentData['transactionReference'] ?? $paymentData['paymentId'] ?? $paymentData['token'] ?? $reference;
+            $transactionReference = $paymentData['transactionReference']
+                ?? $paymentData['paymentId']
+                ?? $paymentData['token']
+                ?? $reference;
 
             $cardNumber = preg_replace('/\D/', '', $request->card_number);
-            $lastFour = $cardNumber ? substr($cardNumber, -4) : null;
-            $cardBrand = $this->detectCardBrand($cardNumber);
+            $lastFour   = $cardNumber ? substr($cardNumber, -4) : null;
+            $cardBrand  = $this->detectCardBrand($cardNumber);
 
             if ($request->boolean('save_card') && $cardNumber) {
                 UserPaymentMethod::updateOrCreate(
                     [
-                        'user_id' => $request->user_id,
-                        'card_last_four' => $lastFour,
+                        'user_id'           => $request->user_id,
+                        'card_last_four'    => $lastFour,
                         'card_expiry_month' => $request->card_expiry_month,
-                        'card_expiry_year' => $request->card_expiry_year,
+                        'card_expiry_year'  => $request->card_expiry_year,
                     ],
                     [
-                        'card_holder_name' => $request->card_holder_name,
-                        'card_brand' => $cardBrand,
+                        'card_holder_name'      => $request->card_holder_name,
+                        'card_brand'            => $cardBrand,
                         'card_number_encrypted' => Crypt::encryptString($cardNumber),
-                        'hesabe_token' => $paymentData['token'] ?? null,
-                        'card_expiry_month' => $request->card_expiry_month,
-                        'card_expiry_year' => $request->card_expiry_year,
-                        'meta' => $paymentResponse,
+                        'hesabe_token'          => $paymentData['token'] ?? null,
+                        'meta'                  => $paymentResponse,
                     ]
                 );
             }
 
             $subscriptionPayload = $request->safe()->except([
-                'card_holder_name',
-                'card_number',
-                'card_expiry_month',
-                'card_expiry_year',
-                'card_cvv',
-                'save_card',
-                'amount',
-                'currency',
+                'payment_method', 'card_holder_name', 'card_number',
+                'card_expiry_month', 'card_expiry_year',
+                'card_cvv', 'save_card', 'amount', 'currency',
             ]);
 
-            $subscriptionPayload['price'] = $amount;
+            $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
-            $subscriptionPayload['payment'] = 'paid';
 
-            $subscriptionResult = $this->subscriptionService->createSubscription($subscriptionPayload, [
-                'status' => 'paid',
-                'reference' => $transactionReference,
-                'gateway' => 'hesabe',
-                'currency' => $currency,
-                'card_last_four' => $lastFour,
-                'card_brand' => $cardBrand,
-                'meta' => $paymentResponse,
-            ]);
+            $subscriptionResult = $this->subscriptionService->createSubscription(
+                $subscriptionPayload->toArray(),
+                [
+                    'status'         => 'paid',
+                    'reference'      => $transactionReference,
+                    'gateway'        => 'hesabe',
+                    'currency'       => $currency,
+                    'card_last_four' => $lastFour,
+                    'card_brand'     => $cardBrand,
+                    'meta'           => $paymentResponse,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment completed and subscription created successfully.',
-                'data' => [
-                    'payment' => $paymentResponse,
+                'message' => 'Payment successful and subscription created.',
+                'data'    => [
+                    'payment' => [
+                        'method'         => $paymentMethod,
+                        'reference'      => $transactionReference,
+                        'gateway'        => 'hesabe',
+                        'amount'         => $amount,
+                        'currency'       => $currency,
+                        'card_brand'     => $cardBrand,
+                        'card_last_four' => $lastFour,
+                        'status'         => 'paid',
+                    ],
                     'subscription' => $subscriptionResult,
                 ],
             ], Response::HTTP_CREATED);
@@ -148,14 +225,15 @@ class HesabePaymentController extends Controller
                 'message' => $e->getMessage(),
             ], Response::HTTP_BAD_GATEWAY);
         } catch (\Throwable $e) {
-            Log::error('Hesabe checkout error: ' . $e->getMessage(), [
-                'request' => $request->all(),
+            Log::error('Card checkout error: ' . $e->getMessage(), [
+                'user_id'        => $request->user_id ?? null,
+                'plan_id'        => $request->subcrption_plans_id ?? null,
+                'payment_method' => $request->payment_method ?? null,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process payment.',
-                'error' => $e->getMessage(),
+                'message' => 'Payment processing failed. Please try again.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -167,12 +245,12 @@ class HesabePaymentController extends Controller
         }
 
         return match (true) {
-            preg_match('/^4[0-9]{12}(?:[0-9]{3})?$/', $cardNumber) => 'visa',
-            preg_match('/^(5[1-5][0-9]{14})$/', $cardNumber) => 'mastercard',
-            preg_match('/^3[47][0-9]{13}$/', $cardNumber) => 'amex',
-            preg_match('/^6(?:011|5[0-9]{2})[0-9]{12}$/', $cardNumber) => 'discover',
+            (bool) preg_match('/^4[0-9]{12}(?:[0-9]{3,6})?$/', $cardNumber)                            => 'visa',
+            (bool) preg_match('/^5[1-5][0-9]{14}$/', $cardNumber)                                      => 'mastercard',
+            (bool) preg_match('/^2(?:2[2-9][1-9]|[3-6]\d{2}|7(?:[01]\d|20))[0-9]{12}$/', $cardNumber) => 'mastercard',
+            (bool) preg_match('/^3[47][0-9]{13}$/', $cardNumber)                                       => 'amex',
+            (bool) preg_match('/^6(?:011|5[0-9]{2})[0-9]{12}$/', $cardNumber)                         => 'discover',
             default => 'unknown',
         };
     }
 }
-

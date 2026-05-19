@@ -70,6 +70,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('coupons/{coupon}/usage-history', 'CouponController@usageHistory')->name('coupons.usage-history');
     Route::resource('coupons', 'CouponController');
 
+    // Protein Options
+    Route::resource('protein-options', 'ProteinOptionController');
+
     // Settings (only edit/update, admin only)
     Route::get('settings', 'SettingsController@edit')->name('settings.edit');
     Route::put('settings', 'SettingsController@update')->name('settings.update');

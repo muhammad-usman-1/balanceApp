@@ -14,7 +14,9 @@ class SubcrptionPlansApiController extends Controller
 {
     public function index()
     {
-        return SubcrptionPlanResource::collection(SubcrptionPlan::all());
+        return SubcrptionPlanResource::collection(
+            SubcrptionPlan::where('is_active', true)->get()
+        );
     }
 
     public function store(StoreSubcrptionPlanRequest $request)

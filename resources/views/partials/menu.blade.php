@@ -145,6 +145,14 @@
             </li>
             @endcan
 
+            <li class="nav-item sb-item">
+                <a href="{{ route('admin.protein-options.index') }}"
+                   class="nav-link sb-link {{ request()->is('admin/protein-options*') ? 'active' : '' }}">
+                    <span class="sb-icon si-orange"><i class="fas fa-dumbbell"></i></span>
+                    <span class="sb-label">Protein Pricing</span>
+                </a>
+            </li>
+
             {{-- ─ MARKETING ─ --}}
             <li class="sb-section-label">Marketing</li>
 

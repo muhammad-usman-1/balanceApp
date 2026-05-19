@@ -11,24 +11,16 @@ class UpdateSubscriptionMealApiRequest extends FormRequest
 {
     public function authorize()
     {
-        return true; // Can be used with or without authentication
+        return true;
     }
 
-    /**
-     * Handle a failed validation attempt.
-     *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
-     * @return void
-     *
-     * @throws \Illuminate\Http\Exceptions\HttpResponseException
-     */
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors(),
+                'errors'  => $validator->errors(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY)
         );
     }
@@ -41,10 +33,11 @@ class UpdateSubscriptionMealApiRequest extends FormRequest
                 'integer',
                 'exists:users,id',
             ],
-            'day' => [
+            // ID of the specific delivery day record (returned from GET /subscription/meals)
+            'subscription_day_id' => [
                 'required',
-                'string',
-                'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                'integer',
+                'exists:subscription_days,id',
             ],
             'meal_id' => [
                 'required',
@@ -56,6 +49,7 @@ class UpdateSubscriptionMealApiRequest extends FormRequest
                 'string',
                 'in:is meal,is snack',
             ],
+            // Provide this to update an existing meal entry instead of creating a new one
             'subscription_meal_id' => [
                 'nullable',
                 'integer',
@@ -67,16 +61,14 @@ class UpdateSubscriptionMealApiRequest extends FormRequest
     public function messages()
     {
         return [
-            'user_id.required' => 'User ID is required.',
-            'user_id.exists' => 'The selected user does not exist.',
-            'day.required' => 'Day is required.',
-            'day.in' => 'Day must be one of: monday, tuesday, wednesday, thursday, friday, saturday, sunday.',
-            'meal_id.required' => 'Meal ID is required.',
-            'meal_id.exists' => 'The selected meal does not exist.',
-            'type.required' => 'Type is required.',
-            'type.in' => 'Type must be either "is meal" or "is snack".',
-            'subscription_meal_id.exists' => 'The selected subscription meal does not exist.',
+            'user_id.required'             => 'User ID is required.',
+            'user_id.exists'               => 'The selected user does not exist.',
+            'subscription_day_id.required' => 'Subscription day ID is required.',
+            'subscription_day_id.exists'   => 'The selected delivery day does not exist.',
+            'meal_id.required'             => 'Meal ID is required.',
+            'meal_id.exists'               => 'The selected meal does not exist.',
+            'type.required'                => 'Type is required.',
+            'type.in'                      => 'Type must be "is meal" or "is snack".',
         ];
     }
 }
-

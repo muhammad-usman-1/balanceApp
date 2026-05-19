@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateSubscriptionMealApiRequest;
-use App\Models\Meal;
 use App\Models\SubscriptionDay;
 use App\Models\SubscriptionMeal;
 use App\Models\UserSubcrption;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,203 +15,175 @@ use Symfony\Component\HttpFoundation\Response;
 class SubscriptionMealApiController extends Controller
 {
     /**
-     * Update meal for a specific day in user's active subscription
-     * 
-     * This endpoint allows updating or creating a meal for any day in the user's active subscription.
-     * If subscription_meal_id is provided, it will update that specific meal.
-     * Otherwise, it will create a new meal entry for the specified day.
-     * 
-     * @param UpdateSubscriptionMealApiRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * Assign or update the meal for a specific day in the weekly schedule.
+     *
+     * The user picks a day slot (subscription_day_id from GET /subscription/meals)
+     * and sets which meal they want every week on that day.
+     * The same meal repeats automatically for every week of the plan.
      */
     public function updateMeal(UpdateSubscriptionMealApiRequest $request)
     {
-        // Force JSON response
-        $request->headers->set('Accept', 'application/json');
-
         DB::beginTransaction();
 
         try {
-            // Find user's active subscription
-            $userSubscription = UserSubcrption::where('user_id', $request->user_id)
-                ->where('status', 'active')
-                ->where('end_date', '>=', now()->format('Y-m-d'))
-                ->latest()
-                ->first();
+            $subscriptionDay = SubscriptionDay::with('user_subcrption')
+                ->find($request->subscription_day_id);
 
-            if (!$userSubscription) {
+            $userSubscription = $subscriptionDay?->user_subcrption;
+
+            if (
+                ! $userSubscription
+                || $userSubscription->user_id != $request->user_id
+                || $userSubscription->status !== 'active'
+            ) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'No active subscription found for this user.',
+                    'message' => 'Day not found or does not belong to your active subscription.',
                 ], Response::HTTP_NOT_FOUND);
             }
 
-            // Normalize day to lowercase
-            $day = strtolower(trim($request->day));
-
-            // Find or create subscription day for this day
-            $subscriptionDay = SubscriptionDay::where('user_subcrptions_id', $userSubscription->id)
-                ->where('day', $day)
-                ->first();
-
-            if (!$subscriptionDay) {
-                // Check if the day is in the selected_days of the subscription
-                $selectedDays = is_array($userSubscription->selected_days)
-                    ? $userSubscription->selected_days
-                    : explode(',', $userSubscription->selected_days ?? '');
-
-                $selectedDays = array_map('trim', array_map('strtolower', $selectedDays));
-
-                if (!in_array($day, $selectedDays)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "The day '{$day}' is not part of the user's selected subscription days.",
-                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
-                }
-
-                // Create subscription day
-                $subscriptionDay = SubscriptionDay::create([
-                    'user_subcrptions_id' => $userSubscription->id,
-                    'day' => $day,
-                ]);
-            }
-
-            // Verify meal exists
-            $meal = Meal::find($request->meal_id);
-            if (!$meal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The specified meal does not exist.',
-                ], Response::HTTP_NOT_FOUND);
-            }
-
-            // Update existing meal or create new one
-            if ($request->has('subscription_meal_id') && $request->subscription_meal_id) {
-                // Update existing subscription meal
+            if ($request->filled('subscription_meal_id')) {
                 $subscriptionMeal = SubscriptionMeal::where('id', $request->subscription_meal_id)
                     ->where('subscription_days_id', $subscriptionDay->id)
                     ->first();
 
-                if (!$subscriptionMeal) {
+                if (! $subscriptionMeal) {
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
-                        'message' => 'Subscription meal not found or does not belong to this subscription day.',
+                        'message' => 'Meal entry not found for this day.',
                     ], Response::HTTP_NOT_FOUND);
                 }
 
                 $subscriptionMeal->update([
                     'meal_id' => $request->meal_id,
-                    'type' => $request->type,
+                    'type'    => $request->type,
                 ]);
-
                 $message = 'Meal updated successfully.';
             } else {
-                // Create new subscription meal
                 $subscriptionMeal = SubscriptionMeal::create([
                     'subscription_days_id' => $subscriptionDay->id,
-                    'meal_id' => $request->meal_id,
-                    'type' => $request->type,
+                    'meal_id'              => $request->meal_id,
+                    'type'                 => $request->type,
                 ]);
-
-                $message = 'Meal added successfully.';
+                $message = 'Meal assigned successfully.';
             }
 
-            // Load relationships for response
-            $subscriptionMeal->load(['meal', 'subscription_days.user_subcrption']);
-
+            $subscriptionMeal->load('meal');
             DB::commit();
 
-            // Prepare response
-            $response = [
+            return response()->json([
                 'success' => true,
                 'message' => $message,
                 'data' => [
                     'subscription_meal' => [
-                        'id' => $subscriptionMeal->id,
-                        'subscription_days_id' => $subscriptionMeal->subscription_days_id,
-                        'day' => $subscriptionMeal->subscription_days->day ?? null,
-                        'meal_id' => $subscriptionMeal->meal_id,
-                        'meal' => [
-                            'id' => $subscriptionMeal->meal->id ?? null,
-                            'title' => $subscriptionMeal->meal->title ?? null,
-                            'description' => $subscriptionMeal->meal->description ?? null,
-                            'calories' => $subscriptionMeal->meal->calories ?? null,
-                            'protein_g' => $subscriptionMeal->meal->protein_g ?? null,
-                            'fat_g' => $subscriptionMeal->meal->fat_g ?? null,
-                            'carbs_g' => $subscriptionMeal->meal->carbs_g ?? null,
-                        ],
-                        'type' => $subscriptionMeal->type,
-                        'user_subscription_id' => $subscriptionMeal->subscription_days->user_subcrptions_id ?? null,
-                        'created_at' => $subscriptionMeal->created_at,
-                        'updated_at' => $subscriptionMeal->updated_at,
+                        'id'                  => $subscriptionMeal->id,
+                        'subscription_day_id' => $subscriptionDay->id,
+                        'day'                 => $subscriptionDay->day,
+                        'meal_id'             => $subscriptionMeal->meal_id,
+                        'type'                => $subscriptionMeal->type,
+                        'meal'                => $this->formatMeal($subscriptionMeal->meal),
                     ],
                 ],
-            ];
-
-            return response()->json($response, Response::HTTP_OK);
-
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Update subscription meal error: ' . $e->getMessage(), [
-                'request' => $request->all(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+            Log::error('updateMeal error: ' . $e->getMessage(), ['request' => $request->all()]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update meal',
-                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while updating the meal.',
+                'message' => 'Failed to update meal.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
-     * Get all meals for an active subscription
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * Return the weekly meal schedule for the user's active subscription.
+     *
+     * Each day slot in the response represents a recurring delivery day.
+     * The same meal is delivered on that day every week for the full plan duration.
+     *
+     * Example: plan = 4 weeks, days = Mon/Wed/Fri
+     *   → 3 day slots returned
+     *   → Mobile shows Mon meal, Wed meal, Fri meal
+     *   → Each repeats for 4 weeks automatically
      */
-    public function getMeals(\Illuminate\Http\Request $request)
+    public function getMeals(Request $request)
     {
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
         ]);
 
         try {
-            // Find user's active subscription
             $userSubscription = UserSubcrption::where('user_id', $request->user_id)
                 ->where('status', 'active')
                 ->where('end_date', '>=', now()->format('Y-m-d'))
                 ->with([
-                    'subscription_days.subscription_meals.meal'
+                    'subcrption_plans',
+                    'subscription_days' => fn ($q) => $q->orderByRaw("FIELD(day,'monday','tuesday','wednesday','thursday','friday','saturday','sunday')"),
+                    'subscription_days.subscription_meals.meal',
                 ])
                 ->latest()
                 ->first();
 
-            if (!$userSubscription) {
+            if (! $userSubscription) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No active subscription found for this user.',
+                    'message' => 'No active subscription found.',
                 ], Response::HTTP_NOT_FOUND);
             }
+
+            $plan = $userSubscription->subcrption_plans;
+
+            $weeklySchedule = $userSubscription->subscription_days->map(fn ($day) => [
+                'subscription_day_id' => $day->id,
+                'day'                 => $day->day,
+                'meals'               => $day->subscription_meals->map(fn ($m) => [
+                    'id'      => $m->id,
+                    'meal_id' => $m->meal_id,
+                    'type'    => $m->type,
+                    'meal'    => $this->formatMeal($m->meal),
+                ])->values(),
+            ])->values();
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'user_subscription_id' => $userSubscription->id,
-                    'subscription_days' => $userSubscription->subscription_days,
+                    'plan_title'           => $plan->title ?? null,
+                    'no_of_weeks'          => $plan->no_of_weeks ?? null,
+                    'days_per_week'        => $userSubscription->subscription_days->count(),
+                    'start_date'           => $userSubscription->start_date,
+                    'end_date'             => $userSubscription->end_date,
+                    'note'                 => 'This weekly schedule repeats every week for the full plan duration.',
+                    'weekly_schedule'      => $weeklySchedule,
                 ],
-            ], Response::HTTP_OK);
-
+            ]);
         } catch (\Exception $e) {
-            Log::error('Get subscription meals error: ' . $e->getMessage());
+            Log::error('getMeals error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve meals.',
-                'error' => $e->getMessage(),
+                'message' => 'Failed to retrieve meal schedule.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-}
 
+    private function formatMeal(?object $meal): ?array
+    {
+        if (! $meal) {
+            return null;
+        }
+
+        return [
+            'id'          => $meal->id,
+            'title'       => $meal->title,
+            'description' => $meal->description ?? null,
+            'calories'    => $meal->calories ?? null,
+            'protein_g'   => $meal->protein_g ?? null,
+            'fat_g'       => $meal->fat_g ?? null,
+            'carbs_g'     => $meal->carbs_g ?? null,
+        ];
+    }
+}

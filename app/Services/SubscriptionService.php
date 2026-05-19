@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Duration;
+use App\Models\Area;
+use App\Models\ProteinOption;
 use App\Models\SubcrptionPlan;
 use App\Models\SubscriptionDay;
 use App\Models\SubscriptionMeal;
@@ -14,61 +15,92 @@ use Illuminate\Support\Facades\DB;
 
 class SubscriptionService
 {
-    /**
-     * Create a user subscription along with its days and meals.
-     *
-     * @param  array  $payload
-     * @param  array  $paymentContext
-     * @return array
-     */
     public function createSubscription(array $payload, array $paymentContext = []): array
     {
         return DB::transaction(function () use ($payload, $paymentContext) {
-            $subscriptionPlan = SubcrptionPlan::findOrFail($payload['subcrption_plans_id']);
-            $duration = Duration::findOrFail($payload['duration_id']);
+            $plan = SubcrptionPlan::findOrFail($payload['subcrption_plans_id']);
 
             $startDate = Carbon::parse($payload['start_date']);
-            $endDate = $startDate->copy()->addWeeks($duration->no_of_weeks);
-            $price = $payload['price'] ?? $subscriptionPlan->price;
-            $currency = $paymentContext['currency'] ?? ($payload['currency'] ?? null);
+            // end_date is calculated from the plan's no_of_weeks — no external duration table needed
+            $endDate   = $startDate->copy()->addWeeks((int) $plan->no_of_weeks);
 
-            $isPersonalized = $payload['is_personalized'] ?? false;
-            $selectedDaysValue = $payload['selected_days'] ?? null;
-            if (is_array($selectedDaysValue)) {
-                $selectedDaysValue = implode(',', $selectedDaysValue);
+            $basePrice = (float) $plan->price;
+
+            // Add protein surcharge when this is a personalized plan with a protein selection
+            $proteinSurcharge = 0.0;
+            $isPersonalized   = $payload['is_personalized'] ?? false;
+            if ($isPersonalized && ! empty($payload['protein'])) {
+                $proteinOption = ProteinOption::where('protein_grams', (int) $payload['protein'])
+                    ->where('is_active', true)
+                    ->first();
+
+                if ($proteinOption) {
+                    $selectedDaysCount = is_array($payload['selected_days'] ?? [])
+                        ? count($payload['selected_days'])
+                        : count(array_filter(explode(',', $payload['selected_days'] ?? '')));
+
+                    $totalMeals       = (int) $plan->meal_count * $selectedDaysCount;
+                    $proteinSurcharge = (float) $proteinOption->extra_price_per_meal * $totalMeals;
+                }
             }
+
+            $price    = round($basePrice + $proteinSurcharge, 3);
+            $currency = $paymentContext['currency'] ?? ($payload['currency'] ?? 'KWD');
+
+            $selectedDaysRaw = $payload['selected_days'] ?? [];
+            $selectedDaysStr = is_array($selectedDaysRaw)
+                ? implode(',', $selectedDaysRaw)
+                : $selectedDaysRaw;
 
             $address = isset($payload['address']) && is_array($payload['address'])
                 ? $this->createAddress($payload['user_id'], $payload['address'])
                 : null;
 
+            // Auto-resolve branch from the selected area — user never picks branch directly
+            $areaId   = $payload['area_id'] ?? null;
+            $branchId = null;
+            if ($areaId) {
+                $branch   = Area::find($areaId)?->branches()->where('status', 'active')->first();
+                $branchId = $branch?->id;
+            }
+
             $userSubscription = UserSubcrption::create([
-                'user_id' => $payload['user_id'],
-                'user_address_id' => $address?->id,
+                'user_id'             => $payload['user_id'],
+                'user_address_id'     => $address?->id,
+                'area_id'             => $areaId,
+                'branch_id'           => $branchId,
                 'subcrption_plans_id' => $payload['subcrption_plans_id'],
-                'duration_id' => $payload['duration_id'],
-                'selected_days' => $selectedDaysValue,
-                'start_date' => $startDate->format('Y-m-d'),
-                'end_date' => $endDate->format('Y-m-d'),
-                'price' => $price,
-                'currency' => $currency,
-                'payment' => $paymentContext['status'] ?? ($payload['payment'] ?? 'pending'),
-                'payment_reference' => $paymentContext['reference'] ?? null,
-                'payment_gateway' => $paymentContext['gateway'] ?? null,
-                'card_last_four' => $paymentContext['card_last_four'] ?? null,
-                'card_brand' => $paymentContext['card_brand'] ?? null,
-                'payment_meta' => $paymentContext['meta'] ?? null,
-                'status' => $payload['status'] ?? 'active',
-                'is_personalized' => $isPersonalized,
-                'protein' => $isPersonalized ? ($payload['protein'] ?? null) : null,
-                'carbs' => $isPersonalized ? ($payload['carbs'] ?? null) : null,
+                'selected_days'       => $selectedDaysStr,
+                'start_date'          => $startDate->format('Y-m-d'),
+                'end_date'            => $endDate->format('Y-m-d'),
+                'price'               => $price,
+                'currency'            => $currency,
+                'payment'             => $paymentContext['status'] ?? ($payload['payment'] ?? 'pending'),
+                'payment_reference'   => $paymentContext['reference'] ?? null,
+                'payment_gateway'     => $paymentContext['gateway'] ?? null,
+                'card_last_four'      => $paymentContext['card_last_four'] ?? null,
+                'card_brand'          => $paymentContext['card_brand'] ?? null,
+                'payment_meta'        => $paymentContext['meta'] ?? null,
+                'status'              => 'active',
+                'is_personalized'     => $isPersonalized,
+                'protein'             => $isPersonalized ? ($payload['protein'] ?? null) : null,
+                'carbs'               => $isPersonalized ? ($payload['carbs'] ?? null) : null,
             ]);
 
-            [$subscriptionDays, $createdDays] = $this->createSubscriptionDays($userSubscription->id, $payload['selected_days'] ?? null);
-            $subscriptionMeals = $this->createSubscriptionMeals($userSubscription->id, $payload['meals'] ?? [], $createdDays);
+            // Create one SubscriptionDay record per selected day (weekly pattern)
+            [$subscriptionDays, $createdDays] = $this->createSubscriptionDays(
+                $userSubscription->id,
+                $selectedDaysRaw
+            );
+
+            // Assign meals per day — same meal repeats every week automatically
+            $subscriptionMeals = $this->createSubscriptionMeals(
+                $payload['meals'] ?? [],
+                $createdDays
+            );
 
             return [
-                'user_subscription' => $userSubscription->load(['address']),
+                'user_subscription' => $userSubscription->load(['subcrption_plans', 'address']),
                 'subscription_days' => $subscriptionDays,
                 'subscription_meals' => $subscriptionMeals,
             ];
@@ -78,18 +110,18 @@ class SubscriptionService
     protected function createAddress(int $userId, array $addressData): UserAddress
     {
         $address = UserAddress::create([
-            'user_id' => $userId,
-            'first_name' => $addressData['first_name'],
-            'last_name' => $addressData['last_name'] ?? null,
-            'area' => $addressData['area'] ?? null,
-            'block_number' => $addressData['block_number'] ?? null,
-            'street' => $addressData['street'] ?? null,
-            'house_building' => $addressData['house_building'] ?? null,
-            'floor_apartment' => $addressData['floor_apartment'] ?? null,
-            'phone_number' => $addressData['phone_number'] ?? null,
-            'remarks' => $addressData['remarks'] ?? null,
-            'category' => $addressData['category'] ?? 'home',
-            'is_primary' => (bool) ($addressData['is_primary'] ?? false),
+            'user_id'                 => $userId,
+            'first_name'              => $addressData['first_name'],
+            'last_name'               => $addressData['last_name'] ?? null,
+            'area'                    => $addressData['area'] ?? null,
+            'block_number'            => $addressData['block_number'] ?? null,
+            'street'                  => $addressData['street'] ?? null,
+            'house_building'          => $addressData['house_building'] ?? null,
+            'floor_apartment'         => $addressData['floor_apartment'] ?? null,
+            'phone_number'            => $addressData['phone_number'] ?? null,
+            'remarks'                 => $addressData['remarks'] ?? null,
+            'category'                => $addressData['category'] ?? 'home',
+            'is_primary'              => (bool) ($addressData['is_primary'] ?? false),
             'preferred_delivery_slot' => $addressData['preferred_delivery_slot'] ?? null,
         ]);
 
@@ -103,46 +135,52 @@ class SubscriptionService
     }
 
     /**
-     * @param  int  $userSubscriptionId
-     * @param  mixed  $selectedDays
-     * @return array{0: \Illuminate\Support\Collection, 1: array}
+     * Create ONE SubscriptionDay record per selected day name.
+     * This is the weekly pattern — it repeats automatically every week
+     * for the full duration of the plan.
+     *
+     * e.g. Mon/Wed/Fri → 3 records. Same meals delivered Mon/Wed/Fri every week for 4 weeks.
+     *
+     * @return array{0: Collection, 1: array<string, int>}
      */
-    protected function createSubscriptionDays(int $userSubscriptionId, $selectedDays): array
+    protected function createSubscriptionDays(int $userSubscriptionId, array|string $selectedDays): array
     {
         $subscriptionDays = collect();
-        $createdDays = [];
+        $createdDays      = []; // ['monday' => subscription_day_id, ...]
 
         if (empty($selectedDays)) {
             return [$subscriptionDays, $createdDays];
         }
 
         $days = is_array($selectedDays) ? $selectedDays : explode(',', $selectedDays);
+        $days = array_values(array_filter(array_map(fn ($d) => trim(strtolower($d)), $days)));
 
-        foreach ($days as $day) {
-            $normalizedDay = trim(strtolower($day));
-            if (! array_key_exists($normalizedDay, SubscriptionDay::DAY_SELECT)) {
+        foreach ($days as $dayName) {
+            if (! array_key_exists($dayName, SubscriptionDay::DAY_SELECT)) {
                 continue;
             }
 
             $subscriptionDay = SubscriptionDay::create([
                 'user_subcrptions_id' => $userSubscriptionId,
-                'day' => $normalizedDay,
+                'day'                 => $dayName,
             ]);
 
             $subscriptionDays->push($subscriptionDay);
-            $createdDays[$normalizedDay] = $subscriptionDay->id;
+            $createdDays[$dayName] = $subscriptionDay->id;
         }
 
         return [$subscriptionDays, $createdDays];
     }
 
     /**
-     * @param  int  $userSubscriptionId
-     * @param  array  $meals
-     * @param  array  $createdDays
-     * @return \Illuminate\Support\Collection
+     * Assign meals to specific days by day name.
+     * Each meal is set once and repeats every week.
+     *
+     * @param array<int, array<string, mixed>> $meals  e.g. [["day"=>"monday","meal_id"=>10,"type"=>"is meal"]]
+     * @param array<string, int>               $createdDays
+     * @return Collection
      */
-    protected function createSubscriptionMeals(int $userSubscriptionId, array $meals, array &$createdDays): Collection
+    protected function createSubscriptionMeals(array $meals, array &$createdDays): Collection
     {
         $subscriptionMeals = collect();
 
@@ -158,20 +196,13 @@ class SubscriptionService
             $normalizedDay = trim(strtolower($mealData['day']));
 
             if (! isset($createdDays[$normalizedDay])) {
-                $subscriptionDay = SubscriptionDay::firstOrCreate(
-                    [
-                        'user_subcrptions_id' => $userSubscriptionId,
-                        'day' => $normalizedDay,
-                    ]
-                );
-
-                $createdDays[$normalizedDay] = $subscriptionDay->id;
+                continue;
             }
 
             $subscriptionMeal = SubscriptionMeal::create([
                 'subscription_days_id' => $createdDays[$normalizedDay],
-                'meal_id' => $mealData['meal_id'],
-                'type' => $mealData['type'] ?? null,
+                'meal_id'              => $mealData['meal_id'],
+                'type'                 => $mealData['type'] ?? null,
             ]);
 
             $subscriptionMeal->loadMissing(['meal', 'subscription_days']);
@@ -181,4 +212,3 @@ class SubscriptionService
         return $subscriptionMeals;
     }
 }
-

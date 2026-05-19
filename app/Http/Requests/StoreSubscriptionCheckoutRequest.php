@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\SubcrptionPlan;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -12,17 +13,11 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
 {
     public function authorize()
     {
-        return true; // Public endpoint, no authentication required
+        return true;
     }
 
-    /**
-     * Prepare the data for validation.
-     *
-     * @return void
-     */
     protected function prepareForValidation()
     {
-        // Normalize is_personalized to boolean
         if ($this->has('is_personalized')) {
             $this->merge([
                 'is_personalized' => filter_var($this->is_personalized, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
@@ -44,14 +39,6 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
         }
     }
 
-    /**
-     * Handle a failed validation attempt.
-     *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
-     * @return void
-     *
-     * @throws \Illuminate\Http\Exceptions\HttpResponseException
-     */
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(
@@ -76,14 +63,16 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
                 'integer',
                 'exists:subcrption_plans,id',
             ],
-            'duration_id' => [
+            // User selects an area — branch is auto-resolved by the server
+            'area_id' => [
                 'required',
                 'integer',
-                'exists:durations,id',
+                'exists:areas,id',
             ],
             'selected_days' => [
-                'nullable',
+                'required',
                 'array',
+                'min:1',
             ],
             'selected_days.*' => [
                 'string',
@@ -92,21 +81,12 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
             'start_date' => [
                 'required',
                 'date_format:Y-m-d',
+                'after_or_equal:today',
             ],
             'price' => [
                 'nullable',
                 'numeric',
                 'min:0',
-            ],
-            'payment' => [
-                'nullable',
-                'string',
-                'in:pending,paid',
-            ],
-            'status' => [
-                'nullable',
-                'string',
-                'in:active,inactive',
             ],
             'is_personalized' => [
                 'nullable',
@@ -131,7 +111,7 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
             'meals.*.day' => [
                 'required_with:meals',
                 'string',
-                'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                Rule::in(array_keys(\App\Models\SubscriptionDay::DAY_SELECT)),
             ],
             'meals.*.meal_id' => [
                 'required_with:meals',
@@ -208,6 +188,49 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator)
+    {
+        $validator->after(function (Validator $v) {
+            // Validate plan
+            $planId = $this->input('subcrption_plans_id');
+            if ($planId) {
+                $plan = SubcrptionPlan::find($planId);
+                if ($plan) {
+                    if (! $plan->is_active) {
+                        $v->errors()->add('subcrption_plans_id', 'The selected subscription plan is not currently available.');
+                    } else {
+                        $selectedDays = $this->input('selected_days', []);
+                        if (is_array($selectedDays)) {
+                            $dayCount = count(array_unique($selectedDays));
+                            if ($plan->min_days && $dayCount < $plan->min_days) {
+                                $v->errors()->add('selected_days', "This plan requires at least {$plan->min_days} day(s) per week.");
+                            }
+                            if ($plan->max_days && $dayCount > $plan->max_days) {
+                                $v->errors()->add('selected_days', "This plan allows a maximum of {$plan->max_days} day(s) per week.");
+                            }
+                        }
+                        if (empty($plan->no_of_weeks) || $plan->no_of_weeks < 1) {
+                            $v->errors()->add('subcrption_plans_id', 'The selected plan has no duration configured. Please contact support.');
+                        }
+                    }
+                }
+            }
+
+            // Validate area is active and has a linked branch
+            $areaId = $this->input('area_id');
+            if ($areaId) {
+                $area = \App\Models\Area::with('branches')->find($areaId);
+                if ($area) {
+                    if ($area->status !== 'active') {
+                        $v->errors()->add('area_id', 'The selected area is not currently available for delivery.');
+                    } elseif ($area->branches->where('status', 'active')->isEmpty()) {
+                        $v->errors()->add('area_id', 'No active branch is assigned to the selected area. Please contact support.');
+                    }
+                }
+            }
+        });
+    }
+
     public function messages()
     {
         return [
@@ -215,26 +238,25 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
             'user_id.exists' => 'The selected user does not exist.',
             'subcrption_plans_id.required' => 'Subscription plan ID is required.',
             'subcrption_plans_id.exists' => 'The selected subscription plan does not exist.',
-            'duration_id.required' => 'Duration ID is required.',
-            'duration_id.exists' => 'The selected duration does not exist.',
+            'area_id.required' => 'Please select a delivery area.',
+            'area_id.exists' => 'The selected delivery area does not exist.',
+            'selected_days.required' => 'Please select at least one delivery day.',
+            'selected_days.min' => 'Please select at least one delivery day.',
+            'selected_days.*.in' => 'One or more selected days are invalid.',
             'start_date.required' => 'Start date is required.',
-            'start_date.date_format' => 'Start date must be in Y-m-d format.',
-            'protein.required_if' => 'Protein value is required when personalized plan is selected.',
+            'start_date.date_format' => 'Start date must be in Y-m-d format (e.g. 2026-05-20).',
+            'start_date.after_or_equal' => 'Start date cannot be in the past.',
+            'protein.required_if' => 'Protein value is required for a personalized plan.',
             'protein.numeric' => 'Protein must be a valid number.',
-            'protein.min' => 'Protein must be greater than or equal to 0.',
-            'carbs.required_if' => 'Carbs value is required when personalized plan is selected.',
+            'carbs.required_if' => 'Carbs value is required for a personalized plan.',
             'carbs.numeric' => 'Carbs must be a valid number.',
-            'carbs.min' => 'Carbs must be greater than or equal to 0.',
-            'selected_days.array' => 'Selected days must be provided as an array or comma-separated list.',
-            'selected_days.*.in' => 'Selected days must be valid weekdays.',
-            'address.required' => 'Address information is required.',
-            'address.first_name.required' => 'First name is required for the address.',
-            'address.phone_number.required' => 'Address phone number is required.',
+            'address.required' => 'Delivery address is required.',
+            'address.first_name.required' => 'First name is required for the delivery address.',
+            'address.phone_number.required' => 'Phone number is required for the delivery address.',
             'address.category.required' => 'Address category is required.',
-            'address.category.in' => 'Address category must be home or office.',
-            'address.preferred_delivery_slot.required' => 'Preferred delivery time is required.',
-            'address.preferred_delivery_slot.in' => 'Preferred delivery time must be four_pm_to_eight_pm or eight_pm_to_midnight.',
+            'address.category.in' => 'Address category must be "home" or "office".',
+            'address.preferred_delivery_slot.required' => 'Preferred delivery time slot is required.',
+            'address.preferred_delivery_slot.in' => 'Delivery slot must be "four_pm_to_eight_pm" or "eight_pm_to_midnight".',
         ];
     }
 }
-

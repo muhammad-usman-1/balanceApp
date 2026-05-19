@@ -10,24 +10,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserSubscriptionApiController extends Controller
 {
-    /**
-     * Get all subscriptions for the authenticated user, grouped by active and past.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function index(Request $request)
     {
         $user = $request->user();
 
         $subscriptions = UserSubcrption::where('user_id', $user->id)
-            ->with(['subcrption_plans', 'duration'])
+            ->with(['subcrption_plans', 'address'])
             ->latest()
             ->get();
 
         $active = $subscriptions->filter(function ($sub) {
-            return $sub->status === 'active' && 
-                   Carbon::parse($sub->getRawOriginal('end_date'))->isAfter(now()->startOfDay());
+            return $sub->status === 'active'
+                && Carbon::parse($sub->getRawOriginal('end_date'))->isAfter(now()->startOfDay());
         })->values();
 
         $recent = $subscriptions->reject(function ($sub) use ($active) {
@@ -39,17 +33,10 @@ class UserSubscriptionApiController extends Controller
             'data' => [
                 'active' => $active,
                 'recent' => $recent,
-            ]
+            ],
         ]);
     }
 
-    /**
-     * Get full details for a specific subscription.
-     * 
-     * @param int $id
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function show($id, Request $request)
     {
         $user = $request->user();
@@ -59,24 +46,24 @@ class UserSubscriptionApiController extends Controller
             ->with([
                 'user',
                 'subcrption_plans',
-                'duration',
                 'address',
                 'branch',
                 'area',
-                'subscription_days.subscription_meals.meal'
+                'subscription_days.subscription_meals.meal',
+                'pause_logs',
             ])
             ->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return response()->json([
                 'success' => false,
-                'message' => 'Subscription not found.'
+                'message' => 'Subscription not found.',
             ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $subscription
+            'data' => $subscription,
         ]);
     }
 }
