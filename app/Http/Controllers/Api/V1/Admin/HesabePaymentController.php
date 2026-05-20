@@ -53,6 +53,21 @@ class HesabePaymentController extends Controller
     {
         $paymentMethod = $request->payment_method; // cash | debit_card | credit_card
 
+        Log::info('CHECKOUT: request received', [
+            'payment_method'      => $paymentMethod,
+            'user_id'             => $request->user_id,
+            'plan_id'             => $request->subcrption_plans_id,
+            'area_id'             => $request->area_id,
+            'start_date'          => $request->start_date,
+            'selected_days'       => $request->selected_days,
+            'is_personalized'     => $request->is_personalized,
+            'protein'             => $request->protein,
+            'carbs'               => $request->carbs,
+            'meals_count'         => count($request->meals ?? []),
+            'has_address'         => ! empty($request->address),
+            // card fields intentionally omitted — never log raw card data
+        ]);
+
         return $paymentMethod === 'cash'
             ? $this->handleCashCheckout($request)
             : $this->handleCardCheckout($request, $paymentMethod);
@@ -64,10 +79,27 @@ class HesabePaymentController extends Controller
     private function handleCashCheckout(ProcessHesabePaymentRequest $request): JsonResponse
     {
         try {
-            $plan     = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
-            $amount   = $request->amount ?? $plan->price;
-            $currency = strtoupper($request->currency ?? 'KWD');
+            Log::info('CHECKOUT [cash]: looking up plan', ['plan_id' => $request->subcrption_plans_id]);
+            $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
+            Log::info('CHECKOUT [cash]: plan found', [
+                'plan_title'  => $plan->title,
+                'plan_price'  => $plan->price,
+                'meal_count'  => $plan->meal_count,
+                'no_of_weeks' => $plan->no_of_weeks,
+                'min_days'    => $plan->min_days,
+                'max_days'    => $plan->max_days,
+                'is_active'   => $plan->is_active,
+            ]);
+
+            $amount    = $request->amount ?? $plan->price;
+            $currency  = strtoupper($request->currency ?? 'KWD');
             $reference = 'CASH-' . now()->timestamp . '-' . strtoupper(Str::random(6));
+
+            Log::info('CHECKOUT [cash]: building subscription payload', [
+                'amount'    => $amount,
+                'currency'  => $currency,
+                'reference' => $reference,
+            ]);
 
             $subscriptionPayload = $request->safe()->except([
                 'payment_method', 'amount', 'currency',
@@ -79,15 +111,24 @@ class HesabePaymentController extends Controller
             $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
 
+            Log::info('CHECKOUT [cash]: calling SubscriptionService::createSubscription');
+
             $subscriptionResult = $this->subscriptionService->createSubscription(
-                $subscriptionPayload->toArray(),
+                $subscriptionPayload,
                 [
-                    'status'    => 'pending',   // cash is collected on delivery
+                    'status'    => 'pending',
                     'reference' => $reference,
                     'gateway'   => 'cash',
                     'currency'  => $currency,
                 ]
             );
+
+            Log::info('CHECKOUT [cash]: subscription created successfully', [
+                'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
+                'price'           => $subscriptionResult['user_subscription']->price ?? null,
+                'days_created'    => count($subscriptionResult['subscription_days'] ?? []),
+                'meals_created'   => count($subscriptionResult['subscription_meals'] ?? []),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -103,10 +144,16 @@ class HesabePaymentController extends Controller
                     'subscription' => $subscriptionResult,
                 ],
             ], Response::HTTP_CREATED);
+
         } catch (\Throwable $e) {
-            Log::error('Cash checkout error: ' . $e->getMessage(), [
-                'user_id' => $request->user_id ?? null,
-                'plan_id' => $request->subcrption_plans_id ?? null,
+            Log::error('CHECKOUT [cash]: FAILED', [
+                'error'     => $e->getMessage(),
+                'exception' => get_class($e),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+                'trace'     => $e->getTraceAsString(),
+                'user_id'   => $request->user_id ?? null,
+                'plan_id'   => $request->subcrption_plans_id ?? null,
             ]);
 
             return response()->json([
@@ -122,11 +169,30 @@ class HesabePaymentController extends Controller
     private function handleCardCheckout(ProcessHesabePaymentRequest $request, string $paymentMethod): JsonResponse
     {
         try {
-            $plan     = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
-            $user     = User::findOrFail($request->user_id);
-            $amount   = $request->amount ?? $plan->price;
-            $currency = strtoupper($request->currency ?? 'KWD');
+            Log::info('CHECKOUT [card]: looking up plan and user', [
+                'plan_id' => $request->subcrption_plans_id,
+                'user_id' => $request->user_id,
+            ]);
+
+            $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
+            $user = User::findOrFail($request->user_id);
+
+            Log::info('CHECKOUT [card]: plan and user found', [
+                'plan_title'  => $plan->title,
+                'plan_price'  => $plan->price,
+                'meal_count'  => $plan->meal_count,
+                'no_of_weeks' => $plan->no_of_weeks,
+                'user_email'  => $user->email,
+                'user_mobile' => $user->mobile,
+            ]);
+
+            $amount    = $request->amount ?? $plan->price;
+            $currency  = strtoupper($request->currency ?? 'KWD');
             $reference = 'SUB-' . now()->timestamp . '-' . strtoupper(Str::random(6));
+
+            $cardNumber = preg_replace('/\D/', '', $request->card_number ?? '');
+            $lastFour   = $cardNumber ? substr($cardNumber, -4) : null;
+            $cardBrand  = $this->detectCardBrand($cardNumber);
 
             $paymentPayload = [
                 'amount'                       => number_format((float) $amount, 3, '.', ''),
@@ -144,12 +210,35 @@ class HesabePaymentController extends Controller
                 'version'                      => '2.0',
             ];
 
+            Log::info('CHECKOUT [card]: sending to Hesabe gateway', [
+                'reference'        => $reference,
+                'amount'           => $paymentPayload['amount'],
+                'currency'         => $currency,
+                'payment_method'   => $paymentMethod,
+                'card_brand'       => $cardBrand,
+                'card_last_four'   => $lastFour,
+                'card_expiry'      => $request->card_expiry_month . '/' . $request->card_expiry_year,
+                // card_number and card_cvv intentionally omitted
+            ]);
+
             $paymentResponse = $this->hesabePaymentService->checkout($paymentPayload);
             $paymentData     = $paymentResponse['data'] ?? [];
             $paymentStatus   = $paymentData['status'] ?? null;
 
+            Log::info('CHECKOUT [card]: Hesabe gateway response received', [
+                'raw_status'   => $paymentStatus,
+                'payment_data' => array_diff_key($paymentData, array_flip(['cardNumber', 'cardSecurityCode'])),
+            ]);
+
             $successStatuses = ['success', 'paid', 'captured', 'true', '1'];
             if ($paymentStatus !== true && ! in_array(strtolower((string) $paymentStatus), $successStatuses, true)) {
+                Log::warning('CHECKOUT [card]: gateway returned non-success status', [
+                    'status'          => $paymentStatus,
+                    'gateway_message' => $paymentData['message'] ?? null,
+                    'reference'       => $reference,
+                    'user_id'         => $request->user_id,
+                    'plan_id'         => $request->subcrption_plans_id,
+                ]);
                 throw new PaymentException($paymentData['message'] ?? 'Payment was not successful. Please try again.');
             }
 
@@ -158,11 +247,15 @@ class HesabePaymentController extends Controller
                 ?? $paymentData['token']
                 ?? $reference;
 
-            $cardNumber = preg_replace('/\D/', '', $request->card_number);
-            $lastFour   = $cardNumber ? substr($cardNumber, -4) : null;
-            $cardBrand  = $this->detectCardBrand($cardNumber);
+            Log::info('CHECKOUT [card]: payment approved', [
+                'transaction_reference' => $transactionReference,
+                'card_brand'            => $cardBrand,
+                'card_last_four'        => $lastFour,
+                'save_card'             => $request->boolean('save_card'),
+            ]);
 
             if ($request->boolean('save_card') && $cardNumber) {
+                Log::info('CHECKOUT [card]: saving card for user', ['user_id' => $request->user_id]);
                 UserPaymentMethod::updateOrCreate(
                     [
                         'user_id'           => $request->user_id,
@@ -189,8 +282,10 @@ class HesabePaymentController extends Controller
             $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
 
+            Log::info('CHECKOUT [card]: calling SubscriptionService::createSubscription');
+
             $subscriptionResult = $this->subscriptionService->createSubscription(
-                $subscriptionPayload->toArray(),
+                $subscriptionPayload,
                 [
                     'status'         => 'paid',
                     'reference'      => $transactionReference,
@@ -201,6 +296,13 @@ class HesabePaymentController extends Controller
                     'meta'           => $paymentResponse,
                 ]
             );
+
+            Log::info('CHECKOUT [card]: subscription created successfully', [
+                'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
+                'price'           => $subscriptionResult['user_subscription']->price ?? null,
+                'days_created'    => count($subscriptionResult['subscription_days'] ?? []),
+                'meals_created'   => count($subscriptionResult['subscription_meals'] ?? []),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -219,16 +321,30 @@ class HesabePaymentController extends Controller
                     'subscription' => $subscriptionResult,
                 ],
             ], Response::HTTP_CREATED);
+
         } catch (PaymentException $e) {
+            Log::error('CHECKOUT [card]: PaymentException', [
+                'error'          => $e->getMessage(),
+                'user_id'        => $request->user_id ?? null,
+                'plan_id'        => $request->subcrption_plans_id ?? null,
+                'payment_method' => $paymentMethod,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], Response::HTTP_BAD_GATEWAY);
+
         } catch (\Throwable $e) {
-            Log::error('Card checkout error: ' . $e->getMessage(), [
+            Log::error('CHECKOUT [card]: FAILED', [
+                'error'          => $e->getMessage(),
+                'exception'      => get_class($e),
+                'file'           => $e->getFile(),
+                'line'           => $e->getLine(),
+                'trace'          => $e->getTraceAsString(),
                 'user_id'        => $request->user_id ?? null,
                 'plan_id'        => $request->subcrption_plans_id ?? null,
-                'payment_method' => $request->payment_method ?? null,
+                'payment_method' => $paymentMethod,
             ]);
 
             return response()->json([

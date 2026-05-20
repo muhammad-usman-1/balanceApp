@@ -89,7 +89,7 @@ class TwilioService
      */
     public function sendOtp(string $phoneNumber, string $otpCode): bool
     {
-        $message = "Your OTP code for Balance is: {$otpCode}. This code will expire in 10 minutes. Do not share this code with anyone.";
+        $message = "Your OTP code for Balance is {$otpCode}. This code will expire in 10 minutes. Do not share this code with anyone.";
 
         return $this->sendSms($phoneNumber, $message);
     }
