@@ -84,6 +84,13 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('affiliated-codes/generate-code', 'AffiliatedCodeController@generateCode')->name('affiliated-codes.generate-code');
     Route::get('affiliated-codes/{affiliatedCode}/logs', 'AffiliatedCodeController@logs')->name('affiliated-codes.logs');
     Route::resource('affiliated-codes', 'AffiliatedCodeController');
+
+    // Delivery Orders
+    Route::get('delivery-orders', 'DeliveryController@index')->name('delivery-orders.index');
+    Route::get('delivery-orders/print-all', 'DeliveryController@printAll')->name('delivery-orders.print-all');
+    Route::get('delivery-orders/{deliveryOrder}/print', 'DeliveryController@printNote')->name('delivery-orders.print');
+    Route::post('delivery-orders/{deliveryOrder}/status', 'DeliveryController@updateStatus')->name('delivery-orders.update-status');
+    Route::post('delivery-orders/make-all-delivered', 'DeliveryController@makeAllDelivered')->name('delivery-orders.make-all-delivered');
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
     // Change password

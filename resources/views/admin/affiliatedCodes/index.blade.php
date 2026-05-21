@@ -1,96 +1,85 @@
 @extends('layouts.admin')
-
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Affiliated Codes</h3>
-                <div class="card-tools">
-                    <a href="{{ route('admin.affiliated-codes.create') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus"></i> Add Affiliated Code
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Full Name</th>
-                                <th>Code</th>
-                                <th>Status</th>
-                                <th>Usage Count</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($affiliatedCodes as $code)
-                            <tr>
-                                <td>{{ $code->id }}</td>
-                                <td>{{ $code->full_name }}</td>
-                                <td>
-                                    <strong class="text-primary">{{ $code->code }}</strong>
-                                </td>
-                                <td>
-                                    @if($code->is_active)
-                                        <span class="badge badge-success">Active</span>
-                                    @else
-                                        <span class="badge badge-secondary">Inactive</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge badge-primary">{{ $code->users_count ?? 0 }}</span>
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.affiliated-codes.show', $code->id) }}" class="btn btn-sm btn-info" title="View">
-                                            <i class="fas fa-eye"></i> <span class="d-none d-md-inline">View</span>
-                                        </a>
-                                        <a href="{{ route('admin.affiliated-codes.edit', $code->id) }}" class="btn btn-sm btn-warning" title="Edit">
-                                            <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
-                                        </a>
-                                        <a href="{{ route('admin.affiliated-codes.logs', $code->id) }}" class="btn btn-sm btn-secondary" title="Logs">
-                                            <i class="fas fa-list"></i> <span class="d-none d-md-inline">Logs</span>
-                                        </a>
-                                        <form action="{{ route('admin.affiliated-codes.destroy', $code->id) }}" method="POST" style="display:inline-block;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this affiliated code?')" title="Delete">
-                                                <i class="fas fa-trash"></i> <span class="d-none d-md-inline">Delete</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="6" class="text-center">No affiliated codes found.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
+@include('partials.idx-styles')
+
+<div class="card idx-card">
+    <div class="card-header">
+        <h3><i class="fas fa-link mr-2" style="color:#0284c7;"></i> Affiliated Codes</h3>
+        <a href="{{ route('admin.affiliated-codes.create') }}" class="idx-btn ib-green">
+            <i class="fas fa-plus"></i> Add Code
+        </a>
+    </div>
+
+    @if(session('success'))
+        <div class="idx-flash idx-flash-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="idx-flash idx-flash-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+    @endif
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table idx-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th>Usage Count</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($affiliatedCodes as $code)
+                    <tr>
+                        <td style="font-weight:600;color:#111827;">#{{ $code->id }}</td>
+                        <td style="font-weight:600;">{{ $code->full_name }}</td>
+                        <td>
+                            <span style="font-weight:700;font-family:monospace;font-size:.88rem;letter-spacing:.06em;color:#0284c7;">
+                                {{ $code->code }}
+                            </span>
+                        </td>
+                        <td>
+                            @if($code->is_active)
+                                <span class="idx-chip chip-green"><i class="fas fa-circle" style="font-size:.4rem;"></i> Active</span>
+                            @else
+                                <span class="idx-chip chip-gray">Inactive</span>
+                            @endif
+                        </td>
+                        <td>
+                            @php $cnt = $code->users_count ?? 0; @endphp
+                            @if($cnt > 0)
+                                <span class="idx-chip chip-cyan">{{ $cnt }} user{{ $cnt != 1 ? 's' : '' }}</span>
+                            @else
+                                <span style="color:#9ca3af;font-size:.78rem;">0 uses</span>
+                            @endif
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <a href="{{ route('admin.affiliated-codes.show', $code->id) }}" class="idx-btn ib-view">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="{{ route('admin.affiliated-codes.edit', $code->id) }}" class="idx-btn ib-edit">
+                                <i class="fas fa-pen"></i> Edit
+                            </a>
+                            <a href="{{ route('admin.affiliated-codes.logs', $code->id) }}" class="idx-btn ib-gray">
+                                <i class="fas fa-list"></i> Logs
+                            </a>
+                            <form action="{{ route('admin.affiliated-codes.destroy', $code->id) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure you want to delete this affiliated code?');" style="display:inline-block;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="6" class="idx-empty"><i class="fas fa-link"></i><br>No affiliated codes found</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
-@endsection
 
+@endsection

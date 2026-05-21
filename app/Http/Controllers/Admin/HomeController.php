@@ -2,74 +2,71 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\User;
-use App\Models\Meal;
-use App\Models\UserSubcrption;
-use App\Models\Category;
-use App\Models\SubscriptionMeal;
-use App\Models\Coupon;
+use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\Branch;
+use App\Models\Category;
+use App\Models\Coupon;
+use App\Models\DeliveryOrder;
+use App\Models\Meal;
+use App\Models\SubscriptionDay;
+use App\Models\UserSubcrption;
+use App\Models\User;
 use Carbon\Carbon;
 
-class HomeController
+class HomeController extends Controller
 {
     public function index()
     {
-        // Get statistics
-        $totalUsers = User::count();
-        $totalMeals = Meal::count();
-        $totalSubscriptions = UserSubcrption::count();
+        $today   = Carbon::today();
+        $dayName = strtolower($today->format('l'));
+
+        $totalUsers          = User::count();
+        $totalMeals          = Meal::count();
+        $totalSubscriptions  = UserSubcrption::count();
         $activeSubscriptions = UserSubcrption::where('status', 'active')
-            ->where('end_date', '>=', now()->format('Y-m-d'))
+            ->where('is_paused', false)
+            ->whereDate('end_date', '>=', $today)
             ->count();
-        $totalCategories = Category::count();
-        $totalMealAssignments = SubscriptionMeal::count();
-        
-        // Recent subscriptions
+
+        $monthlySubscriptions = UserSubcrption::whereMonth('created_at', $today->month)
+            ->whereYear('created_at', $today->year)
+            ->count();
+
+        $todaySubscriptions = UserSubcrption::whereDate('created_at', $today)->count();
+        $todayMeals         = Meal::whereDate('created_at', $today)->count();
+
+        // Today's deliveries
+        $todayDeliveryTotal    = DeliveryOrder::whereDate('delivery_date', $today)->count();
+        $todayDelivered        = DeliveryOrder::whereDate('delivery_date', $today)->where('status', 'delivered')->count();
+        $todayPending          = DeliveryOrder::whereDate('delivery_date', $today)->where('status', 'pending')->count();
+
+        $totalCategories     = Category::count();
+        $totalCoupons        = Coupon::count();
+        $activeCoupons       = Coupon::where('status', 'active')->count();
+        $totalAreas          = Area::count();
+        $totalBranches       = Branch::count();
+
         $recentSubscriptions = UserSubcrption::with(['user', 'subcrption_plans'])
-            ->latest()
-            ->take(5)
-            ->get();
-        
-        // Today's statistics
-        $todaySubscriptions = UserSubcrption::whereDate('created_at', today())->count();
-        $todayMeals = Meal::whereDate('created_at', today())->count();
-        
-        // Monthly statistics
-        $monthlySubscriptions = UserSubcrption::whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->count();
-        
-        // Payment statistics
-        $paidSubscriptions = UserSubcrption::where('payment', 'paid')->count();
-        $pendingSubscriptions = UserSubcrption::where('payment', 'pending')->count();
-        
-        // Coupon statistics
-        $totalCoupons = Coupon::count();
-        $activeCoupons = Coupon::where('status', 'active')->count();
-        
-        // Area and Branch statistics
-        $totalAreas = Area::count();
-        $totalBranches = Branch::count();
+            ->latest()->take(6)->get();
 
         return view('home', compact(
             'totalUsers',
             'totalMeals',
             'totalSubscriptions',
             'activeSubscriptions',
-            'totalCategories',
-            'totalMealAssignments',
-            'recentSubscriptions',
+            'monthlySubscriptions',
             'todaySubscriptions',
             'todayMeals',
-            'monthlySubscriptions',
-            'paidSubscriptions',
-            'pendingSubscriptions',
+            'todayDeliveryTotal',
+            'todayDelivered',
+            'todayPending',
+            'totalCategories',
             'totalCoupons',
             'activeCoupons',
             'totalAreas',
-            'totalBranches'
+            'totalBranches',
+            'recentSubscriptions'
         ));
     }
 }

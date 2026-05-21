@@ -1,75 +1,73 @@
 @extends('layouts.admin')
-
 @section('content')
-<div class="card">
+
+@include('partials.idx-styles')
+
+<div class="card idx-card">
     <div class="card-header">
-        <h3>Notifications</h3>
-        <a href="{{ route('admin.notifications.create') }}" class="btn btn-primary float-right">Add Notification</a>
+        <h3><i class="fas fa-bell mr-2" style="color:#d97706;"></i> Notifications</h3>
+        <a href="{{ route('admin.notifications.create') }}" class="idx-btn ib-green">
+            <i class="fas fa-plus"></i> Add Notification
+        </a>
     </div>
+
+    @if(session('success'))
+        <div class="idx-flash idx-flash-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="idx-flash idx-flash-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+    @endif
+
     <div class="card-body">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Message</th>
-                    <th>Created At</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($notifications as $notification)
-                <tr class="{{ $notification->trashed() ? 'table-secondary' : '' }}">
-                    <td>{{ $notification->id }}</td>
-                    <td>
-                        <strong>{{ $notification->title }}</strong>
-                        @if($notification->trashed())
-                            <span class="badge badge-warning">Deleted</span>
-                        @endif
-                    </td>
-                    <td>
-                        <div style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <div class="table-responsive">
+            <table class="table idx-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Message</th>
+                        <th>Sent</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($notifications as $notification)
+                    <tr>
+                        <td style="font-weight:600;color:#111827;">#{{ $notification->id }}</td>
+                        <td>
+                            <span style="font-weight:600;">{{ $notification->title }}</span>
+                            @if($notification->trashed())
+                                <span class="idx-chip chip-red ml-1">Deleted</span>
+                            @endif
+                        </td>
+                        <td style="color:#6b7280;max-width:380px;">
                             {{ Str::limit($notification->message, 100) }}
-                        </div>
-                    </td>
-                    <td>{{ $notification->created_at->format('Y-m-d H:i') }}</td>
-                    <td>
-                        @if(!$notification->trashed())
-                            <a href="{{ route('admin.notifications.edit', $notification->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('admin.notifications.destroy', $notification->id) }}" method="POST" style="display:inline-block;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                            </form>
-                        @else
-                            <span class="text-muted">Deleted</span>
-                        @endif
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="5" class="text-center">No notifications found</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+                        </td>
+                        <td style="color:#6b7280;font-size:.78rem;white-space:nowrap;">
+                            {{ $notification->created_at->format('d M Y, H:i') }}
+                        </td>
+                        <td style="white-space:nowrap;">
+                            @if(!$notification->trashed())
+                                <a href="{{ route('admin.notifications.edit', $notification->id) }}" class="idx-btn ib-edit">
+                                    <i class="fas fa-pen"></i> Edit
+                                </a>
+                                <form action="{{ route('admin.notifications.destroy', $notification->id) }}" method="POST"
+                                      onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                                </form>
+                            @else
+                                <span style="color:#9ca3af;font-size:.78rem;">Deleted</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" class="idx-empty"><i class="fas fa-bell-slash"></i><br>No notifications found</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-@endsection
 
+@endsection

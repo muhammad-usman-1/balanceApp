@@ -1,124 +1,108 @@
 @extends('layouts.admin')
-
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Coupons</h3>
-                <div class="card-tools">
-                    <a href="{{ route('admin.coupons.create') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus"></i> Add Coupon
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover">
-                        <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Coupon Code</th>
-                    <th>Type</th>
-                    <th>Value</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Status</th>
-                    <th>Usage Limit</th>
-                    <th>Total Uses</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($coupons as $coupon)
-                <tr class="{{ $coupon->trashed() ? 'table-secondary' : '' }}">
-                    <td>{{ $coupon->id }}</td>
-                    <td>
-                        <strong>{{ $coupon->coupon_code }}</strong>
-                        @if($coupon->trashed())
-                            <span class="badge badge-warning">Deleted</span>
-                        @endif
-                    </td>
-                    <td>
-                        <span class="badge badge-{{ $coupon->type === 'fixed' ? 'info' : 'success' }}">
-                            {{ ucfirst($coupon->type) }}
-                        </span>
-                    </td>
-                    <td>
-                        @if($coupon->type === 'percentage')
-                            {{ number_format($coupon->value, 2) }}%
-                        @else
-                            {{ number_format($coupon->value, 2) }}
-                        @endif
-                    </td>
-                    <td>{{ $coupon->start_date->format('Y-m-d') }}</td>
-                    <td>{{ $coupon->end_date->format('Y-m-d') }}</td>
-                    <td>
-                        <span class="badge badge-{{ $coupon->status === 'active' ? 'success' : 'secondary' }}">
-                            {{ ucfirst($coupon->status) }}
-                        </span>
-                    </td>
-                    <td>
-                        @if($coupon->usage_limit_per_user)
-                            <span class="badge badge-info">{{ $coupon->usage_limit_per_user }} per user</span>
-                        @else
-                            <span class="badge badge-secondary">Unlimited</span>
-                        @endif
-                    </td>
-                    <td>
-                        <span class="badge badge-primary">{{ $coupon->usages_count ?? 0 }}</span>
-                    </td>
-                    <td>
-                        @if(!$coupon->trashed())
-                            <div class="btn-group" role="group">
-                                <a href="{{ route('admin.coupons.edit', $coupon->id) }}" class="btn btn-sm btn-warning" title="Edit">
-                                    <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
+
+@include('partials.idx-styles')
+
+<div class="card idx-card">
+    <div class="card-header">
+        <h3><i class="fas fa-ticket-alt mr-2" style="color:#db2777;"></i> Coupons</h3>
+        <a href="{{ route('admin.coupons.create') }}" class="idx-btn ib-green">
+            <i class="fas fa-plus"></i> Add Coupon
+        </a>
+    </div>
+
+    @if(session('success'))
+        <div class="idx-flash idx-flash-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="idx-flash idx-flash-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+    @endif
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table idx-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Code</th>
+                        <th>Type</th>
+                        <th>Value</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Status</th>
+                        <th>Limit</th>
+                        <th>Uses</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($coupons as $coupon)
+                    <tr>
+                        <td style="font-weight:600;color:#111827;">#{{ $coupon->id }}</td>
+                        <td>
+                            <span style="font-weight:700;font-family:monospace;font-size:.88rem;letter-spacing:.04em;">
+                                {{ $coupon->coupon_code }}
+                            </span>
+                            @if($coupon->trashed())
+                                <span class="idx-chip chip-red ml-1">Deleted</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($coupon->type === 'fixed')
+                                <span class="idx-chip chip-cyan">Fixed</span>
+                            @else
+                                <span class="idx-chip chip-violet">%</span>
+                            @endif
+                        </td>
+                        <td style="font-weight:600;">
+                            {{ number_format($coupon->value, 2) }}{{ $coupon->type === 'percentage' ? '%' : ' KWD' }}
+                        </td>
+                        <td style="color:#6b7280;font-size:.78rem;white-space:nowrap;">{{ $coupon->start_date->format('d M Y') }}</td>
+                        <td style="color:#6b7280;font-size:.78rem;white-space:nowrap;">{{ $coupon->end_date->format('d M Y') }}</td>
+                        <td>
+                            @if($coupon->status === 'active')
+                                <span class="idx-chip chip-green"><i class="fas fa-circle" style="font-size:.4rem;"></i> Active</span>
+                            @else
+                                <span class="idx-chip chip-gray">{{ ucfirst($coupon->status) }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($coupon->usage_limit_per_user)
+                                <span class="idx-chip chip-blue">{{ $coupon->usage_limit_per_user }}/user</span>
+                            @else
+                                <span style="color:#9ca3af;font-size:.78rem;">Unlimited</span>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="idx-chip chip-teal">{{ $coupon->usages_count ?? 0 }}</span>
+                        </td>
+                        <td style="white-space:nowrap;">
+                            @if(!$coupon->trashed())
+                                <a href="{{ route('admin.coupons.edit', $coupon->id) }}" class="idx-btn ib-edit">
+                                    <i class="fas fa-pen"></i> Edit
                                 </a>
-                                @if($coupon->usages_count > 0)
-                                    <a href="{{ route('admin.coupons.usage-history', $coupon->id) }}" class="btn btn-sm btn-info" title="View Usage History">
-                                        <i class="fas fa-history"></i> <span class="d-none d-md-inline">History</span>
-                                    </a>
+                                @if(($coupon->usages_count ?? 0) > 0)
+                                <a href="{{ route('admin.coupons.usage-history', $coupon->id) }}" class="idx-btn ib-purple">
+                                    <i class="fas fa-history"></i> History
+                                </a>
                                 @endif
-                                <form action="{{ route('admin.coupons.destroy', $coupon->id) }}" method="POST" style="display:inline-block;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')" title="Delete">
-                                        <i class="fas fa-trash"></i> <span class="d-none d-md-inline">Delete</span>
-                                    </button>
+                                <form action="{{ route('admin.coupons.destroy', $coupon->id) }}" method="POST"
+                                      onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
                                 </form>
-                            </div>
-                        @else
-                            <span class="text-muted">Deleted</span>
-                        @endif
-                    </td>
-                </tr>
-                            @empty
-                            <tr>
-                                <td colspan="10" class="text-center">No coupons found</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                            @else
+                                <span style="color:#9ca3af;font-size:.78rem;">Deleted</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="10" class="idx-empty"><i class="fas fa-ticket-alt"></i><br>No coupons found</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
-@endsection
 
+@endsection

@@ -1,73 +1,74 @@
 @extends('layouts.admin')
-
 @section('content')
-<div class="card">
+
+@include('partials.idx-styles')
+
+<div class="card idx-card">
     <div class="card-header">
-        <h3>Branches</h3>
-        <a href="{{ route('admin.branches.create') }}" class="btn btn-primary float-right">Add Branch</a>
+        <h3><i class="fas fa-code-branch mr-2" style="color:#0d9488;"></i> Branches</h3>
+        <a href="{{ route('admin.branches.create') }}" class="idx-btn ib-green">
+            <i class="fas fa-plus"></i> Add Branch
+        </a>
     </div>
+
+    @if(session('success'))
+        <div class="idx-flash idx-flash-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="idx-flash idx-flash-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+    @endif
+
     <div class="card-body">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Branch Name</th>
-                    <th>Associated Areas</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($branches as $branch)
-                <tr>
-                    <td>{{ $branch->id }}</td>
-                    <td>{{ $branch->name }}</td>
-                    <td>
-                        @if($branch->areas->count() > 0)
-                            @foreach($branch->areas as $area)
-                                <span class="badge badge-info">{{ $area->name }}</span>
-                            @endforeach
-                        @else
-                            <span class="text-muted">No areas assigned</span>
-                        @endif
-                    </td>
-                    <td>
-                        <span class="badge badge-{{ $branch->status === 'active' ? 'success' : 'secondary' }}">
-                            {{ ucfirst($branch->status) }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{{ route('admin.branches.edit', $branch->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <form action="{{ route('admin.branches.destroy', $branch->id) }}" method="POST" style="display:inline-block;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="5" class="text-center">No branches found</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table idx-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Branch Name</th>
+                        <th>Associated Areas</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($branches as $branch)
+                    <tr>
+                        <td style="font-weight:600;color:#111827;">#{{ $branch->id }}</td>
+                        <td style="font-weight:600;">{{ $branch->name }}</td>
+                        <td>
+                            @if($branch->areas->count() > 0)
+                                @foreach($branch->areas as $area)
+                                    <span class="idx-chip chip-teal" style="margin:1px;">{{ $area->name }}</span>
+                                @endforeach
+                            @else
+                                <span style="color:#9ca3af;font-size:.78rem;">No areas assigned</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($branch->status === 'active')
+                                <span class="idx-chip chip-green"><i class="fas fa-circle" style="font-size:.4rem;"></i> Active</span>
+                            @else
+                                <span class="idx-chip chip-gray">{{ ucfirst($branch->status) }}</span>
+                            @endif
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <a href="{{ route('admin.branches.edit', $branch->id) }}" class="idx-btn ib-edit">
+                                <i class="fas fa-pen"></i> Edit
+                            </a>
+                            <form action="{{ route('admin.branches.destroy', $branch->id) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" class="idx-empty"><i class="fas fa-code-branch"></i><br>No branches found</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
 @endsection

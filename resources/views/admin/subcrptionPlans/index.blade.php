@@ -1,125 +1,94 @@
 @extends('layouts.admin')
 @section('content')
-@can('subcrption_plan_create')
-    <div style="margin-bottom: 10px;" class="row">
-        <div class="col-lg-12">
-            <a class="btn btn-success" href="{{ route('admin.subcrption-plans.create') }}">
-                {{ trans('global.add') }} {{ trans('cruds.subcrptionPlan.title_singular') }}
-            </a>
-        </div>
-    </div>
-@endcan
-<div class="card">
+
+@include('partials.idx-styles')
+
+<div class="card idx-card">
     <div class="card-header">
-        {{ trans('cruds.subcrptionPlan.title_singular') }} {{ trans('global.list') }}
+        <h3><i class="fas fa-layer-group mr-2" style="color:#4338ca;"></i> Subscription Plans</h3>
+        @can('subcrption_plan_create')
+        <a href="{{ route('admin.subcrption-plans.create') }}" class="idx-btn ib-green">
+            <i class="fas fa-plus"></i> Add Plan
+        </a>
+        @endcan
     </div>
+
+    @if(session('success'))
+        <div class="idx-flash idx-flash-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+    @endif
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class=" table table-bordered table-striped table-hover datatable datatable-SubcrptionPlan">
+            <table class="table idx-table datatable datatable-SubcrptionPlan" style="width:100%;">
                 <thead>
                     <tr>
-                        <th width="10">
-
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.id') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.title') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.description') }}
-                        </th>
-                        <th>
-                            Price
-                        </th>
-                        <th>
-                            No of Weeks
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.meal_count') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.snack_count') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.is_active') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.created_at') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.subcrptionPlan.fields.updated_at') }}
-                        </th>
-
-                        <th>
-                             Actions
-                        </th>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Price (KWD)</th>
+                        <th>Weeks</th>
+                        <th>Meals</th>
+                        <th>Snacks</th>
+                        <th>Active</th>
+                        <th>Created</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($subcrptionPlans as $key => $subcrptionPlan)
-                        <tr data-entry-id="{{ $subcrptionPlan->id }}">
-                            <td>
-
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->id ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->title ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->description ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->price ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->no_of_weeks ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->meal_count ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->snack_count ?? '' }}
-                            </td>
-                            <td>
-                                <span style="display:none">{{ $subcrptionPlan->is_active ?? '' }}</span>
-                                <input type="checkbox" disabled="disabled" {{ $subcrptionPlan->is_active ? 'checked' : '' }}>
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->created_at ?? '' }}
-                            </td>
-                            <td>
-                                {{ $subcrptionPlan->updated_at ?? '' }}
-                            </td>
-
-                            <td>
-                                @can('subcrption_plan_show')
-                                    <a class="btn btn-xs btn-primary" href="{{ route('admin.subcrption-plans.show', $subcrptionPlan->id) }}">
-                                        {{ trans('global.view') }}
-                                    </a>
-                                @endcan
-
-                                @can('subcrption_plan_edit')
-                                    <a class="btn btn-xs btn-info" href="{{ route('admin.subcrption-plans.edit', $subcrptionPlan->id) }}">
-                                        {{ trans('global.edit') }}
-                                    </a>
-                                @endcan
-
-                                @can('subcrption_plan_delete')
-                                    <form action="{{ route('admin.subcrption-plans.destroy', $subcrptionPlan->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
-                                        <input type="hidden" name="_method" value="DELETE">
-                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                        <input type="submit" class="btn btn-xs btn-danger" value="{{ trans('global.delete') }}">
-                                    </form>
-                                @endcan
-
-                            </td>
-
-                        </tr>
+                    @foreach($subcrptionPlans as $plan)
+                    <tr data-entry-id="{{ $plan->id }}">
+                        <td style="font-weight:600;color:#111827;">#{{ $plan->id }}</td>
+                        <td style="font-weight:600;">{{ $plan->title ?? '—' }}</td>
+                        <td style="color:#6b7280;">{{ Str::limit($plan->description ?? '', 60) }}</td>
+                        <td>
+                            @if($plan->price)
+                                <span style="font-weight:700;">{{ number_format($plan->price, 3) }}</span>
+                            @else —
+                            @endif
+                        </td>
+                        <td>{{ $plan->no_of_weeks ?? '—' }}</td>
+                        <td>
+                            @if($plan->meal_count)
+                                <span class="idx-chip chip-blue">{{ $plan->meal_count }}</span>
+                            @else —
+                            @endif
+                        </td>
+                        <td>
+                            @if($plan->snack_count)
+                                <span class="idx-chip chip-yellow">{{ $plan->snack_count }}</span>
+                            @else —
+                            @endif
+                        </td>
+                        <td>
+                            @if($plan->is_active)
+                                <span class="idx-chip chip-green"><i class="fas fa-circle" style="font-size:.4rem;"></i> Active</span>
+                            @else
+                                <span class="idx-chip chip-gray">Inactive</span>
+                            @endif
+                        </td>
+                        <td style="color:#6b7280;font-size:.78rem;white-space:nowrap;">
+                            {{ $plan->created_at ? \Carbon\Carbon::parse($plan->created_at)->format('d M Y') : '—' }}
+                        </td>
+                        <td style="white-space:nowrap;">
+                            @can('subcrption_plan_show')
+                            <a href="{{ route('admin.subcrption-plans.show', $plan->id) }}" class="idx-btn ib-view">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            @endcan
+                            @can('subcrption_plan_edit')
+                            <a href="{{ route('admin.subcrption-plans.edit', $plan->id) }}" class="idx-btn ib-edit">
+                                <i class="fas fa-pen"></i> Edit
+                            </a>
+                            @endcan
+                            @can('subcrption_plan_delete')
+                            <form action="{{ route('admin.subcrption-plans.destroy', $plan->id) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                            </form>
+                            @endcan
+                        </td>
+                    </tr>
                     @endforeach
                 </tbody>
             </table>
@@ -127,56 +96,32 @@
     </div>
 </div>
 
-
-
 @endsection
 @section('scripts')
 @parent
 <script>
-    $(function () {
-  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-@can('subcrption_plan_delete')
-  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}'
-  let deleteButton = {
-    text: deleteButtonTrans,
-    url: "{{ route('admin.subcrption-plans.massDestroy') }}",
-    className: 'btn-danger',
-    action: function (e, dt, node, config) {
-      var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) {
-          return $(entry).data('entry-id')
-      });
-
-      if (ids.length === 0) {
-        alert('{{ trans('global.datatables.zero_selected') }}')
-
-        return
-      }
-
-      if (confirm('{{ trans('global.areYouSure') }}')) {
-        $.ajax({
-          headers: {'x-csrf-token': _token},
-          method: 'POST',
-          url: config.url,
-          data: { ids: ids, _method: 'DELETE' }})
-          .done(function () { location.reload() })
-      }
-    }
-  }
-  dtButtons.push(deleteButton)
-@endcan
-
-  $.extend(true, $.fn.dataTable.defaults, {
-    orderCellsTop: true,
-    order: [[ 1, 'desc' ]],
-    pageLength: 100,
-  });
-  let table = $('.datatable-SubcrptionPlan:not(.ajaxTable)').DataTable({ buttons: dtButtons })
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
-      $($.fn.dataTable.tables(true)).DataTable()
-          .columns.adjust();
-  });
-
-})
-
+$(function () {
+    let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
+    @can('subcrption_plan_delete')
+    dtButtons.push({
+        text: '{{ trans('global.datatables.delete') }}',
+        url: "{{ route('admin.subcrption-plans.massDestroy') }}",
+        className: 'btn-danger',
+        action: function (e, dt) {
+            var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) { return $(entry).data('entry-id'); });
+            if (!ids.length) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
+            if (confirm('{{ trans('global.areYouSure') }}')) {
+                $.ajax({ headers: {'x-csrf-token': _token}, method: 'POST', url: "{{ route('admin.subcrption-plans.massDestroy') }}", data: { ids: ids, _method: 'DELETE' } }).done(function () { location.reload(); });
+            }
+        }
+    });
+    @endcan
+    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
+    $('.datatable-SubcrptionPlan:not(.ajaxTable)').DataTable({
+        buttons: dtButtons,
+        columnDefs: [{ orderable: false, targets: -1 }],
+        select: false
+    });
+});
 </script>
 @endsection

@@ -1,188 +1,148 @@
 @extends('layouts.admin')
 @section('content')
-@can('meal_create')
-    <div style="margin-bottom: 10px;" class="row">
-        <div class="col-lg-12">
-            <a class="btn btn-success" href="{{ route('admin.meals.create') }}">
-                {{ trans('global.add') }} {{ trans('cruds.meal.title_singular') }}
-            </a>
-        </div>
-    </div>
-@endcan
-<div class="card">
+
+@include('partials.idx-styles')
+<style>
+.meal-thumb {
+    width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;
+}
+.meal-thumb-placeholder {
+    width: 42px; height: 42px; border-radius: 8px;
+    background: linear-gradient(135deg,#e0e7ff,#c7d2fe);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #6366f1; font-size: .8rem;
+}
+.macro-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: .68rem; color: #6b7280; background: #f3f4f6;
+    padding: 2px 7px; border-radius: 20px; margin: 1px 2px 1px 0;
+}
+</style>
+
+<div class="card idx-card">
     <div class="card-header">
-        {{ trans('cruds.meal.title_singular') }} {{ trans('global.list') }}
+        <h3><i class="fas fa-utensils mr-2" style="color:#ea580c;"></i> Meals</h3>
+        @can('meal_create')
+        <a href="{{ route('admin.meals.create') }}" class="idx-btn ib-green">
+            <i class="fas fa-plus"></i> Add Meal
+        </a>
+        @endcan
     </div>
+
+    @if(session('success'))
+        <div style="margin:16px 20px 0; padding:10px 14px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; border-radius:8px; font-size:.83rem;">
+            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+        </div>
+    @endif
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class=" table table-bordered table-striped table-hover datatable datatable-Meal">
+            <table class="table idx-table datatable datatable-Meal" style="width:100%;">
                 <thead>
                     <tr>
-                        <th width="10">
-
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.id') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.title') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.description') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.image') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.category') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.calories') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.protein_g') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.fat_g') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.carbs_g') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.extras') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.is_active') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.type') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.created_at') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.updated_at') }}
-                        </th>
-                        <th>
-                            {{ trans('cruds.meal.fields.deleted_at') }}
-                        </th>
-                        <th>
-                            &nbsp;
-                        </th>
+                        <th>ID</th>
+                        <th>Image</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th>Calories</th>
+                        <th>Macros</th>
+                        <th>Active</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($meals as $key => $meal)
-                        <tr data-entry-id="{{ $meal->id }}">
-                            <td>
-
-                            </td>
-                            <td>
-                                {{ $meal->id ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->title ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->description ?? '' }}
-                            </td>
-                            <td>
-                                @php
-                                    $image = $meal->getFirstMedia('image');
-                                @endphp
-                                @if($image)
-                                    @php
-                                        // Use Spatie's getUrl method which handles custom disks correctly
-                                        $imageUrl = $image->getUrl();
-                                        $thumbUrl = $image->getUrl('thumb');
-                                        
-                                        // If thumb doesn't exist, use original
-                                        if (!$thumbUrl || $thumbUrl === $imageUrl) {
-                                            $thumbUrl = $imageUrl;
-                                        }
-                                    @endphp
-                                    @if($imageUrl)
-                                        <img src="{{ $thumbUrl }}" alt="{{ $meal->title ?? '' }}" style="max-width: 50px; max-height: 50px; border: 1px solid #ddd; display: block; object-fit: cover; border-radius: 4px;" onerror="this.onerror=null; this.src='{{ $imageUrl }}';">
-                                    @else
-                                        <span class="text-muted">No image</span>
-                                    @endif
-                                @else
-                                    <span class="text-muted">No image</span>
-                                @endif
-                            </td>
-                            <td>
-                                @php
-                                    // Ensure category relationship is loaded
-                                    if ($meal->category_id) {
-                                        if (!$meal->relationLoaded('category')) {
-                                            $meal->load('category');
-                                        }
-                                        $category = $meal->category;
-                                    } else {
-                                        $category = null;
-                                    }
-                                @endphp
-                                @if($category && $category->name)
-                                    {{ $category->name }}
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td>
-                                {{ $meal->calories ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->protein_g ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->fat_g ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->carbs_g ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->extras ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->is_active ?? '' }}
-                            </td>
-                            <td>
-                                {{ App\Models\Meal::TYPE_RADIO[$meal->type] ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->created_at ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->updated_at ?? '' }}
-                            </td>
-                            <td>
-                                {{ $meal->deleted_at ?? '' }}
-                            </td>
-                            <td>
-                                @can('meal_show')
-                                    <a class="btn btn-xs btn-primary" href="{{ route('admin.meals.show', $meal->id) }}">
-                                        {{ trans('global.view') }}
-                                    </a>
-                                @endcan
-
-                                @can('meal_edit')
-                                    <a class="btn btn-xs btn-info" href="{{ route('admin.meals.edit', $meal->id) }}">
-                                        {{ trans('global.edit') }}
-                                    </a>
-                                @endcan
-
-                                @can('meal_delete')
-                                    <form action="{{ route('admin.meals.destroy', $meal->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
-                                        <input type="hidden" name="_method" value="DELETE">
-                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                        <input type="submit" class="btn btn-xs btn-danger" value="{{ trans('global.delete') }}">
-                                    </form>
-                                @endcan
-
-                            </td>
-
-                        </tr>
+                    @foreach($meals as $meal)
+                    @php
+                        $image = $meal->getFirstMedia('image');
+                        $thumbUrl = $image ? $image->getUrl('thumb') : null;
+                        $imgUrl   = $image ? $image->getUrl() : null;
+                        if ($thumbUrl === $imgUrl) { $thumbUrl = $imgUrl; }
+                        $category = $meal->category_id ? $meal->category : null;
+                    @endphp
+                    <tr data-entry-id="{{ $meal->id }}">
+                        <td style="font-weight:600; color:#111827;">#{{ $meal->id }}</td>
+                        <td>
+                            @if($thumbUrl)
+                                <img src="{{ $thumbUrl }}" alt="{{ $meal->title }}" class="meal-thumb"
+                                     onerror="this.onerror=null;this.src='{{ $imgUrl }}';">
+                            @else
+                                <div class="meal-thumb-placeholder"><i class="fas fa-utensils"></i></div>
+                            @endif
+                        </td>
+                        <td>
+                            <span style="font-weight:600;">{{ $meal->title ?? '—' }}</span>
+                            @if($meal->description)
+                                <div style="font-size:.72rem; color:#9ca3af; margin-top:2px;">
+                                    {{ Str::limit($meal->description, 60) }}
+                                </div>
+                            @endif
+                        </td>
+                        <td>
+                            @if($category && $category->name)
+                                <span class="idx-chip chip-violet">{{ $category->name }}</span>
+                            @else
+                                <span style="color:#9ca3af;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($meal->type === 'is meal')
+                                <span class="idx-chip chip-blue">Meal</span>
+                            @elseif($meal->type === 'is snack')
+                                <span class="idx-chip chip-orange">Snack</span>
+                            @else
+                                <span style="color:#9ca3af;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($meal->calories)
+                                <span style="font-weight:600;">{{ $meal->calories }}</span>
+                                <span style="font-size:.72rem; color:#9ca3af;"> kcal</span>
+                            @else
+                                <span style="color:#9ca3af;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($meal->protein_g)
+                                <span class="macro-pill"><i class="fas fa-dumbbell"></i> {{ $meal->protein_g }}g</span>
+                            @endif
+                            @if($meal->carbs_g)
+                                <span class="macro-pill"><i class="fas fa-bread-slice"></i> {{ $meal->carbs_g }}g</span>
+                            @endif
+                            @if($meal->fat_g)
+                                <span class="macro-pill"><i class="fas fa-tint"></i> {{ $meal->fat_g }}g</span>
+                            @endif
+                            @if(!$meal->protein_g && !$meal->carbs_g && !$meal->fat_g)
+                                <span style="color:#9ca3af;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($meal->is_active)
+                                <span class="idx-chip chip-green"><i class="fas fa-circle" style="font-size:.4rem;"></i> Active</span>
+                            @else
+                                <span class="idx-chip chip-gray">Inactive</span>
+                            @endif
+                        </td>
+                        <td style="white-space:nowrap;">
+                            @can('meal_show')
+                            <a href="{{ route('admin.meals.show', $meal->id) }}" class="idx-btn ib-view">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            @endcan
+                            @can('meal_edit')
+                            <a href="{{ route('admin.meals.edit', $meal->id) }}" class="idx-btn ib-edit">
+                                <i class="fas fa-pen"></i> Edit
+                            </a>
+                            @endcan
+                            @can('meal_delete')
+                            <form action="{{ route('admin.meals.destroy', $meal->id) }}" method="POST"
+                                  onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display:inline-block;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                            </form>
+                            @endcan
+                        </td>
+                    </tr>
                     @endforeach
                 </tbody>
             </table>
@@ -190,56 +150,34 @@
     </div>
 </div>
 
-
-
 @endsection
 @section('scripts')
 @parent
 <script>
-    $(function () {
-  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-@can('meal_delete')
-  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}'
-  let deleteButton = {
-    text: deleteButtonTrans,
-    url: "{{ route('admin.meals.massDestroy') }}",
-    className: 'btn-danger',
-    action: function (e, dt, node, config) {
-      var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) {
-          return $(entry).data('entry-id')
-      });
+$(function () {
+    let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
 
-      if (ids.length === 0) {
-        alert('{{ trans('global.datatables.zero_selected') }}')
+    @can('meal_delete')
+    dtButtons.push({
+        text: '{{ trans('global.datatables.delete') }}',
+        url: "{{ route('admin.meals.massDestroy') }}",
+        className: 'btn-danger',
+        action: function (e, dt) {
+            var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) { return $(entry).data('entry-id'); });
+            if (!ids.length) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
+            if (confirm('{{ trans('global.areYouSure') }}')) {
+                $.ajax({ headers: {'x-csrf-token': _token}, method: 'POST', url: "{{ route('admin.meals.massDestroy') }}", data: { ids: ids, _method: 'DELETE' } }).done(function () { location.reload(); });
+            }
+        }
+    });
+    @endcan
 
-        return
-      }
-
-      if (confirm('{{ trans('global.areYouSure') }}')) {
-        $.ajax({
-          headers: {'x-csrf-token': _token},
-          method: 'POST',
-          url: config.url,
-          data: { ids: ids, _method: 'DELETE' }})
-          .done(function () { location.reload() })
-      }
-    }
-  }
-  dtButtons.push(deleteButton)
-@endcan
-
-  $.extend(true, $.fn.dataTable.defaults, {
-    orderCellsTop: true,
-    order: [[ 1, 'desc' ]],
-    pageLength: 100,
-  });
-  let table = $('.datatable-Meal:not(.ajaxTable)').DataTable({ buttons: dtButtons })
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
-      $($.fn.dataTable.tables(true)).DataTable()
-          .columns.adjust();
-  });
-
-})
-
+    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
+    $('.datatable-Meal:not(.ajaxTable)').DataTable({
+        buttons: dtButtons,
+        columnDefs: [{ orderable: false, targets: -1 }],
+        select: false
+    });
+});
 </script>
 @endsection

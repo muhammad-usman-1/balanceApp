@@ -75,7 +75,12 @@ class UserSubcrptionController extends Controller
 
         $userSubcrption->load('user', 'subcrption_plans', 'duration');
 
-        return view('admin.userSubcrptions.show', compact('userSubcrption'));
+        $subscriptionDays = SubscriptionDay::where('user_subcrptions_id', $userSubcrption->id)
+            ->with(['subscription_meals.meal'])
+            ->orderByRaw("FIELD(day, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
+            ->get();
+
+        return view('admin.userSubcrptions.show', compact('userSubcrption', 'subscriptionDays'));
     }
 
     public function destroy(UserSubcrption $userSubcrption)

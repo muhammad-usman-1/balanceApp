@@ -27,35 +27,100 @@
 <body class="sidebar-mini layout-fixed" style="height: auto;">
     <div class="wrapper">
         <nav class="main-header navbar navbar-expand bg-white navbar-light border-bottom">
-            <!-- Left navbar links -->
+            <!-- Left: sidebar toggle -->
             <ul class="navbar-nav">
                 <li class="nav-item">
                     <a class="nav-link" data-widget="pushmenu" href="#"><i class="fa fa-bars"></i></a>
                 </li>
             </ul>
 
-            <!-- Right navbar links -->
-            @if(count(config('panel.available_languages', [])) > 1)
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link" data-toggle="dropdown" href="#">
-                            {{ strtoupper(app()->getLocale()) }}
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right">
-                            @foreach(config('panel.available_languages') as $langLocale => $langName)
-                                <a class="dropdown-item" href="{{ url()->current() }}?change_language={{ $langLocale }}">{{ strtoupper($langLocale) }} ({{ $langName }})</a>
-                            @endforeach
-                        </div>
-                    </li>
-                </ul>
-            @endif
+            <!-- Right: language + user dropdown -->
+            <ul class="navbar-nav ml-auto" style="align-items:center;gap:4px;">
 
+                @if(count(config('panel.available_languages', [])) > 1)
+                <li class="nav-item dropdown">
+                    <a class="nav-link" data-toggle="dropdown" href="#">
+                        {{ strtoupper(app()->getLocale()) }}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        @foreach(config('panel.available_languages') as $langLocale => $langName)
+                            <a class="dropdown-item" href="{{ url()->current() }}?change_language={{ $langLocale }}">{{ strtoupper($langLocale) }} ({{ $langName }})</a>
+                        @endforeach
+                    </div>
+                </li>
+                @endif
+
+                <!-- User profile dropdown -->
+                @auth
+                <li class="nav-item dropdown" style="margin-left:6px;">
+                    <a class="nav-link d-flex align-items-center" data-toggle="dropdown" href="#"
+                       style="gap:9px; padding:6px 10px; border-radius:8px; transition:background .15s;"
+                       onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+                        <!-- Avatar circle -->
+                        <div style="width:32px;height:32px;border-radius:50%;
+                                    background:linear-gradient(135deg,#22c55e,#16a34a);
+                                    color:#fff;display:flex;align-items:center;justify-content:center;
+                                    font-size:.75rem;font-weight:700;flex-shrink:0;">
+                            {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
+                        </div>
+                        <!-- Name -->
+                        <span style="font-size:.85rem;font-weight:600;color:#374151;max-width:120px;
+                                     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            {{ auth()->user()->name ?? 'Admin' }}
+                        </span>
+                        <i class="fas fa-chevron-down" style="font-size:.6rem;color:#9ca3af;"></i>
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-right shadow-sm"
+                         style="border:1px solid #e5e7eb;border-radius:10px;min-width:200px;padding:6px;margin-top:6px;">
+
+                        <!-- User info header -->
+                        <div style="padding:8px 12px 10px;border-bottom:1px solid #f3f4f6;margin-bottom:4px;">
+                            <div style="font-size:.82rem;font-weight:700;color:#111827;">
+                                {{ auth()->user()->name ?? 'Admin' }}
+                            </div>
+                            <div style="font-size:.73rem;color:#9ca3af;margin-top:2px;">
+                                {{ auth()->user()->email ?? '' }}
+                            </div>
+                        </div>
+
+                        @if(file_exists(app_path('Http/Controllers/Auth/ChangePasswordController.php')))
+                        @can('profile_password_edit')
+                        <a href="{{ route('profile.password.edit') }}"
+                           class="dropdown-item"
+                           style="border-radius:7px;font-size:.83rem;color:#374151;padding:8px 12px;display:flex;align-items:center;gap:9px;">
+                            <span style="width:26px;height:26px;border-radius:6px;background:#fef3c7;
+                                         display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-key" style="font-size:.72rem;color:#d97706;"></i>
+                            </span>
+                            Change Password
+                        </a>
+                        @endcan
+                        @endif
+
+                        <div style="border-top:1px solid #f3f4f6;margin:4px 0;"></div>
+
+                        <a href="#" class="dropdown-item"
+                           style="border-radius:7px;font-size:.83rem;color:#dc2626;padding:8px 12px;display:flex;align-items:center;gap:9px;"
+                           onclick="event.preventDefault(); document.getElementById('logoutform').submit();">
+                            <span style="width:26px;height:26px;border-radius:6px;background:#fee2e2;
+                                         display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-sign-out-alt" style="font-size:.72rem;color:#dc2626;"></i>
+                            </span>
+                            Logout
+                        </a>
+
+                    </div>
+                </li>
+                @endauth
+
+            </ul>
         </nav>
 
         @include('partials.menu')
         <div class="content-wrapper" style="min-height: 917px;">
             <!-- Main content -->
-            <section class="content" style="padding-top: 20px">
+            <section class="content" style="padding-top: 10px">
                 @if(session('message'))
                     <div class="row mb-2">
                         <div class="col-lg-12">
