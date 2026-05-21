@@ -81,7 +81,7 @@
     {{-- Header --}}
     <div class="header">
         <div class="logo-area">
-            <img src="{{ asset('storage/balance-text.png') }}" alt="Balance" style="max-height:60px; max-width:220px; object-fit:contain;">
+            <img src="{{ asset('images/balance-text.png') }}" alt="Balance" style="max-height:60px; max-width:220px; object-fit:contain;">
         </div>
         <div class="delivery-meta">
             <strong>Delivery ID #: {{ $deliveryOrder->id }}</strong><br>

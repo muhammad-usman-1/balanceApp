@@ -203,7 +203,7 @@
     <div class="login-left">
         <div class="login-left-inner">
             <div class="brand-logo">
-                <img src="{{ asset('storage/balance-text.png') }}" alt="Balance">
+                <img src="{{ asset('images/balance-text.png') }}" alt="Balance">
             </div>
             <p class="brand-tagline">Food for your Life</p>
 

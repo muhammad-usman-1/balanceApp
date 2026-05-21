@@ -3,7 +3,7 @@
     {{-- ── Brand ── --}}
     <a href="{{ route('admin.home') }}" class="sb-brand">
         <div class="sb-brand-logo">
-            <img src="{{ asset('storage/balance-text.png') }}" alt="Balance">
+            <img src="{{ asset('images/balance-text.png') }}" alt="Balance">
         </div>
         <span class="sb-brand-sub">Admin Panel</span>
     </a>
