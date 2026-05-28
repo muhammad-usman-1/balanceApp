@@ -27,7 +27,7 @@ class RegisterUserRequest extends FormRequest
             'otp' => [
                 'required',
                 'integer',
-                'min:1000',
+                'min:1',
                 'max:999999',
             ],
             'email' => [
@@ -113,7 +113,7 @@ class RegisterUserRequest extends FormRequest
             'phone_number.unique' => 'This phone number is already registered.',
             'otp.required' => 'OTP is required.',
             'otp.integer' => 'OTP must be a number.',
-            'otp.min' => 'OTP must be at least 4 digits.',
+            'otp.min' => 'OTP is invalid.',
             'otp.max' => 'OTP must not exceed 6 digits.',
             'email.required' => 'Email is required.',
             'email.email' => 'Email must be a valid email address.',
