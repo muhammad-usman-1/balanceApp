@@ -21,6 +21,7 @@ class UserAddress extends Model
         'floor_apartment',
         'phone_number',
         'remarks',
+        'delivery_notes',
         'category',
         'is_primary',
         'preferred_delivery_slot',

@@ -171,6 +171,11 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
                 'nullable',
                 'string',
             ],
+            'address.delivery_notes' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
             'address.category' => [
                 'required',
                 'string',

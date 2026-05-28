@@ -139,7 +139,11 @@ $formatSlot = function($slot) {
     <div class="do-toolbar">
         <div class="do-toolbar-left">
             <i class="fas fa-truck" style="color:#4e73df;"></i>
-            Today's Delivery Orders
+            @if($date->isToday())
+                Today's Delivery Orders
+            @else
+                Delivery Orders &mdash; {{ $date->format('l, d M Y') }}
+            @endif
             <span class="badge badge-primary" id="orderCount">{{ $deliveryOrders->count() }}</span>
         </div>
         <div class="do-toolbar-right">
@@ -160,6 +164,15 @@ $formatSlot = function($slot) {
                            value="{{ $date->format('Y-m-d') }}"
                            onchange="this.form.submit()">
                 </div>
+                <button type="submit" class="btn btn-sm btn-primary" title="Filter by date">
+                    <i class="fas fa-search"></i>
+                </button>
+                @if(!$date->isToday())
+                <a href="{{ route('admin.delivery-orders.index') }}"
+                   class="btn btn-sm btn-outline-secondary" title="Back to today">
+                    Today
+                </a>
+                @endif
             </form>
 
             <a href="{{ route('admin.delivery-orders.print-all', ['date' => $date->format('Y-m-d')]) }}"

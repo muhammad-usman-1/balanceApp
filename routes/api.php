@@ -137,9 +137,29 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
 Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']], function () {
     // Logout - revokes the current API token
     Route::post('logout', 'Api\V1\UserRegistrationController@logout')->name('logout');
+
+    // Profile
+    Route::get('profile', 'Api\V1\UserProfileController@show')->name('profile.show');
+    Route::put('profile', 'Api\V1\UserProfileController@update')->name('profile.update');
+
+    // Addresses
+    Route::get('addresses', 'Api\V1\UserAddressController@index')->name('addresses.index');
+    Route::post('addresses', 'Api\V1\UserAddressController@store')->name('addresses.store');
+    Route::get('addresses/{id}', 'Api\V1\UserAddressController@show')->name('addresses.show');
+    Route::put('addresses/{id}', 'Api\V1\UserAddressController@update')->name('addresses.update');
+    Route::delete('addresses/{id}', 'Api\V1\UserAddressController@destroy')->name('addresses.destroy');
     Route::post('subscription/{subscriptionId}/pause', 'Api\V1\Admin\SubscriptionPauseApiController@pause')->name('subscription.pause');
     Route::post('subscription/{subscriptionId}/resume', 'Api\V1\Admin\SubscriptionPauseApiController@resume')->name('subscription.resume');
     Route::get('subscription/{subscriptionId}/pause-logs', 'Api\V1\Admin\SubscriptionPauseApiController@pauseLogs')->name('subscription.pause-logs');
+
+    // Pause requests (user submits, user views own requests)
+    Route::post('subscription/{subscriptionId}/pause-request', 'Api\V1\SubscriptionPauseRequestController@store')->name('subscription.pause-request.store');
+    Route::get('subscription/{subscriptionId}/pause-requests', 'Api\V1\SubscriptionPauseRequestController@index')->name('subscription.pause-request.index');
+
+    // Admin: review pause requests
+    Route::get('admin/pause-requests', 'Api\V1\Admin\AdminPauseRequestController@index')->name('admin.pause-requests.index');
+    Route::post('admin/pause-requests/{id}/approve', 'Api\V1\Admin\AdminPauseRequestController@approve')->name('admin.pause-requests.approve');
+    Route::post('admin/pause-requests/{id}/reject', 'Api\V1\Admin\AdminPauseRequestController@reject')->name('admin.pause-requests.reject');
 
     // User Subscriptions
     Route::get('my-subscriptions', 'Api\V1\Admin\UserSubscriptionApiController@index')->name('my-subscriptions.index');

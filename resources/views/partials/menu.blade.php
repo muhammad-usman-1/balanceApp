@@ -44,6 +44,22 @@
             </li>
             @endcan
 
+            @can('user_subcrption_access')
+            <li class="nav-item sb-item">
+                <a href="{{ route('admin.pause-requests.index') }}"
+                   class="nav-link sb-link {{ request()->is('admin/pause-requests*') ? 'active' : '' }}">
+                    <span class="sb-icon" style="background:#fef3c7; color:#d97706;"><i class="fas fa-pause-circle"></i></span>
+                    <span class="sb-label">Pause Requests</span>
+                    @php $pendingCount = \App\Models\SubscriptionPauseRequest::where('status','pending')->count(); @endphp
+                    @if($pendingCount > 0)
+                        <span style="margin-left:auto; background:#d97706; color:#fff; border-radius:10px; padding:1px 7px; font-size:.68rem; font-weight:700;">
+                            {{ $pendingCount }}
+                        </span>
+                    @endif
+                </a>
+            </li>
+            @endcan
+
             {{-- ─── MEAL CATALOG ─── --}}
             <li class="sb-section-label">Meal Catalog</li>
 

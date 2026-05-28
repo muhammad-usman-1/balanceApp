@@ -39,6 +39,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('durations/destroy', 'DurationsController@massDestroy')->name('durations.massDestroy');
     Route::resource('durations', 'DurationsController');
 
+    // Pause Requests (from app users)
+    Route::get('pause-requests', 'PauseRequestController@index')->name('pause-requests.index');
+    Route::post('pause-requests/{pauseRequest}/approve', 'PauseRequestController@approve')->name('pause-requests.approve');
+    Route::post('pause-requests/{pauseRequest}/reject', 'PauseRequestController@reject')->name('pause-requests.reject');
+
     // User Subcrption
     Route::delete('user-subcrptions/destroy', 'UserSubcrptionController@massDestroy')->name('user-subcrptions.massDestroy');
     Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');

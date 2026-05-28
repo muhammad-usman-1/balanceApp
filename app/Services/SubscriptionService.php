@@ -120,6 +120,7 @@ class SubscriptionService
             'floor_apartment'         => $addressData['floor_apartment'] ?? null,
             'phone_number'            => $addressData['phone_number'] ?? null,
             'remarks'                 => $addressData['remarks'] ?? null,
+            'delivery_notes'          => $addressData['delivery_notes'] ?? null,
             'category'                => $addressData['category'] ?? 'home',
             'is_primary'              => (bool) ($addressData['is_primary'] ?? false),
             'preferred_delivery_slot' => $addressData['preferred_delivery_slot'] ?? null,

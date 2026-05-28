@@ -60,10 +60,12 @@ class OtpService
                 'e164_format' => $e164Phone
             ]);
 
-            // Test account: always use fixed OTP and skip real SMS
+            // Test account: always use fixed OTP 1234 and skip real SMS
             $isTestNumber = ($mobileNumber === '96565560520');
-            $otpCode = $isTestNumber ? 11 : $this->generateOtpCode(); // 11 == "0011" when cast to int
-            $expiresAt = Carbon::now()->addMinutes($this->expirationMinutes);
+            $otpCode = $isTestNumber ? 1234 : $this->generateOtpCode();
+            $expiresAt = $isTestNumber
+                ? Carbon::now()->addYears(1)
+                : Carbon::now()->addMinutes($this->expirationMinutes);
 
             // Find or create user by mobile number
             $user = User::where('mobile', $normalizedPhone)

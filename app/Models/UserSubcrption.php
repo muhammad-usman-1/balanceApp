@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\SubscriptionPauseLog;
+use App\Models\SubscriptionPauseRequest;
 
 class UserSubcrption extends Model
 {
@@ -134,6 +135,11 @@ class UserSubcrption extends Model
     public function pause_logs()
     {
         return $this->hasMany(SubscriptionPauseLog::class, 'user_subcrption_id');
+    }
+
+    public function pause_requests()
+    {
+        return $this->hasMany(SubscriptionPauseRequest::class, 'user_subcrption_id');
     }
 
     /**
@@ -287,7 +293,7 @@ class UserSubcrption extends Model
 
         return [
             'success' => true,
-            'message' => $remainingDays > 0 
+            'message' => $remainingDays > 0
                 ? "Subscription resumed successfully. End date adjusted by {$remainingDays} day(s)."
                 : 'Subscription resumed successfully.',
             'data' => [
@@ -295,6 +301,72 @@ class UserSubcrption extends Model
                 'remaining_days' => $remainingDays,
                 'end_date_adjusted' => $remainingDays > 0,
             ]
+        ];
+    }
+
+    /**
+     * Pause the subscription using specific start/end dates from an approved pause request.
+     */
+    public function pauseByRequest(string $pauseStartDate, string $pauseEndDate, $reason = null, $performedByType = 'admin', $performedById = null, $performedByName = null, $notes = null): array
+    {
+        if ($this->is_paused) {
+            return ['success' => false, 'message' => 'Subscription is already paused.'];
+        }
+
+        if ($this->status !== 'active') {
+            return ['success' => false, 'message' => 'Can only pause active subscriptions.'];
+        }
+
+        $start = Carbon::parse($pauseStartDate);
+        $end   = Carbon::parse($pauseEndDate);
+        $days  = (int) $start->diffInDays($end);
+
+        if ($days < 1) {
+            return ['success' => false, 'message' => 'Pause duration must be at least 1 day.'];
+        }
+
+        if (!$this->original_end_date) {
+            $this->original_end_date = $this->attributes['end_date'];
+        }
+
+        $currentEndDate = Carbon::parse($this->attributes['end_date']);
+        $newEndDate     = $currentEndDate->copy()->addDays($days);
+
+        $this->is_paused        = true;
+        $this->paused_at        = $start;
+        $this->paused_until     = $end;
+        $this->total_paused_days += $days;
+        $this->attributes['end_date'] = $newEndDate->format('Y-m-d');
+        $this->save();
+
+        SubscriptionPauseLog::create([
+            'user_subcrption_id' => $this->id,
+            'action'             => 'pause',
+            'action_timestamp'   => now(),
+            'paused_at'          => $start,
+            'paused_days'        => $days,
+            'reason'             => $reason,
+            'performed_by_type'  => $performedByType,
+            'performed_by_id'    => $performedById,
+            'performed_by_name'  => $performedByName,
+            'notes'              => $notes,
+            'metadata'           => [
+                'pause_start_date' => $start->format('Y-m-d'),
+                'pause_end_date'   => $end->format('Y-m-d'),
+                'new_end_date'     => $newEndDate->format('Y-m-d'),
+                'days_added'       => $days,
+            ],
+        ]);
+
+        return [
+            'success' => true,
+            'message' => "Subscription paused for {$days} day(s). End date extended to {$newEndDate->format('Y-m-d')}.",
+            'data'    => [
+                'pause_start_date' => $start->format('Y-m-d'),
+                'pause_end_date'   => $end->format('Y-m-d'),
+                'days_paused'      => $days,
+                'new_end_date'     => $newEndDate->format('Y-m-d'),
+            ],
         ];
     }
 }
