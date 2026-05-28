@@ -60,8 +60,9 @@ class OtpService
                 'e164_format' => $e164Phone
             ]);
 
-            // Generate new 4-digit OTP
-            $otpCode = $this->generateOtpCode();
+            // Test account: always use fixed OTP and skip real SMS
+            $isTestNumber = ($mobileNumber === '96565560520');
+            $otpCode = $isTestNumber ? 11 : $this->generateOtpCode(); // 11 == "0011" when cast to int
             $expiresAt = Carbon::now()->addMinutes($this->expirationMinutes);
 
             // Find or create user by mobile number
@@ -87,10 +88,10 @@ class OtpService
                 ]);
             }
 
-
-
-            // Send OTP through Twilio
-            $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
+            // Send OTP through Twilio (skipped for test account)
+            if (!$isTestNumber) {
+                $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
+            }
 
             Log::info('OTP generated and sent via Twilio', [
                 'phone_number' => $e164Phone,
