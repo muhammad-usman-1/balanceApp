@@ -150,7 +150,7 @@
 
         @if($meals->hasPages())
         <div style="padding: 14px 20px; border-top: 1px solid #f3f4f6;">
-            {{ $meals->links() }}
+            {{ $meals->links('partials.pagination') }}
         </div>
         @endif
     </div>
