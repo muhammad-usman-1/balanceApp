@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Meal;
 use App\Models\MealRestriction;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class MealRestrictionController extends Controller
 {
     public function index()
     {
-        $restrictions = MealRestriction::with('meal')->orderByDesc('id')->get();
+        $restrictions = MealRestriction::with('meal')->orderBy('id')->get();
         $meals = Meal::whereDoesntHave('restriction')->where('is_active', 1)->orderBy('title')->get();
 
         return view('admin.mealRestrictions.index', compact('restrictions', 'meals'));

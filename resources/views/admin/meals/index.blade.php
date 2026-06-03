@@ -155,26 +155,11 @@
 @parent
 <script>
 $(function () {
-    let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
-
-    @can('meal_delete')
-    dtButtons.push({
-        text: '{{ trans('global.datatables.delete') }}',
-        url: "{{ route('admin.meals.massDestroy') }}",
-        className: 'btn-danger',
-        action: function (e, dt) {
-            var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) { return $(entry).data('entry-id'); });
-            if (!ids.length) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
-            if (confirm('{{ trans('global.areYouSure') }}')) {
-                $.ajax({ headers: {'x-csrf-token': _token}, method: 'POST', url: "{{ route('admin.meals.massDestroy') }}", data: { ids: ids, _method: 'DELETE' } }).done(function () { location.reload(); });
-            }
-        }
-    });
-    @endcan
-
-    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
     $('.datatable-Meal:not(.ajaxTable)').DataTable({
-        buttons: dtButtons,
+        buttons: [],
+        dom: 'lfrtp',
+        order: [[0, 'asc']],
+        pageLength: 25,
         columnDefs: [{ orderable: false, targets: -1 }],
         select: false
     });
