@@ -14,19 +14,19 @@
     </div>
 
     @if(session('success'))
-        <div style="margin:16px 20px 0; padding:10px 14px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; border-radius:8px; font-size:.83rem;">
-            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+        <div class="idx-flash idx-flash-success" style="margin:16px 20px 0;">
+            <i class="fas fa-check-circle"></i> {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div style="margin:16px 20px 0; padding:10px 14px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:8px; font-size:.83rem;">
-            <i class="fas fa-exclamation-circle mr-1"></i> {{ session('error') }}
+        <div class="idx-flash idx-flash-error" style="margin:16px 20px 0;">
+            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
         </div>
     @endif
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table idx-table datatable datatable-UserSubcrption" style="width:100%;">
+            <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -42,16 +42,20 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($userSubcrptions as $sub)
-                    <tr data-entry-id="{{ $sub->id }}">
+                    @forelse($userSubcrptions as $sub)
+                    <tr>
                         <td style="font-weight:600; color:#111827;">#{{ $sub->id }}</td>
-                        <td>{{ $sub->user->name ?? '—' }}</td>
-                        <td>{{ $sub->subcrption_plans->title ?? '—' }}</td>
-                        <td style="white-space:nowrap;">{{ $sub->start_date ?? '—' }}</td>
-                        <td style="white-space:nowrap;">{{ $sub->end_date ?? '—' }}</td>
+                        <td>
+                            <span style="font-weight:600; color:#111827;">{{ $sub->user->name ?? '—' }}</span>
+                        </td>
+                        <td>
+                            <span class="idx-chip chip-violet">{{ $sub->subcrption_plans->title ?? '—' }}</span>
+                        </td>
+                        <td style="white-space:nowrap; font-size:.8rem;">{{ $sub->start_date ?? '—' }}</td>
+                        <td style="white-space:nowrap; font-size:.8rem;">{{ $sub->end_date ?? '—' }}</td>
                         <td>
                             @if($sub->payment === 'paid')
-                                <span class="idx-chip chip-blue"><i class="fas fa-check" style="font-size:.55rem;"></i> Paid</span>
+                                <span class="idx-chip chip-green"><i class="fas fa-check" style="font-size:.55rem;"></i> Paid</span>
                             @else
                                 <span class="idx-chip chip-orange"><i class="fas fa-clock" style="font-size:.55rem;"></i> {{ ucfirst($sub->payment ?? 'pending') }}</span>
                             @endif
@@ -98,39 +102,24 @@
                             @endcan
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="10" class="idx-empty">
+                            <i class="fas fa-clipboard-list" style="font-size:2rem; color:#d1d5db;"></i><br>
+                            No subscriptions found.
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
+
+        @if($userSubcrptions->hasPages())
+        <div style="padding: 14px 20px; border-top: 1px solid #f3f4f6;">
+            {{ $userSubcrptions->links('partials.pagination') }}
+        </div>
+        @endif
     </div>
 </div>
 
-@endsection
-@section('scripts')
-@parent
-<script>
-$(function () {
-    let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-    @can('user_subcrption_delete')
-    dtButtons.push({
-        text: '{{ trans('global.datatables.delete') }}',
-        url: "{{ route('admin.user-subcrptions.massDestroy') }}",
-        className: 'btn-danger',
-        action: function (e, dt) {
-            var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) { return $(entry).data('entry-id'); });
-            if (!ids.length) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
-            if (confirm('{{ trans('global.areYouSure') }}')) {
-                $.ajax({ headers: {'x-csrf-token': _token}, method: 'POST', url: "{{ route('admin.user-subcrptions.massDestroy') }}", data: { ids: ids, _method: 'DELETE' } }).done(function () { location.reload(); });
-            }
-        }
-    });
-    @endcan
-    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
-    $('.datatable-UserSubcrption:not(.ajaxTable)').DataTable({
-        buttons: dtButtons,
-        columnDefs: [{ orderable: false, targets: -1 }],
-        select: false
-    });
-});
-</script>
 @endsection

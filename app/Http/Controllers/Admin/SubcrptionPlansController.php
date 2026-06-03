@@ -17,7 +17,7 @@ class SubcrptionPlansController extends Controller
     {
         abort_if(Gate::denies('subcrption_plan_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $subcrptionPlans = SubcrptionPlan::all();
+        $subcrptionPlans = SubcrptionPlan::orderBy('id')->paginate(25);
 
         return view('admin.subcrptionPlans.index', compact('subcrptionPlans'));
     }

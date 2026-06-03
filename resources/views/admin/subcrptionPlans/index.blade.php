@@ -19,7 +19,7 @@
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table idx-table datatable datatable-SubcrptionPlan" style="width:100%;">
+            <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -36,7 +36,7 @@
                 </thead>
                 <tbody>
                     @foreach($subcrptionPlans as $plan)
-                    <tr data-entry-id="{{ $plan->id }}">
+                    <tr>
                         <td style="font-weight:600;color:#111827;">#{{ $plan->id }}</td>
                         <td style="font-weight:600;">{{ $plan->title ?? '—' }}</td>
                         <td style="color:#6b7280;">{{ Str::limit($plan->description ?? '', 60) }}</td>
@@ -93,35 +93,13 @@
                 </tbody>
             </table>
         </div>
+
+        @if($subcrptionPlans->hasPages())
+        <div style="padding: 14px 20px; border-top: 1px solid #f3f4f6;">
+            {{ $subcrptionPlans->links('partials.pagination') }}
+        </div>
+        @endif
     </div>
 </div>
 
-@endsection
-@section('scripts')
-@parent
-<script>
-$(function () {
-    let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
-    @can('subcrption_plan_delete')
-    dtButtons.push({
-        text: '{{ trans('global.datatables.delete') }}',
-        url: "{{ route('admin.subcrption-plans.massDestroy') }}",
-        className: 'btn-danger',
-        action: function (e, dt) {
-            var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) { return $(entry).data('entry-id'); });
-            if (!ids.length) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
-            if (confirm('{{ trans('global.areYouSure') }}')) {
-                $.ajax({ headers: {'x-csrf-token': _token}, method: 'POST', url: "{{ route('admin.subcrption-plans.massDestroy') }}", data: { ids: ids, _method: 'DELETE' } }).done(function () { location.reload(); });
-            }
-        }
-    });
-    @endcan
-    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
-    $('.datatable-SubcrptionPlan:not(.ajaxTable)').DataTable({
-        buttons: dtButtons,
-        columnDefs: [{ orderable: false, targets: -1 }],
-        select: false
-    });
-});
-</script>
 @endsection

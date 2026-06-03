@@ -22,7 +22,9 @@ class UserSubcrptionController extends Controller
     {
         abort_if(Gate::denies('user_subcrption_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $userSubcrptions = UserSubcrption::with(['user', 'subcrption_plans', 'duration'])->get();
+        $userSubcrptions = UserSubcrption::with(['user', 'subcrption_plans'])
+            ->orderByDesc('id')
+            ->paginate(25);
 
         return view('admin.userSubcrptions.index', compact('userSubcrptions'));
     }
