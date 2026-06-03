@@ -37,6 +37,11 @@ class SubscriptionCheckoutApiController extends Controller
                     'subscription_meals' => $result['subscription_meals'],
                 ],
             ], Response::HTTP_CREATED);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\Exception $e) {
             Log::error('Subscription checkout error: ' . $e->getMessage(), [
                 'request' => $request->all(),

@@ -24,7 +24,7 @@ class MealApiController extends Controller
 
     public function index()
     {
-        $meals = Meal::with(['category', 'media'])->get();
+        $meals = Meal::with(['category', 'media', 'restriction'])->get();
         return MealResource::collection($meals);
     }
 

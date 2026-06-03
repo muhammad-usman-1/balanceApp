@@ -66,12 +66,20 @@
             @can('meal_access')
             <li class="nav-item sb-item">
                 <a href="{{ route('admin.meals.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/meals*') ? 'active' : '' }}">
+                   class="nav-link sb-link {{ request()->is('admin/meals*') && !request()->is('admin/meal-restrictions*') ? 'active' : '' }}">
                     <span class="sb-icon si-orange"><i class="fas fa-utensils"></i></span>
                     <span class="sb-label">Meals</span>
                 </a>
             </li>
             @endcan
+
+            <li class="nav-item sb-item">
+                <a href="{{ route('admin.meal-restrictions.index') }}"
+                   class="nav-link sb-link {{ request()->is('admin/meal-restrictions*') ? 'active' : '' }}">
+                    <span class="sb-icon si-red" style="background:#fee2e2; color:#dc2626;"><i class="fas fa-ban"></i></span>
+                    <span class="sb-label">Meal Limits</span>
+                </a>
+            </li>
 
             <li class="nav-item sb-item">
                 <a href="{{ route('admin.categories.index') }}"

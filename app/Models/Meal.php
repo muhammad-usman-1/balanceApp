@@ -52,6 +52,11 @@ class Meal extends Model implements HasMedia
         return $this->belongsTo(Category::class)->withTrashed();
     }
 
+    public function restriction()
+    {
+        return $this->hasOne(MealRestriction::class);
+    }
+
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');

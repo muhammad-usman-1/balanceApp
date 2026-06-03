@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Area;
+use App\Models\Meal;
+use App\Models\MealRestriction;
 use App\Models\ProteinOption;
 use App\Models\SubcrptionPlan;
 use App\Models\SubscriptionDay;
@@ -187,6 +189,28 @@ class SubscriptionService
 
         if (empty($meals)) {
             return $subscriptionMeals;
+        }
+
+        // Count how many times each meal_id appears in the request
+        $mealCounts = [];
+        foreach ($meals as $m) {
+            $id = $m['meal_id'] ?? null;
+            if ($id) {
+                $mealCounts[$id] = ($mealCounts[$id] ?? 0) + 1;
+            }
+        }
+
+        // Validate against restrictions
+        $restrictions = MealRestriction::whereIn('meal_id', array_keys($mealCounts))
+            ->pluck('weekly_limit', 'meal_id');
+
+        foreach ($mealCounts as $mealId => $count) {
+            if (isset($restrictions[$mealId]) && $count > $restrictions[$mealId]) {
+                $mealTitle = Meal::find($mealId)?->title ?? "Meal #{$mealId}";
+                throw new \InvalidArgumentException(
+                    "\"{$mealTitle}\" can only be added {$restrictions[$mealId]} time(s) per week, but was selected {$count} time(s)."
+                );
+            }
         }
 
         foreach ($meals as $mealData) {

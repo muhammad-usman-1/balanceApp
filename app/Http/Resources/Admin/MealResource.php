@@ -38,6 +38,7 @@ class MealResource extends JsonResource
             ] : null,
             'image_url' => $image ? $image->getUrl() : null,
             'image_thumb_url' => $image ? ($image->getUrl('thumb') ?: $image->getUrl()) : null,
+            'weekly_limit' => $this->restriction?->weekly_limit ?? null,
             'created_at' => $this->created_at ? $this->created_at->toDateTimeString() : null,
             'updated_at' => $this->updated_at ? $this->updated_at->toDateTimeString() : null,
             'deleted_at' => $this->deleted_at ? $this->deleted_at->toDateTimeString() : null,

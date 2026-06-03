@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateSubscriptionMealApiRequest;
+use App\Models\MealRestriction;
 use App\Models\SubscriptionDay;
 use App\Models\SubscriptionMeal;
 use App\Models\UserSubcrption;
@@ -41,6 +42,29 @@ class SubscriptionMealApiController extends Controller
                     'success' => false,
                     'message' => 'Day not found or does not belong to your active subscription.',
                 ], Response::HTTP_NOT_FOUND);
+            }
+
+            // Enforce weekly meal restriction before any write
+            $restriction = MealRestriction::where('meal_id', $request->meal_id)->first();
+            if ($restriction) {
+                $alreadyAssigned = SubscriptionMeal::whereHas('subscription_days', function ($q) use ($userSubscription) {
+                    $q->where('user_subcrptions_id', $userSubscription->id);
+                })
+                ->where('meal_id', $request->meal_id)
+                ->when(
+                    $request->filled('subscription_meal_id'),
+                    fn ($q) => $q->where('id', '!=', $request->subscription_meal_id)
+                )
+                ->count();
+
+                if ($alreadyAssigned >= $restriction->weekly_limit) {
+                    DB::rollBack();
+                    $mealTitle = $restriction->meal->title ?? 'This meal';
+                    return response()->json([
+                        'success' => false,
+                        'message' => "{$mealTitle} can only be added {$restriction->weekly_limit} time(s) per week. It has already been added {$alreadyAssigned} time(s).",
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
             }
 
             if ($request->filled('subscription_meal_id')) {
