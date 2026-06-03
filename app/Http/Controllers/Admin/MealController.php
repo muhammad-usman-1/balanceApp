@@ -21,13 +21,7 @@ class MealController extends Controller
     {
         abort_if(Gate::denies('meal_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $meals = Meal::with(['media', 'category'])->get()->map(function ($meal) {
-            // Ensure category is loaded even if soft-deleted
-            if ($meal->category_id) {
-                $meal->load('category');
-            }
-            return $meal;
-        });
+        $meals = Meal::with(['media', 'category'])->orderBy('id')->paginate(25);
 
         return view('admin.meals.index', compact('meals'));
     }

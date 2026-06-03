@@ -37,7 +37,7 @@
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table idx-table datatable datatable-Meal" style="width:100%;">
+            <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -60,8 +60,8 @@
                         if ($thumbUrl === $imgUrl) { $thumbUrl = $imgUrl; }
                         $category = $meal->category_id ? $meal->category : null;
                     @endphp
-                    <tr data-entry-id="{{ $meal->id }}">
-                        <td data-order="{{ $meal->id }}" style="font-weight:600; color:#111827;">#{{ $meal->id }}</td>
+                    <tr>
+                        <td style="font-weight:600; color:#111827;">#{{ $meal->id }}</td>
                         <td>
                             @if($thumbUrl)
                                 <img src="{{ $thumbUrl }}" alt="{{ $meal->title }}" class="meal-thumb"
@@ -147,31 +147,13 @@
                 </tbody>
             </table>
         </div>
+
+        @if($meals->hasPages())
+        <div style="padding: 14px 20px; border-top: 1px solid #f3f4f6;">
+            {{ $meals->links() }}
+        </div>
+        @endif
     </div>
 </div>
 
-@endsection
-@section('scripts')
-@parent
-<script>
-$(function () {
-    $('.datatable-Meal:not(.ajaxTable)').DataTable({
-        buttons: [],
-        dom: 'lfrtp',
-        order: [[2, 'asc']],
-        pageLength: 25,
-        columnDefs: [
-            {
-                targets: 0,
-                orderable: false,
-                render: function(data, type, row, meta) {
-                    return meta.row + meta.settings._iDisplayStart + 1;
-                }
-            },
-            { orderable: false, targets: -1 }
-        ],
-        select: false
-    });
-});
-</script>
 @endsection
