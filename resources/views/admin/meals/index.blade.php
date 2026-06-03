@@ -61,7 +61,7 @@
                         $category = $meal->category_id ? $meal->category : null;
                     @endphp
                     <tr data-entry-id="{{ $meal->id }}">
-                        <td></td>
+                        <td data-order="{{ $meal->id }}" style="font-weight:600; color:#111827;">#{{ $meal->id }}</td>
                         <td>
                             @if($thumbUrl)
                                 <img src="{{ $thumbUrl }}" alt="{{ $meal->title }}" class="meal-thumb"
