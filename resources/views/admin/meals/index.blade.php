@@ -61,7 +61,7 @@
                         $category = $meal->category_id ? $meal->category : null;
                     @endphp
                     <tr data-entry-id="{{ $meal->id }}">
-                        <td style="font-weight:600; color:#111827;">#{{ $meal->id }}</td>
+                        <td></td>
                         <td>
                             @if($thumbUrl)
                                 <img src="{{ $thumbUrl }}" alt="{{ $meal->title }}" class="meal-thumb"
@@ -158,9 +158,18 @@ $(function () {
     $('.datatable-Meal:not(.ajaxTable)').DataTable({
         buttons: [],
         dom: 'lfrtp',
-        order: [[0, 'asc']],
+        order: [[2, 'asc']],
         pageLength: 25,
-        columnDefs: [{ orderable: false, targets: -1 }],
+        columnDefs: [
+            {
+                targets: 0,
+                orderable: false,
+                render: function(data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
+            { orderable: false, targets: -1 }
+        ],
         select: false
     });
 });
