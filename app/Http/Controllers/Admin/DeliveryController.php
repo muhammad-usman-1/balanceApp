@@ -13,7 +13,10 @@ class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
-        $date = $request->input('date') ? Carbon::parse($request->input('date')) : Carbon::today();
+        $dateInput = $request->filled('date') ? trim($request->input('date')) : null;
+        $date = ($dateInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateInput))
+            ? Carbon::createFromFormat('Y-m-d', $dateInput)->startOfDay()
+            : Carbon::today();
         $dayName = strtolower($date->format('l'));
 
         // Get all active subscriptions that have this day scheduled and are within their date range
@@ -65,7 +68,10 @@ class DeliveryController extends Controller
 
     public function printAll(Request $request)
     {
-        $date = $request->input('date') ? Carbon::parse($request->input('date')) : Carbon::today();
+        $dateInput = $request->filled('date') ? trim($request->input('date')) : null;
+        $date = ($dateInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateInput))
+            ? Carbon::createFromFormat('Y-m-d', $dateInput)->startOfDay()
+            : Carbon::today();
         $dayName = strtolower($date->format('l'));
 
         $subscriptionDays = SubscriptionDay::where('day', $dayName)
