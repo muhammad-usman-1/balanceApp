@@ -139,10 +139,11 @@ $formatSlot = function($slot) {
     <div class="do-toolbar">
         <div class="do-toolbar-left">
             <i class="fas fa-truck" style="color:#4e73df;"></i>
-            @if($date->isToday())
+            @if($date->isToday() && !request()->has('date'))
                 Today's Delivery Orders
             @else
                 Delivery Orders &mdash; {{ $date->format('l, d M Y') }}
+                @if($date->isToday())<span style="font-weight:400;font-size:.82rem;color:#888;">(Today)</span>@endif
             @endif
             <span class="badge badge-primary" id="orderCount">{{ $deliveryOrders->count() }}</span>
         </div>
@@ -161,6 +162,7 @@ $formatSlot = function($slot) {
                         </span>
                     </div>
                     <input type="date" name="date" class="form-control form-control-sm"
+                           autocomplete="off"
                            value="{{ $date->format('Y-m-d') }}">
                 </div>
                 <button type="submit" class="btn btn-sm btn-primary">
