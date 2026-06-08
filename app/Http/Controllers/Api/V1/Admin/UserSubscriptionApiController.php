@@ -15,7 +15,7 @@ class UserSubscriptionApiController extends Controller
         $user = $request->user();
 
         $subscriptions = UserSubcrption::where('user_id', $user->id)
-            ->with(['subcrption_plans', 'address'])
+            ->with(['subcrption_plans', 'address', 'queuedSubscription.subcrption_plans'])
             ->latest()
             ->get();
 
@@ -24,14 +24,19 @@ class UserSubscriptionApiController extends Controller
                 && Carbon::parse($sub->getRawOriginal('end_date'))->isAfter(now()->startOfDay());
         })->values();
 
-        $recent = $subscriptions->reject(function ($sub) use ($active) {
-            return $active->contains('id', $sub->id);
+        $queued = $subscriptions->filter(function ($sub) {
+            return $sub->status === 'queued';
+        })->values();
+
+        $recent = $subscriptions->reject(function ($sub) use ($active, $queued) {
+            return $active->contains('id', $sub->id) || $queued->contains('id', $sub->id);
         })->take(10)->values();
 
         return response()->json([
             'success' => true,
-            'data' => [
+            'data'    => [
                 'active' => $active,
+                'queued' => $queued,
                 'recent' => $recent,
             ],
         ]);

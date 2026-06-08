@@ -12,7 +12,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Activate queued subscriptions whose parent plan ended yesterday
+        $schedule->command('subscriptions:activate-queued')->dailyAt('00:05');
+
+        // Queue auto-renewal for plans expiring within 3 days
+        $schedule->command('subscriptions:auto-renew')->dailyAt('00:10');
     }
 
     /**

@@ -24,6 +24,7 @@ class UserSubcrption extends Model
     public const STATUS_SELECT = [
         'active'   => 'Active',
         'inactive' => 'Inactive',
+        'queued'   => 'Queued',
     ];
 
     protected $dates = [
@@ -31,6 +32,7 @@ class UserSubcrption extends Model
         'end_date',
         'paused_at',
         'paused_until',
+        'renewal_notified_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -63,6 +65,9 @@ class UserSubcrption extends Model
         'paused_until',
         'total_paused_days',
         'original_end_date',
+        'queued_after_subscription_id',
+        'auto_renew',
+        'renewal_notified_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -140,6 +145,18 @@ class UserSubcrption extends Model
     public function pause_requests()
     {
         return $this->hasMany(SubscriptionPauseRequest::class, 'user_subcrption_id');
+    }
+
+    // The subscription this one is queued to start after
+    public function queuedAfter()
+    {
+        return $this->belongsTo(UserSubcrption::class, 'queued_after_subscription_id');
+    }
+
+    // The next queued subscription waiting to start after this one
+    public function queuedSubscription()
+    {
+        return $this->hasOne(UserSubcrption::class, 'queued_after_subscription_id');
     }
 
     /**

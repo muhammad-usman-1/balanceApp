@@ -22,7 +22,22 @@ class SubscriptionService
         return DB::transaction(function () use ($payload, $paymentContext) {
             $plan = SubcrptionPlan::findOrFail($payload['subcrption_plans_id']);
 
-            $startDate = Carbon::parse($payload['start_date']);
+            // If the user already has an active subscription, queue the new one to start after it ends
+            $latestActive = UserSubcrption::where('user_id', $payload['user_id'])
+                ->where('status', 'active')
+                ->whereDate('end_date', '>=', now()->format('Y-m-d'))
+                ->latest('end_date')
+                ->first();
+
+            $queuedAfterId = $latestActive?->id;
+
+            if ($latestActive) {
+                // Start the day after the current plan ends — ignore user's requested start_date
+                $startDate = Carbon::parse($latestActive->getRawOriginal('end_date'))->addDay();
+            } else {
+                $startDate = Carbon::parse($payload['start_date']);
+            }
+
             // end_date is calculated from the plan's no_of_weeks — no external duration table needed
             $endDate   = $startDate->copy()->addWeeks((int) $plan->no_of_weeks);
 
@@ -83,8 +98,10 @@ class SubscriptionService
                 'card_last_four'      => $paymentContext['card_last_four'] ?? null,
                 'card_brand'          => $paymentContext['card_brand'] ?? null,
                 'payment_meta'        => $paymentContext['meta'] ?? null,
-                'status'              => 'active',
-                'is_personalized'     => $isPersonalized,
+                'status'                       => $queuedAfterId ? 'queued' : 'active',
+                'queued_after_subscription_id' => $queuedAfterId,
+                'auto_renew'                   => true,
+                'is_personalized'              => $isPersonalized,
                 'protein'             => $isPersonalized ? ($payload['protein'] ?? null) : null,
                 'carbs'               => $isPersonalized ? ($payload['carbs'] ?? null) : null,
             ]);

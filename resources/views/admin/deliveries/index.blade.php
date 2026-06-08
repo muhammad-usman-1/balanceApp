@@ -161,11 +161,10 @@ $formatSlot = function($slot) {
                         </span>
                     </div>
                     <input type="date" name="date" class="form-control form-control-sm"
-                           value="{{ $date->format('Y-m-d') }}"
-                           onchange="this.form.submit()">
+                           value="{{ $date->format('Y-m-d') }}">
                 </div>
-                <button type="submit" class="btn btn-sm btn-primary" title="Filter by date">
-                    <i class="fas fa-search"></i>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="fas fa-filter mr-1"></i> Apply
                 </button>
                 @if(!$date->isToday())
                 <a href="{{ route('admin.delivery-orders.index') }}"
