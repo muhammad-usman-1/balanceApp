@@ -8,6 +8,7 @@ use App\Models\SubscriptionDay;
 use App\Models\UserSubcrption;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class DeliveryController extends Controller
 {
@@ -18,6 +19,16 @@ class DeliveryController extends Controller
             ? Carbon::createFromFormat('Y-m-d', $dateInput)->startOfDay()
             : Carbon::today();
         $dayName = strtolower($date->format('l'));
+
+        Log::info('DeliveryOrders.index', [
+            'raw_date_param'  => $request->input('date'),
+            'date_input'      => $dateInput,
+            'parsed_date'     => $date->toDateTimeString(),
+            'day_name'        => $dayName,
+            'is_today'        => $date->isToday(),
+            'server_timezone' => config('app.timezone'),
+            'url'             => $request->fullUrl(),
+        ]);
 
         // Get all active subscriptions that have this day scheduled and are within their date range
         $subscriptionDays = SubscriptionDay::where('day', $dayName)
@@ -49,6 +60,11 @@ class DeliveryController extends Controller
             $order->setRelation('subscription', $subDay->user_subcrption);
             $deliveryOrders->push($order);
         }
+
+        Log::info('DeliveryOrders.index result', [
+            'orders_count' => $deliveryOrders->count(),
+            'date'         => $date->toDateString(),
+        ]);
 
         return view('admin.deliveries.index', compact('deliveryOrders', 'date'));
     }
