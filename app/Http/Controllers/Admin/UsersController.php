@@ -19,16 +19,27 @@ class UsersController extends Controller
     {
         abort_if(Gate::denies('user_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $query = User::with(['roles', 'addresses', 'paymentMethods', 'affiliatedCode']);
+        // App customers — no roles assigned (mobile app registrations)
+        $customers = User::with(['addresses', 'affiliatedCode'])
+            ->whereDoesntHave('roles')
+            ->whereNull('branch_id')
+            ->orderByDesc('id')
+            ->paginate(25);
 
-        // Filter for affiliate users if requested
-        if ($request->has('affiliate_users') && $request->affiliate_users == '1') {
-            $query->whereNotNull('affiliated_code_id');
-        }
+        // Full admins — have roles, no branch restriction
+        $fullAdmins = User::with(['roles'])
+            ->whereHas('roles')
+            ->whereNull('branch_id')
+            ->orderByDesc('id')
+            ->get();
 
-        $users = $query->get();
+        // Branch admins — have a branch assigned
+        $branchAdmins = User::with(['roles', 'branch'])
+            ->whereNotNull('branch_id')
+            ->orderByDesc('id')
+            ->get();
 
-        return view('admin.users.index', compact('users'));
+        return view('admin.users.index', compact('customers', 'fullAdmins', 'branchAdmins'));
     }
 
     public function create()
