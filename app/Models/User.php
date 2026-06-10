@@ -51,6 +51,7 @@ class User extends Authenticatable
         'allergies',
         'goal',
         'affiliated_code_id',
+        'branch_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -69,6 +70,16 @@ class User extends Authenticatable
     public function getIsAdminAttribute()
     {
         return $this->roles()->where('id', 1)->exists();
+    }
+
+    public function isBranchUser(): bool
+    {
+        return !is_null($this->branch_id);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function getEmailVerifiedAtAttribute($value)

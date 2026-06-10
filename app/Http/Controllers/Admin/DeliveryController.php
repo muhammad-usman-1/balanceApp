@@ -14,6 +14,8 @@ class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
+        $branchId  = auth()->user()->isBranchUser() ? auth()->user()->branch_id : null;
+
         $dateInput = $request->filled('date') ? trim($request->input('date')) : null;
         $date = ($dateInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateInput))
             ? Carbon::createFromFormat('Y-m-d', $dateInput)->startOfDay()
@@ -39,11 +41,23 @@ class DeliveryController extends Controller
                 'user_subcrption.branch',
                 'user_subcrption.area',
             ])
-            ->whereHas('user_subcrption', function ($q) use ($date) {
+            ->whereHas('user_subcrption', function ($q) use ($date, $branchId) {
                 $q->where('status', 'active')
-                  ->where('is_paused', false)
                   ->whereDate('start_date', '<=', $date)
-                  ->whereDate('end_date', '>=', $date);
+                  ->whereDate('end_date', '>=', $date)
+                  ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
+                  ->where(function ($q2) use ($date) {
+                      $q2->where('is_paused', false)
+                         ->orWhere(function ($q3) use ($date) {
+                             $q3->where('is_paused', true)
+                                ->whereDate('paused_until', '<', $date->toDateString());
+                         });
+                  })
+                  ->whereDoesntHave('pause_requests', function ($q2) use ($date) {
+                      $q2->where('status', 'approved')
+                         ->whereDate('pause_start_date', '<=', $date->toDateString())
+                         ->whereDate('pause_end_date', '>=', $date->toDateString());
+                  });
             })
             ->get();
 
@@ -84,6 +98,8 @@ class DeliveryController extends Controller
 
     public function printAll(Request $request)
     {
+        $branchId  = auth()->user()->isBranchUser() ? auth()->user()->branch_id : null;
+
         $dateInput = $request->filled('date') ? trim($request->input('date')) : null;
         $date = ($dateInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateInput))
             ? Carbon::createFromFormat('Y-m-d', $dateInput)->startOfDay()
@@ -98,11 +114,23 @@ class DeliveryController extends Controller
                 'user_subcrption.branch',
                 'user_subcrption.area',
             ])
-            ->whereHas('user_subcrption', function ($q) use ($date) {
+            ->whereHas('user_subcrption', function ($q) use ($date, $branchId) {
                 $q->where('status', 'active')
-                  ->where('is_paused', false)
                   ->whereDate('start_date', '<=', $date)
-                  ->whereDate('end_date', '>=', $date);
+                  ->whereDate('end_date', '>=', $date)
+                  ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
+                  ->where(function ($q2) use ($date) {
+                      $q2->where('is_paused', false)
+                         ->orWhere(function ($q3) use ($date) {
+                             $q3->where('is_paused', true)
+                                ->whereDate('paused_until', '<', $date->toDateString());
+                         });
+                  })
+                  ->whereDoesntHave('pause_requests', function ($q2) use ($date) {
+                      $q2->where('status', 'approved')
+                         ->whereDate('pause_start_date', '<=', $date->toDateString())
+                         ->whereDate('pause_end_date', '>=', $date->toDateString());
+                  });
             })
             ->get();
 

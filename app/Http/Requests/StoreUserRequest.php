@@ -29,17 +29,22 @@ class StoreUserRequest extends FormRequest
                 'max:255',
             ],
             'mobile' => [
-                'required',
+                'nullable',
                 'integer',
                 'unique:users,mobile',
                 'min:-2147483648',
                 'max:2147483647',
             ],
             'otp' => [
-                'required',
+                'nullable',
                 'integer',
                 'min:0',
                 'max:999999',
+            ],
+            'branch_id' => [
+                'nullable',
+                'integer',
+                'exists:branches,id',
             ],
             'password' => [
                 'nullable',

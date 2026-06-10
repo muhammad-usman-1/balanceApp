@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPauseRequest;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class PauseRequestController extends Controller
@@ -48,23 +50,15 @@ class PauseRequestController extends Controller
             return redirect()->back()->with('error', 'Subscription is no longer active.');
         }
 
-        if ($subscription->is_paused) {
-            return redirect()->back()->with('error', 'Subscription is already paused.');
-        }
+        $newEndDate = Carbon::parse($subscription->getRawOriginal('end_date'))
+            ->addDays($pauseRequest->pause_days)
+            ->format('Y-m-d');
 
-        $result = $subscription->pauseByRequest(
-            $pauseRequest->pause_start_date->format('Y-m-d'),
-            $pauseRequest->pause_end_date->format('Y-m-d'),
-            $pauseRequest->reason,
-            'admin',
-            auth()->id(),
-            auth()->user()->name ?? 'Admin',
-            $request->admin_notes
-        );
-
-        if (!$result['success']) {
-            return redirect()->back()->with('error', $result['message']);
-        }
+        DB::table('user_subcrptions')->where('id', $subscription->id)->update([
+            'total_paused_days' => $subscription->total_paused_days + $pauseRequest->pause_days,
+            'end_date'          => $newEndDate,
+            'updated_at'        => now(),
+        ]);
 
         $pauseRequest->update([
             'status'      => 'approved',
@@ -73,7 +67,7 @@ class PauseRequestController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Pause request approved. Subscription paused successfully.');
+        return redirect()->back()->with('success', 'Pause request approved. Delivery will be skipped on the requested day(s).');
     }
 
     public function reject(Request $request, SubscriptionPauseRequest $pauseRequest)

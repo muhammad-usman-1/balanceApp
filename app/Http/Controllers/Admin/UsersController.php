@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MassDestroyUserRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
 use Gate;
@@ -34,9 +35,10 @@ class UsersController extends Controller
     {
         abort_if(Gate::denies('user_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $roles = Role::pluck('title', 'id');
+        $roles    = Role::pluck('title', 'id');
+        $branches = Branch::where('status', 'active')->pluck('name', 'id');
 
-        return view('admin.users.create', compact('roles'));
+        return view('admin.users.create', compact('roles', 'branches'));
     }
 
     public function store(StoreUserRequest $request)
@@ -51,11 +53,12 @@ class UsersController extends Controller
     {
         abort_if(Gate::denies('user_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $roles = Role::pluck('title', 'id');
+        $roles    = Role::pluck('title', 'id');
+        $branches = Branch::where('status', 'active')->pluck('name', 'id');
 
         $user->load('roles');
 
-        return view('admin.users.edit', compact('roles', 'user'));
+        return view('admin.users.edit', compact('roles', 'branches', 'user'));
     }
 
     public function update(UpdateUserRequest $request, User $user)

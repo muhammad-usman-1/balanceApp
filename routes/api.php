@@ -189,9 +189,11 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']
     Route::post('subscription/{subscriptionId}/resume', 'Api\V1\Admin\SubscriptionPauseApiController@resume')->name('subscription.resume');
     Route::get('subscription/{subscriptionId}/pause-logs', 'Api\V1\Admin\SubscriptionPauseApiController@pauseLogs')->name('subscription.pause-logs');
 
-    // Pause requests (user submits, user views own requests)
+    // Pause requests (user submits, views, cancels, resumes)
     Route::post('subscription/{subscriptionId}/pause-request', 'Api\V1\SubscriptionPauseRequestController@store')->name('subscription.pause-request.store');
     Route::get('subscription/{subscriptionId}/pause-requests', 'Api\V1\SubscriptionPauseRequestController@index')->name('subscription.pause-request.index');
+    Route::delete('subscription/{subscriptionId}/pause-request/{pauseRequestId}', 'Api\V1\SubscriptionPauseRequestController@cancel')->name('subscription.pause-request.cancel');
+    Route::post('subscription/{subscriptionId}/pause-request/{pauseRequestId}/resume', 'Api\V1\SubscriptionPauseRequestController@resumeRequest')->name('subscription.pause-request.resume');
 
     // Admin: review pause requests
     Route::get('admin/pause-requests', 'Api\V1\Admin\AdminPauseRequestController@index')->name('admin.pause-requests.index');

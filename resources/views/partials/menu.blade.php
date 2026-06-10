@@ -13,8 +13,8 @@
         <ul class="nav nav-pills nav-sidebar flex-column sb-nav" data-widget="treeview" role="menu" data-accordion="false">
 
             {{-- ─── OVERVIEW ─── --}}
+            @if(!$isBranchUser)
             <li class="sb-section-label">Overview</li>
-
             <li class="nav-item sb-item">
                 <a class="nav-link sb-link {{ request()->routeIs('admin.home') ? 'active' : '' }}"
                    href="{{ route('admin.home') }}">
@@ -22,9 +22,16 @@
                     <span class="sb-label">Dashboard</span>
                 </a>
             </li>
+            @endif
 
             {{-- ─── OPERATIONS ─── --}}
-            <li class="sb-section-label">Operations</li>
+            <li class="sb-section-label">
+                @if($isBranchUser)
+                    {{ $branchName }} Branch
+                @else
+                    Operations
+                @endif
+            </li>
 
             <li class="nav-item sb-item">
                 <a href="{{ route('admin.delivery-orders.index') }}"
@@ -44,6 +51,7 @@
             </li>
             @endcan
 
+            @if(!$isBranchUser)
             @can('user_subcrption_access')
             <li class="nav-item sb-item">
                 <a href="{{ route('admin.pause-requests.index') }}"
@@ -59,8 +67,10 @@
                 </a>
             </li>
             @endcan
+            @endif
 
-            {{-- ─── MEAL CATALOG ─── --}}
+            {{-- ─── MEAL CATALOG (superadmin only) ─── --}}
+            @if(!$isBranchUser)
             <li class="sb-section-label">Meal Catalog</li>
 
             @can('meal_access')
@@ -220,6 +230,7 @@
                 </a>
             </li>
             @endif
+            @endif {{-- end !$isBranchUser --}}
 
         </ul>
     </div>

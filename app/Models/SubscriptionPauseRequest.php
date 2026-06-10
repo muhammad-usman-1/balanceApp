@@ -65,4 +65,19 @@ class SubscriptionPauseRequest extends Model
     {
         return $this->status === 'rejected';
     }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    public function isResumed(): bool
+    {
+        return $this->status === 'resumed';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'approved';
+    }
 }

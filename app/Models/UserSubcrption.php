@@ -7,6 +7,8 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\SubscriptionPauseLog;
 use App\Models\SubscriptionPauseRequest;
 
@@ -248,40 +250,71 @@ class UserSubcrption extends Model
             return ['success' => false, 'message' => 'Cannot resume a subscription that is not active.'];
         }
 
-        $resumedAt = now();
-        $pausedAt = $this->paused_at ? Carbon::parse($this->paused_at) : now();
-        $actualPausedDays = max(0, $pausedAt->diffInDays($resumedAt));
+        $resumedAt       = now();
+        $pausedAt        = $this->paused_at    ? Carbon::parse($this->paused_at)    : now();
+        $pausedUntil     = $this->paused_until ? Carbon::parse($this->paused_until) : $pausedAt;
 
-        // Calculate remaining paused days (if resuming before scheduled resume date)
-        $pausedUntil = $this->paused_until ? Carbon::parse($this->paused_until) : $resumedAt;
-        $remainingDays = max(0, $pausedUntil->diffInDays($resumedAt, false));
-
-        // Store end date before adjustment for logging
-        $endDateBeforeResume = $this->end_date;
+        $endDateBeforeResume   = $this->end_date;
         $totalPausedDaysBefore = $this->total_paused_days;
 
-        // If resuming before the scheduled resume date, adjust the end date back
-        // This handles the case where subscription was paused mistakenly and resumed immediately
-        if ($remainingDays > 0) {
-            $currentEndDate = Carbon::parse($this->end_date);
-            $newEndDate = $currentEndDate->copy()->subDays($remainingDays);
-            $this->end_date = $newEndDate->format('Y-m-d');
-            $this->total_paused_days = max(0, $this->total_paused_days - $remainingDays);
+        if ($pausedAt->isFuture()) {
+            // Pause hasn't started yet (admin approved a future-date pause request).
+            // Restore the full end_date extension that was added during approval.
+            $daysToRestore    = $pausedAt->isSameDay($pausedUntil) ? 1 : (int) $pausedAt->diffInDays($pausedUntil);
+            $actualPausedDays = 0;
+            $remainingDays    = $daysToRestore;
+
+            $this->end_date          = Carbon::parse($this->end_date)->subDays($daysToRestore)->format('Y-m-d');
+            $this->total_paused_days = max(0, $this->total_paused_days - $daysToRestore);
         } else {
-            // If resuming on or after scheduled date, we still need to adjust
-            // Calculate how many days were actually paused
-            $daysActuallyPaused = $actualPausedDays;
-            $daysAddedDuringPause = $this->total_paused_days - ($totalPausedDaysBefore - $daysActuallyPaused);
-            
-            // If we're resuming after the scheduled date, the end date should remain as extended
-            // But we should still log the actual paused days
+            // Pause already started — standard early-resume logic.
+            $actualPausedDays = max(0, $pausedAt->diffInDays($resumedAt));
+            $remainingDays    = max(0, $pausedUntil->diffInDays($resumedAt, false));
+
+            if ($remainingDays > 0) {
+                $this->end_date          = Carbon::parse($this->end_date)->subDays($remainingDays)->format('Y-m-d');
+                $this->total_paused_days = max(0, $this->total_paused_days - $remainingDays);
+            }
         }
 
-        // Restore subscription to active state
-        $this->is_paused = false;
-        $this->paused_at = null;
+        // Direct DB update — bypasses Eloquent date-cast dirty-check and model events
+        // to guarantee is_paused is cleared even if save() would silently no-op.
+        $affected = DB::table('user_subcrptions')->where('id', $this->id)->update([
+            'is_paused'          => false,
+            'paused_at'          => null,
+            'paused_until'       => null,
+            'end_date'           => $this->end_date,
+            'total_paused_days'  => $this->total_paused_days,
+            'updated_at'         => now(),
+        ]);
+
+        Log::info('UserSubcrption.resume DB update', [
+            'subscription_id' => $this->id,
+            'rows_affected'   => $affected,
+            'is_paused_set_to'=> false,
+            'new_end_date'    => $this->end_date,
+        ]);
+
+        if ($affected === 0) {
+            return ['success' => false, 'message' => 'Failed to resume subscription. Please try again.'];
+        }
+
+        // Sync model state with what we just wrote
+        $this->is_paused   = false;
+        $this->paused_at   = null;
         $this->paused_until = null;
-        $this->save();
+
+        // Mark the matching approved pause request as "resumed"
+        // so the app can distinguish an active pause from a completed one.
+        DB::table('subscription_pause_requests')
+            ->where('user_subcrption_id', $this->id)
+            ->where('status', 'approved')
+            ->update([
+                'status'      => 'resumed',
+                'admin_notes' => trim(($notes ? $notes . ' — ' : '') . 'Resumed by ' . ($performedByType === 'user' ? 'user' : 'admin') . ' on ' . $resumedAt->format('Y-m-d H:i')),
+                'reviewed_at' => $resumedAt,
+                'updated_at'  => $resumedAt,
+            ]);
 
         // Log the resume action
         SubscriptionPauseLog::create([
@@ -336,11 +369,8 @@ class UserSubcrption extends Model
 
         $start = Carbon::parse($pauseStartDate);
         $end   = Carbon::parse($pauseEndDate);
-        $days  = (int) $start->diffInDays($end);
-
-        if ($days < 1) {
-            return ['success' => false, 'message' => 'Pause duration must be at least 1 day.'];
-        }
+        // Inclusive counting: same day = 1, next day = 2, etc.
+        $days  = $start->isSameDay($end) ? 1 : (int) $start->diffInDays($end);
 
         if (!$this->original_end_date) {
             $this->original_end_date = $this->attributes['end_date'];

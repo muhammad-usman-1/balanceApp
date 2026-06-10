@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPauseRequest;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminPauseRequestController extends Controller
@@ -88,34 +90,20 @@ class AdminPauseRequestController extends Controller
         if ($subscription->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Subscription is no longer active and cannot be paused.',
+                'message' => 'Subscription is no longer active.',
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($subscription->is_paused) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Subscription is already paused.',
-            ], Response::HTTP_BAD_REQUEST);
-        }
+        // Extend the subscription end_date to compensate for the missed delivery day(s)
+        $newEndDate = Carbon::parse($subscription->getRawOriginal('end_date'))
+            ->addDays($pauseRequest->pause_days)
+            ->format('Y-m-d');
 
-        // Apply the pause using the user-requested dates
-        $result = $subscription->pauseByRequest(
-            $pauseRequest->pause_start_date->format('Y-m-d'),
-            $pauseRequest->pause_end_date->format('Y-m-d'),
-            $pauseRequest->reason,
-            'admin',
-            $admin->id,
-            $admin->name,
-            $request->admin_notes
-        );
-
-        if (!$result['success']) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['message'],
-            ], Response::HTTP_BAD_REQUEST);
-        }
+        DB::table('user_subcrptions')->where('id', $subscription->id)->update([
+            'total_paused_days' => $subscription->total_paused_days + $pauseRequest->pause_days,
+            'end_date'          => $newEndDate,
+            'updated_at'        => now(),
+        ]);
 
         $pauseRequest->update([
             'status'      => 'approved',
@@ -128,17 +116,13 @@ class AdminPauseRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Pause request approved. Subscription has been paused.',
+            'message' => 'Pause request approved. Delivery will be skipped on the requested day(s).',
             'data'    => [
-                'pause_request'  => $this->formatRequest($pauseRequest->fresh()),
-                'pause_details'  => $result['data'],
-                'subscription'   => [
-                    'id'               => $subscription->id,
-                    'is_paused'        => $subscription->is_paused,
-                    'paused_at'        => $subscription->paused_at?->format('Y-m-d'),
-                    'paused_until'     => $subscription->paused_until?->format('Y-m-d'),
-                    'total_paused_days'=> $subscription->total_paused_days,
-                    'end_date'         => $subscription->attributes['end_date'],
+                'pause_request' => $this->formatRequest($pauseRequest->fresh()),
+                'subscription'  => [
+                    'id'                => $subscription->id,
+                    'end_date'          => $newEndDate,
+                    'total_paused_days' => $subscription->total_paused_days,
                 ],
             ],
         ], Response::HTTP_OK);

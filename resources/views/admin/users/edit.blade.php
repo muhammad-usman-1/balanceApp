@@ -50,6 +50,33 @@
                 @endif
                 <span class="help-block">{{ trans('cruds.user.fields.roles_helper') }}</span>
             </div>
+            @if(auth()->user()->is_admin)
+            <div class="form-group">
+                <label for="branch_id">Branch Assignment</label>
+                <select class="form-control select2 {{ $errors->has('branch_id') ? 'is-invalid' : '' }}"
+                        name="branch_id" id="branch_id">
+                    <option value="">— No branch (full admin access) —</option>
+                    @foreach($branches as $id => $name)
+                        <option value="{{ $id }}"
+                            {{ (old('branch_id', $user->branch_id) == $id) ? 'selected' : '' }}>
+                            {{ $name }}
+                        </option>
+                    @endforeach
+                </select>
+                @if($errors->has('branch_id'))
+                    <span class="text-danger">{{ $errors->first('branch_id') }}</span>
+                @endif
+                <span class="help-block">
+                    @if($user->branch_id)
+                        Currently assigned to <strong>{{ $user->branch->name ?? 'unknown' }}</strong>.
+                        Change to reassign or select empty to grant full access.
+                    @else
+                        Assign a branch to restrict this user to that branch's data only.
+                    @endif
+                </span>
+            </div>
+            @endif
+
             <div class="form-group">
                 <label for="otp">{{ trans('cruds.user.fields.otp') }}</label>
                 <input class="form-control {{ $errors->has('otp') ? 'is-invalid' : '' }}" type="number" name="otp" id="otp" value="{{ old('otp', $user->otp) }}" step="1">

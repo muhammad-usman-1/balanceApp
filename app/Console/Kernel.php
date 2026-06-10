@@ -17,6 +17,9 @@ class Kernel extends ConsoleKernel
 
         // Queue auto-renewal for plans expiring within 3 days
         $schedule->command('subscriptions:auto-renew')->dailyAt('00:10');
+
+        // Auto-resume subscriptions whose single-day or multi-day pause has ended
+        $schedule->command('subscriptions:auto-resume')->dailyAt('00:01');
     }
 
     /**

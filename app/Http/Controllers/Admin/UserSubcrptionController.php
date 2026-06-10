@@ -22,7 +22,10 @@ class UserSubcrptionController extends Controller
     {
         abort_if(Gate::denies('user_subcrption_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $branchId = auth()->user()->isBranchUser() ? auth()->user()->branch_id : null;
+
         $userSubcrptions = UserSubcrption::with(['user', 'subcrption_plans'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderByDesc('id')
             ->paginate(25);
 
