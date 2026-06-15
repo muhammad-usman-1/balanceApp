@@ -179,6 +179,15 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']
     Route::get('profile', 'Api\V1\UserProfileController@show')->name('profile.show');
     Route::put('profile', 'Api\V1\UserProfileController@update')->name('profile.update');
 
+    // Dietary — Allergies
+    Route::get('allergies', 'Api\V1\UserDietaryController@getAllergies')->name('dietary.allergies.get');
+    Route::put('allergies', 'Api\V1\UserDietaryController@updateAllergies')->name('dietary.allergies.update');
+
+    // Dietary — Dislikes
+    Route::get('dislikes', 'Api\V1\UserDietaryController@getDislikes')->name('dietary.dislikes.get');
+    Route::put('dislikes', 'Api\V1\UserDietaryController@updateDislikes')->name('dietary.dislikes.update');
+    Route::delete('dislikes', 'Api\V1\UserDietaryController@clearDislikes')->name('dietary.dislikes.clear');
+
     // Addresses
     Route::get('addresses', 'Api\V1\UserAddressController@index')->name('addresses.index');
     Route::post('addresses', 'Api\V1\UserAddressController@store')->name('addresses.store');

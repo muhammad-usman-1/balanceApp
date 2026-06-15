@@ -174,6 +174,25 @@
                 </a>
             </li>
 
+            {{-- ─── USER PREFERENCES ─── --}}
+            <li class="sb-section-label">User Preferences</li>
+
+            <li class="nav-item sb-item">
+                <a href="{{ route('admin.user-allergies.index') }}"
+                   class="nav-link sb-link {{ request()->is('admin/user-allergies*') ? 'active' : '' }}">
+                    <span class="sb-icon" style="background:#fee2e2; color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></span>
+                    <span class="sb-label">Allergies</span>
+                </a>
+            </li>
+
+            <li class="nav-item sb-item">
+                <a href="{{ route('admin.user-dislikes.index') }}"
+                   class="nav-link sb-link {{ request()->is('admin/user-dislikes*') ? 'active' : '' }}">
+                    <span class="sb-icon" style="background:#ffedd5; color:#c2410c;"><i class="fas fa-thumbs-down"></i></span>
+                    <span class="sb-label">Dislikes</span>
+                </a>
+            </li>
+
             {{-- ─── USER MANAGEMENT ─── --}}
             @can('user_management_access')
             <li class="sb-section-label">User Management</li>

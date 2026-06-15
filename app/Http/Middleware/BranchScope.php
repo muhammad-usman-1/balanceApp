@@ -30,6 +30,8 @@ class BranchScope
                 'admin/settings',
                 'admin/pause-requests',
                 'admin/meal-restrictions',
+                'admin/user-allergies',
+                'admin/user-dislikes',
             ];
 
             foreach ($blockedPrefixes as $prefix) {

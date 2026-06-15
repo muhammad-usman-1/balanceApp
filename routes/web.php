@@ -93,6 +93,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('affiliated-codes/{affiliatedCode}/logs', 'AffiliatedCodeController@logs')->name('affiliated-codes.logs');
     Route::resource('affiliated-codes', 'AffiliatedCodeController');
 
+    // User Dietary Preferences
+    Route::get('user-allergies', 'UserAllergiesController@index')->name('user-allergies.index');
+    Route::get('user-dislikes', 'UserDislikesController@index')->name('user-dislikes.index');
+
     // Delivery Orders
     Route::get('delivery-orders', 'DeliveryController@index')->name('delivery-orders.index');
     Route::get('delivery-orders/print-all', 'DeliveryController@printAll')->name('delivery-orders.print-all');
@@ -100,7 +104,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('delivery-orders/{deliveryOrder}/status', 'DeliveryController@updateStatus')->name('delivery-orders.update-status');
     Route::post('delivery-orders/make-all-delivered', 'DeliveryController@makeAllDelivered')->name('delivery-orders.make-all-delivered');
 });
-Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
+Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth', 'branch.scope']], function () {
     // Change password
     if (file_exists(app_path('Http/Controllers/Auth/ChangePasswordController.php'))) {
         Route::get('password', 'ChangePasswordController@edit')->name('password.edit');

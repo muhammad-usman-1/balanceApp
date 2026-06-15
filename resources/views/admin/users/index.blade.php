@@ -148,7 +148,7 @@
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table idx-table datatable datatable-User" style="width:100%;">
+            <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -241,34 +241,4 @@
     </div>
 </div>
 
-@endsection
-@section('scripts')
-@parent
-<script>
-$(function () {
-    let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
-
-    @can('user_delete')
-    dtButtons.push({
-        text: '{{ trans('global.datatables.delete') }}',
-        url: "{{ route('admin.users.massDestroy') }}",
-        className: 'btn-danger',
-        action: function (e, dt) {
-            var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) { return $(entry).data('entry-id'); });
-            if (!ids.length) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
-            if (confirm('{{ trans('global.areYouSure') }}')) {
-                $.ajax({ headers: {'x-csrf-token': _token}, method: 'POST', url: "{{ route('admin.users.massDestroy') }}", data: { ids: ids, _method: 'DELETE' } }).done(function () { location.reload(); });
-            }
-        }
-    });
-    @endcan
-
-    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
-    $('.datatable-User:not(.ajaxTable)').DataTable({
-        buttons: dtButtons,
-        columnDefs: [{ orderable: false, targets: -1 }],
-        select: false
-    });
-});
-</script>
 @endsection

@@ -49,6 +49,7 @@ class User extends Authenticatable
         'activity_level',
         'has_food_allergies',
         'allergies',
+        'dislikes',
         'goal',
         'affiliated_code_id',
         'branch_id',
@@ -59,6 +60,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'allergies' => 'array',
+        'dislikes' => 'array',
         'has_food_allergies' => 'boolean',
     ];
 
