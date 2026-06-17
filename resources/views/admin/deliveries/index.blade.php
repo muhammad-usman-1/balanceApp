@@ -153,7 +153,7 @@ $formatSlot = function($slot) {
                 <input type="text" id="doSearch" placeholder="Filter customer…">
             </div>
 
-            <form method="GET" action="{{ route('admin.delivery-orders.index', [], false) }}"
+            <form method="GET" action="{{ route('admin.delivery-orders.index') }}"
                   style="display:flex;align-items:center;gap:6px;">
                 <div class="input-group input-group-sm" style="width:175px;">
                     <div class="input-group-prepend">
@@ -169,7 +169,7 @@ $formatSlot = function($slot) {
                     <i class="fas fa-filter mr-1"></i> Apply
                 </button>
                 @if(!$date->isToday())
-                <a href="{{ route('admin.delivery-orders.index', [], false) }}"
+                <a href="{{ route('admin.delivery-orders.index') }}"
                    class="btn btn-sm btn-outline-secondary" title="Back to today">
                     Today
                 </a>
