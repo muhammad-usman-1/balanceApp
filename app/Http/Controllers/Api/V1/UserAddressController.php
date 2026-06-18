@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryTimeSlot;
 use App\Models\UserAddress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -152,7 +153,7 @@ class UserAddressController extends Controller
             'delivery_notes'           => 'nullable|string|max:1000',
             'category'                 => ["{$req}", 'string', Rule::in(['home', 'office'])],
             'is_primary'               => 'nullable|boolean',
-            'preferred_delivery_slot'  => ["{$req}", 'string', Rule::in(['four_pm_to_eight_pm', 'eight_pm_to_midnight'])],
+            'preferred_delivery_slot'  => ["{$req}", 'string', Rule::in(DeliveryTimeSlot::where('is_active', true)->pluck('value')->all())],
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\DeliveryTimeSlot;
 use App\Models\SubcrptionPlan;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -188,7 +189,7 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
             'address.preferred_delivery_slot' => [
                 'required',
                 'string',
-                Rule::in(['four_pm_to_eight_pm', 'eight_pm_to_midnight']),
+                Rule::in(DeliveryTimeSlot::where('is_active', true)->pluck('value')->all()),
             ],
         ];
     }
@@ -261,7 +262,7 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
             'address.category.required' => 'Address category is required.',
             'address.category.in' => 'Address category must be "home" or "office".',
             'address.preferred_delivery_slot.required' => 'Preferred delivery time slot is required.',
-            'address.preferred_delivery_slot.in' => 'Delivery slot must be "four_pm_to_eight_pm" or "eight_pm_to_midnight".',
+            'address.preferred_delivery_slot.in' => 'Invalid delivery time slot. Please select a valid slot from the available options.',
         ];
     }
 }
