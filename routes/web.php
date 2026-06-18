@@ -84,6 +84,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // Settings (only edit/update, admin only)
     Route::get('settings', 'SettingsController@edit')->name('settings.edit');
     Route::put('settings', 'SettingsController@update')->name('settings.update');
+    // Delivery time slots CRUD (managed from settings page)
+    Route::post('settings/slots', 'SettingsController@storeSlot')->name('settings.slots.store');
+    Route::delete('settings/slots/{slot}', 'SettingsController@destroySlot')->name('settings.slots.destroy');
 
     // Notifications
     Route::resource('notifications', 'NotificationController');

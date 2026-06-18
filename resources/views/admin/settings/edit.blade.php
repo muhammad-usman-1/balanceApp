@@ -108,6 +108,48 @@
 }
 .st-flash-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 .st-flash-error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* ── Slot list ── */
+.slot-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; background: #f9fafb;
+    border: 1px solid #f3f4f6; border-radius: 10px; margin-bottom: 8px;
+}
+.slot-row:last-child { margin-bottom: 0; }
+.slot-value {
+    font-size: .72rem; color: #9ca3af; font-family: monospace;
+    background: #f3f4f6; padding: 2px 7px; border-radius: 5px; flex-shrink: 0;
+}
+.slot-labels { flex: 1; }
+.slot-label-en { font-size: .85rem; font-weight: 600; color: #111827; }
+.slot-label-ar { font-size: .78rem; color: #6b7280; direction: rtl; }
+.slot-delete {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 7px;
+    background: #fee2e2; color: #dc2626; border: none; cursor: pointer;
+    font-size: .8rem; flex-shrink: 0; transition: background .15s;
+}
+.slot-delete:hover { background: #fecaca; }
+
+/* ── Add slot form ── */
+.add-slot-form {
+    margin-top: 16px; padding: 16px;
+    background: #f0fdf4; border: 1.5px dashed #86efac; border-radius: 10px;
+}
+.add-slot-form .add-slot-title {
+    font-size: .8rem; font-weight: 700; color: #15803d; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+}
+.add-slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:520px) { .add-slot-grid { grid-template-columns: 1fr; } }
+.st-btn-add {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; background: #16a34a; color: #fff;
+    border: none; border-radius: 9px; font-size: .83rem; font-weight: 600;
+    font-family: inherit; cursor: pointer; margin-top: 10px;
+    transition: opacity .15s;
+}
+.st-btn-add:hover { opacity: .88; }
 </style>
 
 <div class="st-page">
@@ -130,56 +172,91 @@
         <div class="st-flash st-flash-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
     @endif
 
+    {{-- ── Delivery Time Slots ── --}}
+    <div class="st-card">
+        <div class="st-card-header">
+            <div class="st-card-icon" style="background:#eff6ff;color:#2563eb;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div>
+                <div class="st-card-title">Delivery Time Slots</div>
+                <div style="font-size:.72rem;color:#9ca3af;margin-top:1px;">
+                    Shown in the app checkout. App sends the <strong>value</strong> key to backend.
+                </div>
+            </div>
+        </div>
+        <div class="st-card-body">
+
+            {{-- Existing slots --}}
+            @forelse($slots as $slot)
+                <div class="slot-row">
+                    <div class="slot-labels">
+                        <div class="slot-label-en">{{ $slot->label_en }}</div>
+                        @if($slot->label_ar)
+                            <div class="slot-label-ar">{{ $slot->label_ar }}</div>
+                        @endif
+                    </div>
+                    <span class="slot-value">{{ $slot->value }}</span>
+                    <form action="{{ route('admin.settings.slots.destroy', $slot) }}" method="POST"
+                          onsubmit="return confirm('Delete this time slot?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="slot-delete" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            @empty
+                <div style="text-align:center;padding:20px;color:#9ca3af;font-size:.83rem;">
+                    No time slots yet. Add one below.
+                </div>
+            @endforelse
+
+            {{-- Add new slot --}}
+            <div class="add-slot-form">
+                <div class="add-slot-title">
+                    <i class="fas fa-plus-circle"></i> Add New Time Slot
+                </div>
+                <form action="{{ route('admin.settings.slots.store') }}" method="POST">
+                    @csrf
+                    <div class="add-slot-grid">
+                        <div>
+                            <label class="st-label" for="label_en">
+                                English Label <span class="req">*</span>
+                            </label>
+                            <input type="text" name="label_en" id="label_en"
+                                   class="st-input @error('label_en') is-invalid @enderror"
+                                   value="{{ old('label_en') }}"
+                                   placeholder="e.g. 10:00 AM – 2:00 PM">
+                            @error('label_en')
+                                <div class="st-invalid">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="st-label" for="label_ar">Arabic Label</label>
+                            <input type="text" name="label_ar" id="label_ar"
+                                   class="st-input @error('label_ar') is-invalid @enderror"
+                                   value="{{ old('label_ar') }}"
+                                   placeholder="e.g. ١٠:٠٠ ص – ٢:٠٠ م"
+                                   dir="rtl">
+                            @error('label_ar')
+                                <div class="st-invalid">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <button type="submit" class="st-btn-add">
+                        <i class="fas fa-plus"></i> Add Slot
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ── Payment Methods ── --}}
     <form action="{{ route('admin.settings.update') }}" method="POST">
         @csrf
         @method('PUT')
 
-        {{-- ── Delivery Time Slots ── --}}
-        <div class="st-card">
-            <div class="st-card-header">
-                <div class="st-card-icon" style="background:#eff6ff;color:#2563eb;">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div>
-                    <div class="st-card-title">Delivery Time Slots</div>
-                </div>
-            </div>
-            <div class="st-card-body">
-                <div class="st-field">
-                    <label class="st-label" for="delivery_time_slot_1_en">
-                        Slot 1 — English <span class="req">*</span>
-                    </label>
-                    <input type="text"
-                           name="delivery_time_slot_1_en"
-                           id="delivery_time_slot_1_en"
-                           class="st-input @error('delivery_time_slot_1_en') is-invalid @enderror"
-                           value="{{ old('delivery_time_slot_1_en', $setting->delivery_time_slot_1_en) }}"
-                           placeholder="e.g. 8am to 12pm"
-                           required>
-                    @error('delivery_time_slot_1_en')
-                        <div class="st-invalid">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="st-field">
-                    <label class="st-label" for="delivery_time_slot_2_en">
-                        Slot 2 — English <span class="req">*</span>
-                    </label>
-                    <input type="text"
-                           name="delivery_time_slot_2_en"
-                           id="delivery_time_slot_2_en"
-                           class="st-input @error('delivery_time_slot_2_en') is-invalid @enderror"
-                           value="{{ old('delivery_time_slot_2_en', $setting->delivery_time_slot_2_en) }}"
-                           placeholder="e.g. 8pm to Midnight"
-                           required>
-                    @error('delivery_time_slot_2_en')
-                        <div class="st-invalid">{{ $message }}</div>
-                    @enderror
-                </div>
-            </div>
-        </div>
-
-        {{-- ── Payment Methods ── --}}
         <div class="st-card">
             <div class="st-card-header">
                 <div class="st-card-icon" style="background:#fef3c7;color:#b45309;">

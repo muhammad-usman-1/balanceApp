@@ -3,29 +3,17 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryTimeSlot;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 
 class SettingsApiController extends Controller
 {
-    // These are the fixed slot keys accepted by the checkout validation.
-    // label_en / label_ar are for display in the app.
-    private const DELIVERY_SLOTS = [
-        'four_pm_to_eight_pm'  => ['label_en' => '4:00 PM – 8:00 PM',  'label_ar' => '٤:٠٠ م – ٨:٠٠ م'],
-        'eight_pm_to_midnight' => ['label_en' => '8:00 PM – Midnight',  'label_ar' => '٨:٠٠ م – منتصف الليل'],
-    ];
-
-    /**
-     * GET /api/v1/settings
-     *
-     * Returns enabled payment methods and available delivery time slots.
-     * The app calls this before showing the checkout screen.
-     */
     public function index(): JsonResponse
     {
         $setting = Setting::firstOrCreateDefault();
 
-        // --- Payment methods ---
+        // Payment methods — only return enabled ones
         $methods = [];
 
         if ($setting->payment_knet) {
@@ -55,19 +43,18 @@ class SettingsApiController extends Controller
             ];
         }
 
-        // --- Delivery time slots ---
-        // Each slot has:
-        //   value    → send this in checkout request as address.preferred_delivery_slot
-        //   label_en → display in app (English)
-        //   label_ar → display in app (Arabic)
-        $slots = [];
-        foreach (self::DELIVERY_SLOTS as $value => $labels) {
-            $slots[] = [
-                'value'    => $value,
-                'label_en' => $labels['label_en'],
-                'label_ar' => $labels['label_ar'],
-            ];
-        }
+        // Delivery time slots — from database, managed by admin
+        $slots = DeliveryTimeSlot::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($s) => [
+                'value'    => $s->value,
+                'label_en' => $s->label_en,
+                'label_ar' => $s->label_ar ?? '',
+            ])
+            ->values()
+            ->all();
 
         return response()->json([
             'success' => true,
