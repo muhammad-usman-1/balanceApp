@@ -66,6 +66,21 @@ class SettingsController extends Controller
         return redirect()->route('admin.settings.edit')->with('success', 'Time slot added.');
     }
 
+    public function updateSlot(Request $request, DeliveryTimeSlot $slot)
+    {
+        $request->validate([
+            'label_en' => 'required|string|max:100',
+            'label_ar' => 'nullable|string|max:100',
+        ]);
+
+        $slot->update([
+            'label_en' => trim($request->label_en),
+            'label_ar' => trim($request->label_ar ?? ''),
+        ]);
+
+        return redirect()->route('admin.settings.edit')->with('success', 'Time slot updated.');
+    }
+
     public function destroySlot(DeliveryTimeSlot $slot)
     {
         $slot->delete();

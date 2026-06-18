@@ -1,67 +1,10 @@
 @extends('layouts.admin')
 @section('content')
 
+@include('partials.idx-styles')
+
 <style>
-.st-page { max-width: 760px; }
-
-.st-card {
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.05); margin-bottom: 20px; overflow: hidden;
-}
-.st-card-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 14px 22px; background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-}
-.st-card-icon {
-    width: 34px; height: 34px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .82rem; flex-shrink: 0;
-}
-.st-card-title { font-size: .88rem; font-weight: 700; color: #111827; }
-.st-card-body  { padding: 20px 22px; }
-
-/* ── Field ── */
-.st-field { margin-bottom: 18px; }
-.st-field:last-child { margin-bottom: 0; }
-.st-label {
-    display: block; font-size: .78rem; font-weight: 600;
-    color: #374151; margin-bottom: 6px; letter-spacing: .01em;
-}
-.st-label .req { color: #ef4444; margin-left: 2px; }
-.st-input {
-    width: 100%; padding: 9px 13px;
-    border: 1.5px solid #e5e7eb; border-radius: 9px;
-    font-size: .88rem; color: #111827; font-family: inherit;
-    background: #fff; outline: none;
-    transition: border-color .15s, box-shadow .15s;
-}
-.st-input:focus {
-    border-color: #16a34a;
-    box-shadow: 0 0 0 3px rgba(22,163,74,.1);
-}
-.st-input.is-invalid { border-color: #ef4444; }
-.st-invalid { font-size: .75rem; color: #ef4444; margin-top: 4px; }
-
-/* ── Toggle switch ── */
-.st-toggle-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 13px 16px; background: #f9fafb;
-    border: 1px solid #f3f4f6; border-radius: 10px; margin-bottom: 10px;
-    transition: border-color .15s, background .15s;
-    cursor: pointer;
-}
-.st-toggle-row:last-child { margin-bottom: 0; }
-.st-toggle-row:hover { background: #f1f5f9; border-color: #e2e8f0; }
-.st-toggle-info { display: flex; align-items: center; gap: 12px; }
-.st-toggle-icon {
-    width: 36px; height: 36px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0;
-}
-.st-toggle-label { font-size: .85rem; font-weight: 600; color: #111827; }
-.st-toggle-sub   { font-size: .72rem; color: #9ca3af; margin-top: 1px; }
-
-/* iOS-style toggle */
+/* iOS-style toggle — only custom piece not in idx-styles */
 .st-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
 .st-switch input { opacity: 0; width: 0; height: 0; }
 .st-slider {
@@ -78,261 +21,249 @@
 .st-switch input:checked + .st-slider { background: #16a34a; }
 .st-switch input:checked + .st-slider::before { transform: translateX(20px); }
 
-/* ── Action bar ── */
-.st-actions {
-    display: flex; align-items: center; gap: 10px;
-    padding: 16px 22px; background: #f9fafb;
-    border-top: 1px solid #e5e7eb; border-radius: 0 0 14px 14px;
+.pm-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid #f3f4f6;
 }
-.st-btn-save {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 9px 22px; background: linear-gradient(135deg,#16a34a,#15803d);
-    color: #fff; border: none; border-radius: 9px;
-    font-size: .85rem; font-weight: 600; font-family: inherit; cursor: pointer;
-    box-shadow: 0 3px 10px rgba(22,163,74,.25);
-    transition: opacity .15s, transform .12s;
+.pm-row:last-child { border-bottom: none; }
+.pm-row:hover { background: #fafafa; }
+.pm-info { display: flex; align-items: center; gap: 12px; }
+.pm-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: .82rem; flex-shrink: 0;
 }
-.st-btn-save:hover { opacity: .9; transform: translateY(-1px); }
-.st-btn-back {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 9px 18px; background: #f3f4f6; color: #374151;
-    border: none; border-radius: 9px; font-size: .85rem; font-weight: 600;
-    font-family: inherit; cursor: pointer; text-decoration: none;
-    transition: background .15s;
-}
-.st-btn-back:hover { background: #e5e7eb; text-decoration: none; color: #374151; }
-
-.st-flash {
-    padding: 10px 14px; border-radius: 8px; font-size: .83rem; margin-bottom: 18px;
-    display: flex; align-items: center; gap: 8px;
-}
-.st-flash-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-.st-flash-error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-
-/* ── Slot list ── */
-.slot-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 11px 14px; background: #f9fafb;
-    border: 1px solid #f3f4f6; border-radius: 10px; margin-bottom: 8px;
-}
-.slot-row:last-child { margin-bottom: 0; }
-.slot-value {
-    font-size: .72rem; color: #9ca3af; font-family: monospace;
-    background: #f3f4f6; padding: 2px 7px; border-radius: 5px; flex-shrink: 0;
-}
-.slot-labels { flex: 1; }
-.slot-label-en { font-size: .85rem; font-weight: 600; color: #111827; }
-.slot-label-ar { font-size: .78rem; color: #6b7280; direction: rtl; }
-.slot-delete {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 7px;
-    background: #fee2e2; color: #dc2626; border: none; cursor: pointer;
-    font-size: .8rem; flex-shrink: 0; transition: background .15s;
-}
-.slot-delete:hover { background: #fecaca; }
-
-/* ── Add slot form ── */
-.add-slot-form {
-    margin-top: 16px; padding: 16px;
-    background: #f0fdf4; border: 1.5px dashed #86efac; border-radius: 10px;
-}
-.add-slot-form .add-slot-title {
-    font-size: .8rem; font-weight: 700; color: #15803d; margin-bottom: 12px;
-    display: flex; align-items: center; gap: 6px;
-}
-.add-slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media(max-width:520px) { .add-slot-grid { grid-template-columns: 1fr; } }
-.st-btn-add {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 18px; background: #16a34a; color: #fff;
-    border: none; border-radius: 9px; font-size: .83rem; font-weight: 600;
-    font-family: inherit; cursor: pointer; margin-top: 10px;
-    transition: opacity .15s;
-}
-.st-btn-add:hover { opacity: .88; }
 </style>
 
-<div class="st-page">
+@if(session('success'))
+    <div class="idx-flash idx-flash-success" style="margin:0 0 16px;"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="idx-flash idx-flash-error" style="margin:0 0 16px;"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+@endif
 
-    {{-- Page heading --}}
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-        <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#475569,#334155);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.95rem;">
-            <i class="fas fa-cog"></i>
-        </div>
-        <div>
-            <div style="font-size:1.1rem;font-weight:700;color:#111827;">Settings</div>
-            <div style="font-size:.78rem;color:#9ca3af;">System configuration</div>
-        </div>
+{{-- ── Delivery Time Slots ── --}}
+<div class="card idx-card" style="margin-bottom:20px;">
+    <div class="card-header">
+        <h3><i class="fas fa-clock mr-2" style="color:#2563eb;"></i> Delivery Time Slots</h3>
     </div>
 
-    @if(session('success'))
-        <div class="st-flash st-flash-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="st-flash st-flash-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
-    @endif
+    <div class="card-body">
 
-    {{-- ── Delivery Time Slots ── --}}
-    <div class="st-card">
-        <div class="st-card-header">
-            <div class="st-card-icon" style="background:#eff6ff;color:#2563eb;">
-                <i class="fas fa-clock"></i>
+        {{-- Add new slot form --}}
+        <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6;background:#f9fafb;">
+            <div style="font-size:.8rem;font-weight:700;color:#374151;margin-bottom:12px;">
+                <i class="fas fa-plus-circle mr-1" style="color:#16a34a;"></i> Add New Time Slot
             </div>
-            <div>
-                <div class="st-card-title">Delivery Time Slots</div>
-                <div style="font-size:.72rem;color:#9ca3af;margin-top:1px;">
-                    Shown in the app checkout. App sends the <strong>value</strong> key to backend.
-                </div>
-            </div>
-        </div>
-        <div class="st-card-body">
-
-            {{-- Existing slots --}}
-            @forelse($slots as $slot)
-                <div class="slot-row">
-                    <div class="slot-labels">
-                        <div class="slot-label-en">{{ $slot->label_en }}</div>
-                        @if($slot->label_ar)
-                            <div class="slot-label-ar">{{ $slot->label_ar }}</div>
-                        @endif
-                    </div>
-                    <span class="slot-value">{{ $slot->value }}</span>
-                    <form action="{{ route('admin.settings.slots.destroy', $slot) }}" method="POST"
-                          onsubmit="return confirm('Delete this time slot?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="slot-delete" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </form>
-                </div>
-            @empty
-                <div style="text-align:center;padding:20px;color:#9ca3af;font-size:.83rem;">
-                    No time slots yet. Add one below.
-                </div>
-            @endforelse
-
-            {{-- Add new slot --}}
-            <div class="add-slot-form">
-                <div class="add-slot-title">
-                    <i class="fas fa-plus-circle"></i> Add New Time Slot
-                </div>
-                <form action="{{ route('admin.settings.slots.store') }}" method="POST">
-                    @csrf
-                    <div class="add-slot-grid">
-                        <div>
-                            <label class="st-label" for="label_en">
-                                English Label <span class="req">*</span>
+            <form action="{{ route('admin.settings.slots.store') }}" method="POST">
+                @csrf
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-md-0">
+                            <label style="font-size:.78rem;font-weight:600;color:#374151;">
+                                English Label <span class="text-danger">*</span>
                             </label>
-                            <input type="text" name="label_en" id="label_en"
-                                   class="st-input @error('label_en') is-invalid @enderror"
+                            <input type="text" name="label_en"
+                                   class="form-control @error('label_en') is-invalid @enderror"
                                    value="{{ old('label_en') }}"
                                    placeholder="e.g. 10:00 AM – 2:00 PM">
                             @error('label_en')
-                                <div class="st-invalid">{{ $message }}</div>
+                                <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div>
-                            <label class="st-label" for="label_ar">Arabic Label</label>
-                            <input type="text" name="label_ar" id="label_ar"
-                                   class="st-input @error('label_ar') is-invalid @enderror"
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-md-0">
+                            <label style="font-size:.78rem;font-weight:600;color:#374151;">Arabic Label</label>
+                            <input type="text" name="label_ar"
+                                   class="form-control @error('label_ar') is-invalid @enderror"
                                    value="{{ old('label_ar') }}"
                                    placeholder="e.g. ١٠:٠٠ ص – ٢:٠٠ م"
                                    dir="rtl">
                             @error('label_ar')
-                                <div class="st-invalid">{{ $message }}</div>
+                                <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                     </div>
-                    <button type="submit" class="st-btn-add">
-                        <i class="fas fa-plus"></i> Add Slot
-                    </button>
-                </form>
-            </div>
-
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success btn-sm" style="height:38px;padding:0 20px;">
+                            <i class="fas fa-plus mr-1"></i> Add Slot
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
+
+        {{-- Slots table --}}
+        <div class="table-responsive">
+            <table class="table idx-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>English Label</th>
+                        <th>Arabic Label</th>
+                        <th>API Value</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($slots as $slot)
+                    {{-- View row --}}
+                    <tr id="slot-view-{{ $slot->id }}">
+                        <td style="color:#9ca3af;">{{ $loop->iteration }}</td>
+                        <td style="font-weight:600;color:#111827;">{{ $slot->label_en }}</td>
+                        <td style="direction:rtl;color:#374151;">{{ $slot->label_ar ?: '—' }}</td>
+                        <td>
+                            <span class="idx-chip chip-blue" style="font-family:monospace;letter-spacing:.02em;">
+                                {{ $slot->value }}
+                            </span>
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <button type="button" class="idx-btn ib-edit" onclick="toggleSlotEdit({{ $slot->id }})">
+                                <i class="fas fa-pen"></i> Edit
+                            </button>
+                            <form action="{{ route('admin.settings.slots.destroy', $slot) }}" method="POST"
+                                  onsubmit="return confirm('Delete this time slot?')" style="display:inline-block;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="idx-btn ib-del">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{-- Inline edit row (hidden by default) --}}
+                    <tr id="slot-edit-{{ $slot->id }}" style="display:none;background:#fffbeb;">
+                        <td colspan="5" style="padding:12px 16px !important;">
+                            <form action="{{ route('admin.settings.slots.update', $slot) }}" method="POST">
+                                @csrf @method('PUT')
+                                <div class="row align-items-end" style="margin:0;gap:0;">
+                                    <div class="col-md-4 pr-2">
+                                        <label style="font-size:.75rem;font-weight:600;color:#374151;margin-bottom:4px;display:block;">
+                                            English Label <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" name="label_en"
+                                               class="form-control form-control-sm"
+                                               value="{{ $slot->label_en }}" required>
+                                    </div>
+                                    <div class="col-md-4 pr-2">
+                                        <label style="font-size:.75rem;font-weight:600;color:#374151;margin-bottom:4px;display:block;">
+                                            Arabic Label
+                                        </label>
+                                        <input type="text" name="label_ar"
+                                               class="form-control form-control-sm"
+                                               value="{{ $slot->label_ar }}" dir="rtl">
+                                    </div>
+                                    <div class="col-md-4 d-flex" style="gap:6px;">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-check mr-1"></i> Save
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                onclick="toggleSlotEdit({{ $slot->id }})">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="idx-empty">
+                            <i class="fas fa-clock"></i><br>No time slots yet. Add one above.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+{{-- ── Payment Methods ── --}}
+<div class="card idx-card" style="margin-bottom:20px;">
+    <div class="card-header">
+        <h3><i class="fas fa-credit-card mr-2" style="color:#b45309;"></i> Payment Methods</h3>
     </div>
 
-    {{-- ── Payment Methods ── --}}
     <form action="{{ route('admin.settings.update') }}" method="POST">
-        @csrf
-        @method('PUT')
+        @csrf @method('PUT')
 
-        <div class="st-card">
-            <div class="st-card-header">
-                <div class="st-card-icon" style="background:#fef3c7;color:#b45309;">
-                    <i class="fas fa-credit-card"></i>
+        <div class="card-body" style="padding:0 !important;">
+
+            <label class="pm-row" for="payment_knet" style="cursor:pointer;margin:0;">
+                <div class="pm-info">
+                    <div class="pm-icon" style="background:#e0f2fe;color:#0284c7;">
+                        <i class="fas fa-university"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:.88rem;font-weight:600;color:#111827;">KNET</div>
+                        <div style="font-size:.73rem;color:#9ca3af;">Kuwait electronic payment network</div>
+                    </div>
                 </div>
-                <div>
-                    <div class="st-card-title">Payment Methods</div>
+                <label class="st-switch">
+                    <input type="checkbox" name="payment_knet" id="payment_knet" value="1"
+                           {{ old('payment_knet', $setting->payment_knet) ? 'checked' : '' }}>
+                    <span class="st-slider"></span>
+                </label>
+            </label>
+
+            <label class="pm-row" for="payment_credit_card" style="cursor:pointer;margin:0;">
+                <div class="pm-info">
+                    <div class="pm-icon" style="background:#ede9fe;color:#5b21b6;">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:.88rem;font-weight:600;color:#111827;">Credit / Debit Card</div>
+                        <div style="font-size:.73rem;color:#9ca3af;">Visa, Mastercard accepted</div>
+                    </div>
                 </div>
-            </div>
-            <div class="st-card-body">
-
-                <label class="st-toggle-row" for="payment_knet">
-                    <div class="st-toggle-info">
-                        <div class="st-toggle-icon" style="background:#e0f2fe;color:#0284c7;">
-                            <i class="fas fa-university"></i>
-                        </div>
-                        <div>
-                            <div class="st-toggle-label">Knet</div>
-                            <div class="st-toggle-sub">Kuwait electronic payment network</div>
-                        </div>
-                    </div>
-                    <label class="st-switch">
-                        <input type="checkbox" name="payment_knet" id="payment_knet" value="1"
-                               {{ old('payment_knet', $setting->payment_knet) ? 'checked' : '' }}>
-                        <span class="st-slider"></span>
-                    </label>
+                <label class="st-switch">
+                    <input type="checkbox" name="payment_credit_card" id="payment_credit_card" value="1"
+                           {{ old('payment_credit_card', $setting->payment_credit_card) ? 'checked' : '' }}>
+                    <span class="st-slider"></span>
                 </label>
+            </label>
 
-                <label class="st-toggle-row" for="payment_credit_card">
-                    <div class="st-toggle-info">
-                        <div class="st-toggle-icon" style="background:#ede9fe;color:#5b21b6;">
-                            <i class="fas fa-credit-card"></i>
-                        </div>
-                        <div>
-                            <div class="st-toggle-label">Credit Card</div>
-                            <div class="st-toggle-sub">Visa, Mastercard, etc.</div>
-                        </div>
+            <label class="pm-row" for="payment_cash" style="cursor:pointer;margin:0;">
+                <div class="pm-info">
+                    <div class="pm-icon" style="background:#dcfce7;color:#15803d;">
+                        <i class="fas fa-money-bill-wave"></i>
                     </div>
-                    <label class="st-switch">
-                        <input type="checkbox" name="payment_credit_card" id="payment_credit_card" value="1"
-                               {{ old('payment_credit_card', $setting->payment_credit_card) ? 'checked' : '' }}>
-                        <span class="st-slider"></span>
-                    </label>
-                </label>
-
-                <label class="st-toggle-row" for="payment_cash">
-                    <div class="st-toggle-info">
-                        <div class="st-toggle-icon" style="background:#dcfce7;color:#15803d;">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div>
-                            <div class="st-toggle-label">Cash</div>
-                            <div class="st-toggle-sub">Pay on delivery</div>
-                        </div>
+                    <div>
+                        <div style="font-size:.88rem;font-weight:600;color:#111827;">Cash on Delivery</div>
+                        <div style="font-size:.73rem;color:#9ca3af;">Pay when your order arrives</div>
                     </div>
-                    <label class="st-switch">
-                        <input type="checkbox" name="payment_cash" id="payment_cash" value="1"
-                               {{ old('payment_cash', $setting->payment_cash) ? 'checked' : '' }}>
-                        <span class="st-slider"></span>
-                    </label>
+                </div>
+                <label class="st-switch">
+                    <input type="checkbox" name="payment_cash" id="payment_cash" value="1"
+                           {{ old('payment_cash', $setting->payment_cash) ? 'checked' : '' }}>
+                    <span class="st-slider"></span>
                 </label>
+            </label>
 
-            </div>
         </div>
 
-        {{-- ── Actions ── --}}
-        <div class="st-actions" style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;margin-top:4px;">
-            <button type="submit" class="st-btn-save">
-                <i class="fas fa-check"></i> Save Settings
+        <div style="padding:14px 20px;border-top:1px solid #e5e7eb;background:#f9fafb;border-radius:0 0 14px 14px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-success btn-sm" style="padding:7px 22px;">
+                <i class="fas fa-check mr-1"></i> Save Payment Methods
             </button>
-            <a href="{{ route('admin.home') }}" class="st-btn-back">
-                <i class="fas fa-arrow-left"></i> Back
+            <a href="{{ route('admin.home') }}" class="btn btn-secondary btn-sm" style="padding:7px 18px;">
+                <i class="fas fa-arrow-left mr-1"></i> Back
             </a>
         </div>
-
     </form>
 </div>
 
+@endsection
+
+@section('scripts')
+<script>
+function toggleSlotEdit(id) {
+    var view = document.getElementById('slot-view-' + id);
+    var edit = document.getElementById('slot-edit-' + id);
+    var hidden = edit.style.display === 'none';
+    edit.style.display = hidden ? 'table-row' : 'none';
+    view.style.background = hidden ? '#fffbeb' : '';
+}
+</script>
 @endsection

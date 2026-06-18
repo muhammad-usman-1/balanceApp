@@ -86,6 +86,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::put('settings', 'SettingsController@update')->name('settings.update');
     // Delivery time slots CRUD (managed from settings page)
     Route::post('settings/slots', 'SettingsController@storeSlot')->name('settings.slots.store');
+    Route::put('settings/slots/{slot}', 'SettingsController@updateSlot')->name('settings.slots.update');
     Route::delete('settings/slots/{slot}', 'SettingsController@destroySlot')->name('settings.slots.destroy');
 
     // Notifications
