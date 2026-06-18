@@ -531,8 +531,10 @@ class HesabePaymentService
             throw new PaymentException('Hesabe did not return a payment token. Check credentials and request format.');
         }
 
-        // Build the redirect URL — user opens this in WebView to complete KNET payment
-        $checkoutUrl = $this->baseUrl . $this->checkoutEndpoint . '?data=' . urlencode($paymentToken);
+        // Build the redirect URL — user opens this in WebView/browser to complete payment.
+        // NOTE: $this->paymentEndpoint (/payment) is the user-facing GET page.
+        //       $this->checkoutEndpoint (/checkout) is the backend API POST endpoint — do NOT send users there (405).
+        $checkoutUrl = $this->baseUrl . $this->paymentEndpoint . '?data=' . urlencode($paymentToken);
 
         Log::info('Hesabe initiateHostedPayment: success', [
             'token'       => $paymentToken,
