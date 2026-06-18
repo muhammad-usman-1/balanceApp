@@ -16,3 +16,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+APP_DEVELOPER_API_GUIDE.md
+APP_DEVELOPER_PAYMENT_GUIDE.md
