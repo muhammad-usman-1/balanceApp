@@ -156,7 +156,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
     Route::delete('protein-options/{proteinOption}', 'ProteinOptionApiController@destroy')->name('protein-options.destroy');
 
     // Settings — app fetches enabled payment methods + delivery time slots
-    Route::get('settings', 'Api\V1\SettingsApiController@index')->name('settings.index');
+    Route::get('settings', 'SettingsApiController@index')->name('settings.index');
 
     // Payments — direct card / cash
     Route::get('payment/kits', 'HesabePaymentController@reviewKits')->name('payment.kits');
