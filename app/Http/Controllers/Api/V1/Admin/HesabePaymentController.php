@@ -141,17 +141,19 @@ class HesabePaymentController extends Controller
                 'user_id'     => $request->user_id,
             ]);
 
-            // Call Hesabe /payment to obtain a paymentToken
+            // Call Hesabe /checkout to obtain a paymentToken for KNET redirect
             $hesabePayload = [
                 'amount'                       => number_format((float) $amount, 3, '.', ''),
                 'currencyCode'                 => $currency,
                 'merchantOrderReferenceNumber' => $orderReference,
                 'customerEmail'                => $user->email ?? '',
                 'customerMobileNumber'         => $user->mobile,
-                'paymentType'                  => '0',  // 0 = hosted redirect (KNET)
+                'responseUrl'                  => config('services.hesabe.return_url'),
+                'failureUrl'                   => config('services.hesabe.failure_url'),
+                'paymentType'                  => '0',
                 'version'                      => '2.0',
                 'language'                     => 'en',
-                'variable1'                    => $orderToken, // stored for callback lookup
+                'variable1'                    => $orderToken,
                 'variable2'                    => '',
                 'variable3'                    => '',
             ];
