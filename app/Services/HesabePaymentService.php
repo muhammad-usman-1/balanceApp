@@ -500,13 +500,44 @@ class HesabePaymentService
 
         $decrypted = $this->parseAndDecryptResponse($responseBody);
 
-        if (empty($decrypted['paymentToken'])) {
-            Log::error('Hesabe initiateHostedPayment: no paymentToken in response', ['decrypted' => $decrypted]);
+        // Hesabe response structure:
+        // { status: true, token: "...", response: { data: "<encrypted>" } }
+        // The outer `token` is the payment token for the redirect URL.
+        // `response.data` is a nested encrypted blob with full payment details.
+
+        // Try to decrypt response.data for extra payment details (best-effort)
+        $innerData = [];
+        if (!empty($decrypted['response']['data'])) {
+            try {
+                $innerData = $this->decryptCallbackData($decrypted['response']['data']);
+                Log::debug('Hesabe initiateHostedPayment: inner response decrypted', ['keys' => array_keys($innerData)]);
+            } catch (\Throwable $e) {
+                Log::debug('Hesabe initiateHostedPayment: inner response decrypt skipped', ['reason' => $e->getMessage()]);
+            }
+        }
+
+        // Resolve payment token — check all known field names Hesabe may use
+        $paymentToken = $decrypted['paymentToken']
+            ?? $decrypted['token']
+            ?? $innerData['paymentToken']
+            ?? $innerData['token']
+            ?? null;
+
+        if (empty($paymentToken)) {
+            Log::error('Hesabe initiateHostedPayment: no token in response', [
+                'decrypted'  => $decrypted,
+                'inner_data' => $innerData,
+            ]);
             throw new PaymentException('Hesabe did not return a payment token. Check credentials and request format.');
         }
 
-        $paymentToken = $decrypted['paymentToken'];
-        $checkoutUrl  = $this->baseUrl . $this->checkoutEndpoint . '?data=' . urlencode($paymentToken);
+        // Build the redirect URL — user opens this in WebView to complete KNET payment
+        $checkoutUrl = $this->baseUrl . $this->checkoutEndpoint . '?data=' . urlencode($paymentToken);
+
+        Log::info('Hesabe initiateHostedPayment: success', [
+            'token'       => $paymentToken,
+            'payment_url' => $checkoutUrl,
+        ]);
 
         return [
             'payment_token' => $paymentToken,
