@@ -501,48 +501,36 @@ class HesabePaymentService
         $decrypted = $this->parseAndDecryptResponse($responseBody);
 
         // Hesabe response structure:
-        // { status: true, token: "...", response: { data: "<encrypted>" } }
-        // The outer `token` is the payment token for the redirect URL.
-        // `response.data` is a nested encrypted blob with full payment details.
+        // {
+        //   "token": "136023...",           ← tracking/reference number
+        //   "response": { "data": "abc..." } ← encrypted blob = the ?data= value for the payment page URL
+        // }
+        //
+        // The ?data= parameter in the payment page URL must be response.data (the encrypted blob),
+        // NOT the plain token. Passing the plain token causes Hesabe to return 422 "Invalid Input".
 
-        // Try to decrypt response.data for extra payment details (best-effort)
-        $innerData = [];
-        if (!empty($decrypted['response']['data'])) {
-            try {
-                $innerData = $this->decryptCallbackData($decrypted['response']['data']);
-                Log::debug('Hesabe initiateHostedPayment: inner response decrypted', ['keys' => array_keys($innerData)]);
-            } catch (\Throwable $e) {
-                Log::debug('Hesabe initiateHostedPayment: inner response decrypt skipped', ['reason' => $e->getMessage()]);
-            }
-        }
+        $redirectData = $decrypted['response']['data'] ?? null;
+        $trackingToken = $decrypted['token'] ?? $decrypted['paymentToken'] ?? null;
 
-        // Resolve payment token — check all known field names Hesabe may use
-        $paymentToken = $decrypted['paymentToken']
-            ?? $decrypted['token']
-            ?? $innerData['paymentToken']
-            ?? $innerData['token']
-            ?? null;
-
-        if (empty($paymentToken)) {
-            Log::error('Hesabe initiateHostedPayment: no token in response', [
-                'decrypted'  => $decrypted,
-                'inner_data' => $innerData,
+        if (empty($redirectData)) {
+            Log::error('Hesabe initiateHostedPayment: no response.data in response', [
+                'decrypted' => $decrypted,
             ]);
-            throw new PaymentException('Hesabe did not return a payment token. Check credentials and request format.');
+            throw new PaymentException('Hesabe did not return payment redirect data. Check credentials and request format.');
         }
 
         // Build the redirect URL — user opens this in WebView/browser to complete payment.
-        // NOTE: $this->paymentEndpoint (/payment) is the user-facing GET page.
-        //       $this->checkoutEndpoint (/checkout) is the backend API POST endpoint — do NOT send users there (405).
-        $checkoutUrl = $this->baseUrl . $this->paymentEndpoint . '?data=' . urlencode($paymentToken);
+        // $this->paymentEndpoint = /payment  (user-facing GET page)
+        // $this->checkoutEndpoint = /checkout (backend API POST — do NOT redirect users there)
+        $checkoutUrl = $this->baseUrl . $this->paymentEndpoint . '?data=' . urlencode($redirectData);
 
         Log::info('Hesabe initiateHostedPayment: success', [
-            'token'       => $paymentToken,
-            'payment_url' => $checkoutUrl,
+            'tracking_token' => $trackingToken,
+            'payment_url'    => $checkoutUrl,
         ]);
 
         return [
-            'payment_token' => $paymentToken,
+            'payment_token' => $trackingToken,
             'payment_url'   => $checkoutUrl,
             'raw'           => $decrypted,
         ];
