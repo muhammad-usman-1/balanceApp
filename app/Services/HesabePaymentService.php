@@ -462,10 +462,10 @@ class HesabePaymentService
             'data'         => $encryptedPayload,
         ];
 
-        $endpoint = config('services.hesabe.payment_endpoint', '/payment');
-
+        // $this->checkoutEndpoint = /checkout  → backend API POST (get payment token)
+        // $this->paymentEndpoint  = /payment   → user-facing GET page (complete payment in browser/WebView)
         Log::debug('Hesabe initiateHostedPayment request', [
-            'endpoint'  => $this->baseUrl . $endpoint,
+            'endpoint'  => $this->baseUrl . $this->checkoutEndpoint,
             'reference' => $payload['merchantOrderReferenceNumber'] ?? null,
             'amount'    => $payload['amount'] ?? null,
         ]);
@@ -473,7 +473,7 @@ class HesabePaymentService
         $response = Http::withOptions(['verify' => false])
             ->acceptJson()
             ->withHeaders(['accessCode' => $this->accessCode])
-            ->post($this->baseUrl . $endpoint, $requestPayload);
+            ->post($this->baseUrl . $this->checkoutEndpoint, $requestPayload);
 
         $responseStatus = $response->status();
         $responseBody   = $response->body();
