@@ -4,13 +4,18 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Exceptions\PaymentException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InitiatePaymentRequest;
 use App\Http\Requests\ProcessHesabePaymentRequest;
+use App\Models\PaymentOrder;
+use App\Models\Setting;
 use App\Models\SubcrptionPlan;
 use App\Models\User;
 use App\Models\UserPaymentMethod;
+use App\Models\UserSubcrption;
 use App\Services\HesabePaymentService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -24,6 +29,9 @@ class HesabePaymentController extends Controller
     ) {
     }
 
+    // =========================================================================
+    // GET /v1/payment/kits — fetch available integration kits from Hesabe
+    // =========================================================================
     public function reviewKits(): JsonResponse
     {
         try {
@@ -49,23 +57,38 @@ class HesabePaymentController extends Controller
         }
     }
 
+    // =========================================================================
+    // POST /v1/payment/checkout — cash or direct card payment
+    // =========================================================================
     public function checkout(ProcessHesabePaymentRequest $request): JsonResponse
     {
         $paymentMethod = $request->payment_method; // cash | debit_card | credit_card
 
+        // Check if this payment method is enabled in admin settings
+        $settings = Setting::firstOrCreateDefault();
+        if ($paymentMethod === 'cash' && ! $settings->payment_cash) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cash on delivery is currently disabled.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if (in_array($paymentMethod, ['credit_card', 'debit_card'], true) && ! $settings->payment_credit_card) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Card payments are currently disabled.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         Log::info('CHECKOUT: request received', [
-            'payment_method'      => $paymentMethod,
-            'user_id'             => $request->user_id,
-            'plan_id'             => $request->subcrption_plans_id,
-            'area_id'             => $request->area_id,
-            'start_date'          => $request->start_date,
-            'selected_days'       => $request->selected_days,
-            'is_personalized'     => $request->is_personalized,
-            'protein'             => $request->protein,
-            'carbs'               => $request->carbs,
-            'meals_count'         => count($request->meals ?? []),
-            'has_address'         => ! empty($request->address),
-            // card fields intentionally omitted — never log raw card data
+            'payment_method'  => $paymentMethod,
+            'user_id'         => $request->user_id,
+            'plan_id'         => $request->subcrption_plans_id,
+            'area_id'         => $request->area_id,
+            'start_date'      => $request->start_date,
+            'selected_days'   => $request->selected_days,
+            'is_personalized' => $request->is_personalized,
+            'meals_count'     => count($request->meals ?? []),
+            'has_address'     => ! empty($request->address),
         ]);
 
         return $paymentMethod === 'cash'
@@ -73,33 +96,324 @@ class HesabePaymentController extends Controller
             : $this->handleCardCheckout($request, $paymentMethod);
     }
 
-    // -------------------------------------------------------------------------
-    // Cash — no gateway, subscription is created with payment status "pending"
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // POST /v1/payment/initiate — KNET redirect payment initiation
+    // Returns a Hesabe payment URL; the app opens it in a WebView/browser.
+    // =========================================================================
+    public function initiateKnetPayment(InitiatePaymentRequest $request): JsonResponse
+    {
+        $settings = Setting::firstOrCreateDefault();
+        if (! $settings->payment_knet) {
+            return response()->json([
+                'success' => false,
+                'message' => 'KNET payments are currently disabled.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $plan     = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
+            $user     = User::findOrFail($request->user_id);
+            $amount   = $request->amount ?? $plan->price;
+            $currency = strtoupper($request->currency ?? 'KWD');
+
+            // Unique tokens
+            $orderToken      = (string) Str::uuid();
+            $orderReference  = 'KNET-' . now()->timestamp . '-' . strtoupper(Str::random(6));
+
+            // Persist the full subscription payload so the callback can create it later
+            $subscriptionData = $request->safe()->except(['payment_method', 'amount', 'currency'])->toArray();
+
+            $paymentOrder = PaymentOrder::create([
+                'order_token'             => $orderToken,
+                'user_id'                 => $request->user_id,
+                'subscription_data'       => $subscriptionData,
+                'amount'                  => $amount,
+                'currency'                => $currency,
+                'payment_method'          => 'knet',
+                'status'                  => 'pending',
+                'hesabe_order_reference'  => $orderReference,
+            ]);
+
+            Log::info('KNET INITIATE: PaymentOrder created', [
+                'order_token' => $orderToken,
+                'reference'   => $orderReference,
+                'amount'      => $amount,
+                'user_id'     => $request->user_id,
+            ]);
+
+            // Call Hesabe /payment to obtain a paymentToken
+            $hesabePayload = [
+                'amount'                       => number_format((float) $amount, 3, '.', ''),
+                'currencyCode'                 => $currency,
+                'merchantOrderReferenceNumber' => $orderReference,
+                'customerEmail'                => $user->email ?? '',
+                'customerMobileNumber'         => $user->mobile,
+                'paymentType'                  => '0',  // 0 = hosted redirect (KNET)
+                'version'                      => '2.0',
+                'language'                     => 'en',
+                'variable1'                    => $orderToken, // stored for callback lookup
+                'variable2'                    => '',
+                'variable3'                    => '',
+            ];
+
+            $paymentResponse = $this->hesabePaymentService->initiateHostedPayment($hesabePayload);
+
+            $paymentToken = $paymentResponse['payment_token'] ?? null;
+            $paymentUrl   = $paymentResponse['payment_url'] ?? null;
+
+            if (! $paymentToken || ! $paymentUrl) {
+                Log::error('KNET INITIATE: no paymentToken in response', ['response' => $paymentResponse]);
+                $paymentOrder->update(['status' => 'failed']);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to initiate payment. Please try again.',
+                ], Response::HTTP_BAD_GATEWAY);
+            }
+
+            $paymentOrder->update(['hesabe_payment_token' => $paymentToken]);
+
+            Log::info('KNET INITIATE: success', [
+                'order_token' => $orderToken,
+                'payment_url' => $paymentUrl,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment initiated. Please complete payment via the provided URL.',
+                'data'    => [
+                    'order_token' => $orderToken,
+                    'payment_url' => $paymentUrl,
+                    'amount'      => $amount,
+                    'currency'    => $currency,
+                ],
+            ]);
+
+        } catch (PaymentException $e) {
+            Log::error('KNET INITIATE: PaymentException', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+
+        } catch (\Throwable $e) {
+            Log::error('KNET INITIATE: FAILED', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate payment. Please try again.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // =========================================================================
+    // POST|GET /v1/payment/callback — Hesabe posts here after KNET payment
+    // Must always return HTTP 200 so Hesabe does not retry.
+    // =========================================================================
+    public function handleCallback(Request $request): \Illuminate\Http\Response
+    {
+        $encryptedData = $request->input('data') ?? $request->query('data');
+
+        Log::info('KNET CALLBACK: received', [
+            'method'       => $request->method(),
+            'has_data'     => ! empty($encryptedData),
+            'data_preview' => $encryptedData ? substr($encryptedData, 0, 60) : null,
+            'all_params'   => $request->except(['data']),
+        ]);
+
+        if (! $encryptedData) {
+            Log::warning('KNET CALLBACK: no data received');
+            return response('OK', 200);
+        }
+
+        // Decrypt the callback payload
+        try {
+            $callbackData = $this->hesabePaymentService->decryptCallbackData($encryptedData);
+        } catch (\Throwable $e) {
+            Log::error('KNET CALLBACK: decrypt failed', ['error' => $e->getMessage()]);
+            return response('OK', 200);
+        }
+
+        Log::info('KNET CALLBACK: decrypted', [
+            'resultCode'   => $callbackData['resultCode'] ?? null,
+            'paymentId'    => $callbackData['paymentId'] ?? null,
+            'reference'    => $callbackData['merchantOrderReferenceNumber'] ?? null,
+            'variable1'    => $callbackData['variable1'] ?? null,
+            'amount'       => $callbackData['amount'] ?? null,
+        ]);
+
+        // Locate the pending order via variable1 (order_token) or merchantOrderReferenceNumber
+        $orderToken     = $callbackData['variable1'] ?? null;
+        $orderReference = $callbackData['merchantOrderReferenceNumber'] ?? null;
+
+        $paymentOrder = $orderToken
+            ? PaymentOrder::where('order_token', $orderToken)->first()
+            : null;
+
+        if (! $paymentOrder && $orderReference) {
+            $paymentOrder = PaymentOrder::where('hesabe_order_reference', $orderReference)->first();
+        }
+
+        if (! $paymentOrder) {
+            Log::error('KNET CALLBACK: order not found', [
+                'order_token' => $orderToken,
+                'reference'   => $orderReference,
+            ]);
+            return response('OK', 200);
+        }
+
+        // Idempotency guard — already processed
+        if ($paymentOrder->isPaid()) {
+            Log::info('KNET CALLBACK: already processed', ['order_token' => $paymentOrder->order_token]);
+            return response('OK', 200);
+        }
+
+        $resultCode = (int) ($callbackData['resultCode'] ?? 0);
+
+        if ($resultCode !== 1) {
+            $paymentOrder->update([
+                'status'           => 'failed',
+                'hesabe_response'  => $callbackData,
+            ]);
+            Log::warning('KNET CALLBACK: payment failed', [
+                'result_code' => $resultCode,
+                'order_token' => $paymentOrder->order_token,
+            ]);
+            return response('OK', 200);
+        }
+
+        // Payment approved — create the subscription
+        try {
+            $paymentId = $callbackData['paymentId']
+                ?? $callbackData['orderReferenceNumber']
+                ?? $paymentOrder->hesabe_order_reference;
+
+            $subscriptionResult = $this->subscriptionService->createSubscription(
+                $paymentOrder->subscription_data,
+                [
+                    'status'    => 'paid',
+                    'reference' => $paymentId,
+                    'gateway'   => 'hesabe_knet',
+                    'currency'  => $paymentOrder->currency,
+                    'meta'      => $callbackData,
+                ]
+            );
+
+            $paymentOrder->update([
+                'status'          => 'paid',
+                'hesabe_response' => $callbackData,
+                'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
+            ]);
+
+            Log::info('KNET CALLBACK: subscription created', [
+                'order_token'     => $paymentOrder->order_token,
+                'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('KNET CALLBACK: subscription creation failed', [
+                'error'       => $e->getMessage(),
+                'file'        => $e->getFile(),
+                'line'        => $e->getLine(),
+                'order_token' => $paymentOrder->order_token,
+            ]);
+            $paymentOrder->update([
+                'status'          => 'failed',
+                'hesabe_response' => $callbackData,
+            ]);
+        }
+
+        return response('OK', 200);
+    }
+
+    // =========================================================================
+    // GET /v1/payment/callback/failure — Hesabe redirects here on failure
+    // =========================================================================
+    public function handleFailureCallback(Request $request): \Illuminate\Http\Response
+    {
+        $encryptedData = $request->input('data') ?? $request->query('data');
+
+        Log::info('KNET FAILURE CALLBACK: received', [
+            'has_data' => ! empty($encryptedData),
+        ]);
+
+        if ($encryptedData) {
+            try {
+                $callbackData = $this->hesabePaymentService->decryptCallbackData($encryptedData);
+                $orderToken   = $callbackData['variable1'] ?? null;
+
+                if ($orderToken) {
+                    PaymentOrder::where('order_token', $orderToken)
+                        ->where('status', 'pending')
+                        ->update([
+                            'status'          => 'failed',
+                            'hesabe_response' => $callbackData,
+                        ]);
+
+                    Log::info('KNET FAILURE CALLBACK: order marked failed', ['order_token' => $orderToken]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('KNET FAILURE CALLBACK: error', ['error' => $e->getMessage()]);
+            }
+        }
+
+        return response('Payment failed', 200);
+    }
+
+    // =========================================================================
+    // GET /v1/payment/status/{orderToken} — app polls to check payment result
+    // =========================================================================
+    public function checkPaymentStatus(string $orderToken): JsonResponse
+    {
+        $paymentOrder = PaymentOrder::where('order_token', $orderToken)->first();
+
+        if (! $paymentOrder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment order not found.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = [
+            'order_token'    => $orderToken,
+            'status'         => $paymentOrder->status,
+            'payment_method' => $paymentOrder->payment_method,
+            'amount'         => $paymentOrder->amount,
+            'currency'       => $paymentOrder->currency,
+        ];
+
+        if ($paymentOrder->isPaid() && $paymentOrder->subscription_id) {
+            $subscription = UserSubcrption::with([
+                'subcrption_plans',
+                'subscription_days',
+                'subscription_meals',
+            ])->find($paymentOrder->subscription_id);
+
+            $data['subscription'] = $subscription;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
+
+    // =========================================================================
+    // Cash — no gateway, subscription created with payment status "pending"
+    // =========================================================================
     private function handleCashCheckout(ProcessHesabePaymentRequest $request): JsonResponse
     {
         try {
-            Log::info('CHECKOUT [cash]: looking up plan', ['plan_id' => $request->subcrption_plans_id]);
             $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
-            Log::info('CHECKOUT [cash]: plan found', [
-                'plan_title'  => $plan->title,
-                'plan_price'  => $plan->price,
-                'meal_count'  => $plan->meal_count,
-                'no_of_weeks' => $plan->no_of_weeks,
-                'min_days'    => $plan->min_days,
-                'max_days'    => $plan->max_days,
-                'is_active'   => $plan->is_active,
-            ]);
 
             $amount    = $request->amount ?? $plan->price;
             $currency  = strtoupper($request->currency ?? 'KWD');
             $reference = 'CASH-' . now()->timestamp . '-' . strtoupper(Str::random(6));
-
-            Log::info('CHECKOUT [cash]: building subscription payload', [
-                'amount'    => $amount,
-                'currency'  => $currency,
-                'reference' => $reference,
-            ]);
 
             $subscriptionPayload = $request->safe()->except([
                 'payment_method', 'amount', 'currency',
@@ -111,8 +425,6 @@ class HesabePaymentController extends Controller
             $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
 
-            Log::info('CHECKOUT [cash]: calling SubscriptionService::createSubscription');
-
             $subscriptionResult = $this->subscriptionService->createSubscription(
                 $subscriptionPayload,
                 [
@@ -123,11 +435,9 @@ class HesabePaymentController extends Controller
                 ]
             );
 
-            Log::info('CHECKOUT [cash]: subscription created successfully', [
+            Log::info('CHECKOUT [cash]: subscription created', [
                 'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
-                'price'           => $subscriptionResult['user_subscription']->price ?? null,
-                'days_created'    => count($subscriptionResult['subscription_days'] ?? []),
-                'meals_created'   => count($subscriptionResult['subscription_meals'] ?? []),
+                'reference'       => $reference,
             ]);
 
             return response()->json([
@@ -147,13 +457,11 @@ class HesabePaymentController extends Controller
 
         } catch (\Throwable $e) {
             Log::error('CHECKOUT [cash]: FAILED', [
-                'error'     => $e->getMessage(),
-                'exception' => get_class($e),
-                'file'      => $e->getFile(),
-                'line'      => $e->getLine(),
-                'trace'     => $e->getTraceAsString(),
-                'user_id'   => $request->user_id ?? null,
-                'plan_id'   => $request->subcrption_plans_id ?? null,
+                'error'   => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'user_id' => $request->user_id ?? null,
+                'plan_id' => $request->subcrption_plans_id ?? null,
             ]);
 
             return response()->json([
@@ -163,28 +471,14 @@ class HesabePaymentController extends Controller
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Debit / Credit Card — processes through Hesabe gateway
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // Debit / Credit Card — direct card processing through Hesabe /checkout
+    // =========================================================================
     private function handleCardCheckout(ProcessHesabePaymentRequest $request, string $paymentMethod): JsonResponse
     {
         try {
-            Log::info('CHECKOUT [card]: looking up plan and user', [
-                'plan_id' => $request->subcrption_plans_id,
-                'user_id' => $request->user_id,
-            ]);
-
             $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
             $user = User::findOrFail($request->user_id);
-
-            Log::info('CHECKOUT [card]: plan and user found', [
-                'plan_title'  => $plan->title,
-                'plan_price'  => $plan->price,
-                'meal_count'  => $plan->meal_count,
-                'no_of_weeks' => $plan->no_of_weeks,
-                'user_email'  => $user->email,
-                'user_mobile' => $user->mobile,
-            ]);
 
             $amount    = $request->amount ?? $plan->price;
             $currency  = strtoupper($request->currency ?? 'KWD');
@@ -210,35 +504,20 @@ class HesabePaymentController extends Controller
                 'version'                      => '2.0',
             ];
 
-            Log::info('CHECKOUT [card]: sending to Hesabe gateway', [
-                'reference'        => $reference,
-                'amount'           => $paymentPayload['amount'],
-                'currency'         => $currency,
-                'payment_method'   => $paymentMethod,
-                'card_brand'       => $cardBrand,
-                'card_last_four'   => $lastFour,
-                'card_expiry'      => $request->card_expiry_month . '/' . $request->card_expiry_year,
-                // card_number and card_cvv intentionally omitted
+            Log::info('CHECKOUT [card]: sending to Hesabe', [
+                'reference'      => $reference,
+                'amount'         => $paymentPayload['amount'],
+                'payment_method' => $paymentMethod,
+                'card_brand'     => $cardBrand,
+                'card_last_four' => $lastFour,
             ]);
 
             $paymentResponse = $this->hesabePaymentService->checkout($paymentPayload);
             $paymentData     = $paymentResponse['data'] ?? [];
             $paymentStatus   = $paymentData['status'] ?? null;
 
-            Log::info('CHECKOUT [card]: Hesabe gateway response received', [
-                'raw_status'   => $paymentStatus,
-                'payment_data' => array_diff_key($paymentData, array_flip(['cardNumber', 'cardSecurityCode'])),
-            ]);
-
             $successStatuses = ['success', 'paid', 'captured', 'true', '1'];
             if ($paymentStatus !== true && ! in_array(strtolower((string) $paymentStatus), $successStatuses, true)) {
-                Log::warning('CHECKOUT [card]: gateway returned non-success status', [
-                    'status'          => $paymentStatus,
-                    'gateway_message' => $paymentData['message'] ?? null,
-                    'reference'       => $reference,
-                    'user_id'         => $request->user_id,
-                    'plan_id'         => $request->subcrption_plans_id,
-                ]);
                 throw new PaymentException($paymentData['message'] ?? 'Payment was not successful. Please try again.');
             }
 
@@ -247,15 +526,7 @@ class HesabePaymentController extends Controller
                 ?? $paymentData['token']
                 ?? $reference;
 
-            Log::info('CHECKOUT [card]: payment approved', [
-                'transaction_reference' => $transactionReference,
-                'card_brand'            => $cardBrand,
-                'card_last_four'        => $lastFour,
-                'save_card'             => $request->boolean('save_card'),
-            ]);
-
             if ($request->boolean('save_card') && $cardNumber) {
-                Log::info('CHECKOUT [card]: saving card for user', ['user_id' => $request->user_id]);
                 UserPaymentMethod::updateOrCreate(
                     [
                         'user_id'           => $request->user_id,
@@ -282,8 +553,6 @@ class HesabePaymentController extends Controller
             $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
 
-            Log::info('CHECKOUT [card]: calling SubscriptionService::createSubscription');
-
             $subscriptionResult = $this->subscriptionService->createSubscription(
                 $subscriptionPayload,
                 [
@@ -297,11 +566,9 @@ class HesabePaymentController extends Controller
                 ]
             );
 
-            Log::info('CHECKOUT [card]: subscription created successfully', [
+            Log::info('CHECKOUT [card]: subscription created', [
                 'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
-                'price'           => $subscriptionResult['user_subscription']->price ?? null,
-                'days_created'    => count($subscriptionResult['subscription_days'] ?? []),
-                'meals_created'   => count($subscriptionResult['subscription_meals'] ?? []),
+                'reference'       => $transactionReference,
             ]);
 
             return response()->json([
@@ -326,7 +593,6 @@ class HesabePaymentController extends Controller
             Log::error('CHECKOUT [card]: PaymentException', [
                 'error'          => $e->getMessage(),
                 'user_id'        => $request->user_id ?? null,
-                'plan_id'        => $request->subcrption_plans_id ?? null,
                 'payment_method' => $paymentMethod,
             ]);
 
@@ -338,12 +604,9 @@ class HesabePaymentController extends Controller
         } catch (\Throwable $e) {
             Log::error('CHECKOUT [card]: FAILED', [
                 'error'          => $e->getMessage(),
-                'exception'      => get_class($e),
                 'file'           => $e->getFile(),
                 'line'           => $e->getLine(),
-                'trace'          => $e->getTraceAsString(),
                 'user_id'        => $request->user_id ?? null,
-                'plan_id'        => $request->subcrption_plans_id ?? null,
                 'payment_method' => $paymentMethod,
             ]);
 

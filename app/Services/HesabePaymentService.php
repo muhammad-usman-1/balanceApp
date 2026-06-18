@@ -14,6 +14,7 @@ class HesabePaymentService
     private ?string $secretKey;
     private ?string $ivKey;
     private string $checkoutEndpoint;
+    private string $paymentEndpoint;
     private string $reviewKitsEndpoint;
     private ?string $returnUrl;
     private ?string $failureUrl;
@@ -29,6 +30,7 @@ class HesabePaymentService
         $this->secretKey = isset($config['secret_key']) ? trim($config['secret_key']) : null;
         $this->ivKey = isset($config['iv_key']) ? trim($config['iv_key']) : null;
         $this->checkoutEndpoint = $config['checkout_endpoint'] ?? '/checkout';
+        $this->paymentEndpoint = $config['payment_endpoint'] ?? '/payment';
         $this->reviewKitsEndpoint = $config['review_kits_endpoint'] ?? '/api/integration-kits/review';
         $this->returnUrl = $config['return_url'] ?? null;
         $this->failureUrl = $config['failure_url'] ?? null;
@@ -336,6 +338,219 @@ class HesabePaymentService
             'raw' => $body ?? $responseBody,
             'data' => $decrypted,
         ];
+    }
+
+    /**
+     * Initiate a hosted/redirect payment (KNET flow).
+     * Posts to /payment endpoint and returns paymentToken + redirect URL.
+     */
+    public function initiatePayment(array $payload): array
+    {
+        $this->assertConfigured();
+
+        if (empty($payload['responseUrl'])) {
+            $payload['responseUrl'] = $this->returnUrl ?? url('/api/v1/payment/callback');
+        }
+        if (empty($payload['failureUrl'])) {
+            $payload['failureUrl'] = $this->failureUrl ?? url('/api/v1/payment/callback/failure');
+        }
+
+        $encryptedPayload = $this->encryptPayload($payload);
+
+        $requestPayload = [
+            'merchantCode' => $this->merchantCode,
+            'data'         => $encryptedPayload,
+        ];
+
+        Log::debug('Hesabe initiatePayment request', [
+            'endpoint'    => $this->baseUrl . $this->paymentEndpoint,
+            'reference'   => $payload['merchantOrderReferenceNumber'] ?? null,
+            'amount'      => $payload['amount'] ?? null,
+            'paymentType' => $payload['paymentType'] ?? null,
+        ]);
+
+        $response     = Http::withOptions(['verify' => false])
+            ->acceptJson()
+            ->withHeaders(['accessCode' => $this->accessCode])
+            ->post($this->baseUrl . $this->paymentEndpoint, $requestPayload);
+
+        $responseStatus = $response->status();
+        $responseBody   = $response->body();
+
+        Log::debug('Hesabe initiatePayment response', [
+            'status_code'      => $responseStatus,
+            'response_length'  => strlen($responseBody),
+            'response_preview' => substr($responseBody, 0, 200),
+        ]);
+
+        if ($response->failed()) {
+            // Try to decrypt an error response
+            if (ctype_xdigit($responseBody)) {
+                try {
+                    $hexDecoded = hex2bin($responseBody);
+                    if ($hexDecoded !== false) {
+                        $decrypted = $this->decryptRawPayload($hexDecoded);
+                        if (isset($decrypted['status']) && $decrypted['status'] === false) {
+                            $msg  = $decrypted['message'] ?? 'Hesabe error';
+                            $code = $decrypted['code'] ?? null;
+                            throw new PaymentException('Unable to initiate KNET payment. ' . $msg . ($code ? " (Code: {$code})" : ''));
+                        }
+                    }
+                } catch (PaymentException $e) {
+                    throw $e;
+                } catch (\Throwable $e) {
+                    Log::warning('Could not decrypt Hesabe initiate error response: ' . $e->getMessage());
+                }
+            }
+            throw new PaymentException('Unable to initiate KNET payment. HTTP Error: ' . $responseStatus);
+        }
+
+        // Parse response
+        $body      = json_decode($responseBody, true);
+        $decrypted = null;
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($body)) {
+            if (isset($body['status']) && $body['status'] === false) {
+                $msg  = $body['message'] ?? 'Unknown Hesabe error';
+                $code = $body['code'] ?? null;
+                throw new PaymentException('Unable to initiate KNET payment. ' . $msg . ($code ? " (Code: {$code})" : ''));
+            }
+            if (!empty($body['data'])) {
+                try {
+                    $decrypted = $this->decryptPayload($body['data']);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to decrypt Hesabe initiatePayment data field: ' . $e->getMessage());
+                }
+            }
+        } elseif (ctype_xdigit($responseBody)) {
+            $hexDecoded = hex2bin($responseBody);
+            if ($hexDecoded !== false) {
+                $decrypted = $this->decryptRawPayload($hexDecoded);
+            }
+        } else {
+            try {
+                $decrypted = $this->decryptPayload($responseBody);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to decrypt Hesabe initiatePayment response: ' . $e->getMessage());
+            }
+        }
+
+        if ($decrypted && isset($decrypted['status']) && $decrypted['status'] === false) {
+            $msg  = $decrypted['message'] ?? 'Payment initiation failed';
+            $code = $decrypted['code'] ?? null;
+            throw new PaymentException('Unable to initiate KNET payment. ' . $msg . ($code ? " (Code: {$code})" : ''));
+        }
+
+        Log::info('Hesabe initiatePayment success', [
+            'has_token'    => !empty($decrypted['paymentToken'] ?? $decrypted['data']['paymentToken'] ?? null),
+        ]);
+
+        return [
+            'raw'  => $body ?? $responseBody,
+            'data' => $decrypted,
+        ];
+    }
+
+    public function initiateHostedPayment(array $payload): array
+    {
+        $this->assertConfigured();
+
+        $encryptedPayload = $this->encryptPayload($payload);
+
+        $requestPayload = [
+            'merchantCode' => $this->merchantCode,
+            'data'         => $encryptedPayload,
+        ];
+
+        $endpoint = config('services.hesabe.payment_endpoint', '/payment');
+
+        Log::debug('Hesabe initiateHostedPayment request', [
+            'endpoint'  => $this->baseUrl . $endpoint,
+            'reference' => $payload['merchantOrderReferenceNumber'] ?? null,
+            'amount'    => $payload['amount'] ?? null,
+        ]);
+
+        $response = Http::withOptions(['verify' => false])
+            ->acceptJson()
+            ->withHeaders(['accessCode' => $this->accessCode])
+            ->post($this->baseUrl . $endpoint, $requestPayload);
+
+        $responseStatus = $response->status();
+        $responseBody   = $response->body();
+
+        Log::debug('Hesabe initiateHostedPayment response', [
+            'status'  => $responseStatus,
+            'is_hex'  => ctype_xdigit($responseBody),
+            'preview' => substr($responseBody, 0, 100),
+        ]);
+
+        if ($response->failed()) {
+            if (ctype_xdigit($responseBody)) {
+                try {
+                    $decrypted = $this->decryptRawPayload(hex2bin($responseBody));
+                    throw new PaymentException('Hesabe error: ' . ($decrypted['message'] ?? 'Payment initiation failed'));
+                } catch (PaymentException $e) {
+                    throw $e;
+                } catch (\Throwable $e) {
+                    // fall through
+                }
+            }
+            throw new PaymentException('Unable to initiate Hesabe payment. HTTP ' . $responseStatus);
+        }
+
+        $decrypted = $this->parseAndDecryptResponse($responseBody);
+
+        if (empty($decrypted['paymentToken'])) {
+            Log::error('Hesabe initiateHostedPayment: no paymentToken in response', ['decrypted' => $decrypted]);
+            throw new PaymentException('Hesabe did not return a payment token. Check credentials and request format.');
+        }
+
+        $paymentToken = $decrypted['paymentToken'];
+        $checkoutUrl  = $this->baseUrl . $this->checkoutEndpoint . '?data=' . urlencode($paymentToken);
+
+        return [
+            'payment_token' => $paymentToken,
+            'payment_url'   => $checkoutUrl,
+            'raw'           => $decrypted,
+        ];
+    }
+
+    private function parseAndDecryptResponse(string $responseBody): array
+    {
+        $body = json_decode($responseBody, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($body)) {
+            if (isset($body['status']) && $body['status'] === false) {
+                throw new PaymentException($body['message'] ?? 'Hesabe returned an error');
+            }
+            if (!empty($body['data'])) {
+                return $this->decryptPayload($body['data']);
+            }
+            return $body;
+        }
+
+        if (ctype_xdigit($responseBody)) {
+            return $this->decryptRawPayload(hex2bin($responseBody));
+        }
+
+        return $this->decryptPayload($responseBody);
+    }
+
+    /**
+     * Decrypt the raw `data` parameter received in Hesabe's callback POST.
+     * Handles both hex-encoded and base64-encoded payloads.
+     */
+    public function decryptCallbackData(string $encryptedData): array
+    {
+        if (ctype_xdigit($encryptedData)) {
+            $binary = hex2bin($encryptedData);
+            if ($binary === false) {
+                throw new PaymentException('Failed to hex-decode Hesabe callback data.');
+            }
+            return $this->decryptRawPayload($binary);
+        }
+
+        return $this->decryptPayload($encryptedData);
     }
 
     protected function encryptPayload(array $payload): string

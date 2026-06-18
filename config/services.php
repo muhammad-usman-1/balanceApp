@@ -45,6 +45,7 @@ return [
         'secret_key' => env('HESABE_SECRET_KEY'),
         'iv_key' => env('HESABE_IV_KEY'),
         'checkout_endpoint' => env('HESABE_CHECKOUT_ENDPOINT', '/checkout'),
+        'payment_endpoint' => env('HESABE_PAYMENT_ENDPOINT', '/payment'),   // KNET redirect initiation
         'review_kits_endpoint' => env('HESABE_REVIEW_KITS_ENDPOINT', '/api/integration-kits/review'),
         'return_url' => env('HESABE_PAYMENT_RETURN_URL'),
         'failure_url' => env('HESABE_PAYMENT_FAILURE_URL'),

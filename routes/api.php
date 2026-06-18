@@ -155,9 +155,22 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
     Route::put('protein-options/{proteinOption}', 'ProteinOptionApiController@update')->name('protein-options.update');
     Route::delete('protein-options/{proteinOption}', 'ProteinOptionApiController@destroy')->name('protein-options.destroy');
 
-    // Payments
+    // Settings — app fetches enabled payment methods + delivery time slots
+    Route::get('settings', 'Api\V1\SettingsApiController@index')->name('settings.index');
+
+    // Payments — direct card / cash
     Route::get('payment/kits', 'HesabePaymentController@reviewKits')->name('payment.kits');
     Route::post('payment/checkout', 'HesabePaymentController@checkout')->name('payment.checkout');
+
+    // KNET hosted redirect flow
+    // 1. App calls initiate → gets a Hesabe payment URL to open in WebView
+    Route::post('payment/initiate', 'HesabePaymentController@initiateKnetPayment')->name('payment.initiate');
+    // 2. App polls status while user is on Hesabe's payment page
+    Route::get('payment/status/{orderToken}', 'HesabePaymentController@checkPaymentStatus')->name('payment.status');
+
+    // Hesabe callbacks (called by Hesabe servers, not the app)
+    Route::match(['get', 'post'], 'payment/callback', 'HesabePaymentController@handleCallback')->name('payment.callback');
+    Route::match(['get', 'post'], 'payment/callback/failure', 'HesabePaymentController@handleFailureCallback')->name('payment.callback.failure');
 
     // Durations
     Route::apiResource('durations', 'DurationsApiController');
