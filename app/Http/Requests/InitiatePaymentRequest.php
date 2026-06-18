@@ -2,11 +2,6 @@
 
 namespace App\Http\Requests;
 
-/**
- * Validates the KNET redirect payment initiation request.
- * Extends the base subscription checkout request so all subscription
- * fields are validated together.
- */
 class InitiatePaymentRequest extends StoreSubscriptionCheckoutRequest
 {
     public function rules()
@@ -15,7 +10,7 @@ class InitiatePaymentRequest extends StoreSubscriptionCheckoutRequest
             'payment_method' => [
                 'required',
                 'string',
-                'in:knet',
+                'in:knet,credit_card,debit_card',
             ],
             'amount' => [
                 'nullable',
@@ -34,7 +29,7 @@ class InitiatePaymentRequest extends StoreSubscriptionCheckoutRequest
     {
         return array_merge(parent::messages(), [
             'payment_method.required' => 'Payment method is required.',
-            'payment_method.in'       => 'Only knet is supported for this endpoint.',
+            'payment_method.in'       => 'Payment method must be knet, credit_card, or debit_card.',
         ]);
     }
 }

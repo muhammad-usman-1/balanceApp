@@ -97,51 +97,60 @@ class HesabePaymentController extends Controller
     }
 
     // =========================================================================
-    // POST /v1/payment/initiate — KNET redirect payment initiation
+    // POST /v1/payment/initiate — Hosted payment (KNET, credit_card, debit_card)
     // Returns a Hesabe payment URL; the app opens it in a WebView/browser.
     // =========================================================================
     public function initiateKnetPayment(InitiatePaymentRequest $request): JsonResponse
     {
-        $settings = Setting::firstOrCreateDefault();
-        if (! $settings->payment_knet) {
+        $paymentMethod = $request->payment_method;
+        $settings      = Setting::firstOrCreateDefault();
+
+        // Check the correct toggle per payment method
+        if ($paymentMethod === 'knet' && ! $settings->payment_knet) {
             return response()->json([
                 'success' => false,
                 'message' => 'KNET payments are currently disabled.',
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        if (in_array($paymentMethod, ['credit_card', 'debit_card']) && ! $settings->payment_credit_card) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Card payments are currently disabled.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         try {
-            $plan     = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
-            $user     = User::findOrFail($request->user_id);
-            $amount   = $request->amount ?? $plan->price;
-            $currency = strtoupper($request->currency ?? 'KWD');
+            $plan      = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
+            $user      = User::findOrFail($request->user_id);
+            $amount    = $request->amount ?? $plan->price;
+            $currency  = strtoupper($request->currency ?? 'KWD');
 
-            // Unique tokens
-            $orderToken      = (string) Str::uuid();
-            $orderReference  = 'KNET-' . now()->timestamp . '-' . strtoupper(Str::random(6));
+            $prefix         = strtoupper(str_replace('_', '', $paymentMethod)); // KNET / CREDITCARD / DEBITCARD
+            $orderToken     = (string) Str::uuid();
+            $orderReference = $prefix . '-' . now()->timestamp . '-' . strtoupper(Str::random(6));
 
-            // Persist the full subscription payload so the callback can create it later
             $subscriptionData = $request->safe()->except(['payment_method', 'amount', 'currency']);
 
             $paymentOrder = PaymentOrder::create([
-                'order_token'             => $orderToken,
-                'user_id'                 => $request->user_id,
-                'subscription_data'       => $subscriptionData,
-                'amount'                  => $amount,
-                'currency'                => $currency,
-                'payment_method'          => 'knet',
-                'status'                  => 'pending',
-                'hesabe_order_reference'  => $orderReference,
+                'order_token'            => $orderToken,
+                'user_id'                => $request->user_id,
+                'subscription_data'      => $subscriptionData,
+                'amount'                 => $amount,
+                'currency'               => $currency,
+                'payment_method'         => $paymentMethod,
+                'status'                 => 'pending',
+                'hesabe_order_reference' => $orderReference,
             ]);
 
-            Log::info('KNET INITIATE: PaymentOrder created', [
-                'order_token' => $orderToken,
-                'reference'   => $orderReference,
-                'amount'      => $amount,
-                'user_id'     => $request->user_id,
+            Log::info('HOSTED INITIATE: PaymentOrder created', [
+                'payment_method' => $paymentMethod,
+                'order_token'    => $orderToken,
+                'reference'      => $orderReference,
+                'amount'         => $amount,
+                'user_id'        => $request->user_id,
             ]);
 
-            // Call Hesabe /checkout to obtain a paymentToken for KNET redirect
             $hesabePayload = [
                 'amount'                       => number_format((float) $amount, 3, '.', ''),
                 'currencyCode'                 => $currency,
@@ -154,7 +163,7 @@ class HesabePaymentController extends Controller
                 'version'                      => '2.0',
                 'language'                     => 'en',
                 'variable1'                    => $orderToken,
-                'variable2'                    => '',
+                'variable2'                    => $paymentMethod,
                 'variable3'                    => '',
             ];
 
@@ -164,7 +173,7 @@ class HesabePaymentController extends Controller
             $paymentUrl   = $paymentResponse['payment_url'] ?? null;
 
             if (! $paymentToken || ! $paymentUrl) {
-                Log::error('KNET INITIATE: no paymentToken in response', ['response' => $paymentResponse]);
+                Log::error('HOSTED INITIATE: no paymentToken in response', ['response' => $paymentResponse]);
                 $paymentOrder->update(['status' => 'failed']);
 
                 return response()->json([
@@ -175,24 +184,29 @@ class HesabePaymentController extends Controller
 
             $paymentOrder->update(['hesabe_payment_token' => $paymentToken]);
 
-            Log::info('KNET INITIATE: success', [
-                'order_token' => $orderToken,
-                'payment_url' => $paymentUrl,
+            Log::info('HOSTED INITIATE: success', [
+                'payment_method' => $paymentMethod,
+                'order_token'    => $orderToken,
+                'payment_url'    => $paymentUrl,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Payment initiated. Please complete payment via the provided URL.',
                 'data'    => [
-                    'order_token' => $orderToken,
-                    'payment_url' => $paymentUrl,
-                    'amount'      => $amount,
-                    'currency'    => $currency,
+                    'order_token'    => $orderToken,
+                    'payment_url'    => $paymentUrl,
+                    'payment_method' => $paymentMethod,
+                    'amount'         => $amount,
+                    'currency'       => $currency,
                 ],
             ]);
 
         } catch (PaymentException $e) {
-            Log::error('KNET INITIATE: PaymentException', ['error' => $e->getMessage()]);
+            Log::error('HOSTED INITIATE: PaymentException', [
+                'payment_method' => $paymentMethod ?? null,
+                'error'          => $e->getMessage(),
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -200,10 +214,11 @@ class HesabePaymentController extends Controller
             ], Response::HTTP_BAD_GATEWAY);
 
         } catch (\Throwable $e) {
-            Log::error('KNET INITIATE: FAILED', [
-                'error' => $e->getMessage(),
-                'file'  => $e->getFile(),
-                'line'  => $e->getLine(),
+            Log::error('HOSTED INITIATE: FAILED', [
+                'payment_method' => $paymentMethod ?? null,
+                'error'          => $e->getMessage(),
+                'file'           => $e->getFile(),
+                'line'           => $e->getLine(),
             ]);
 
             return response()->json([

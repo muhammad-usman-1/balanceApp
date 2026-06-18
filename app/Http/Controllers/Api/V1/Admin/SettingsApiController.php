@@ -42,7 +42,7 @@ class SettingsApiController extends Controller
                 'id'          => 'credit_card',
                 'label'       => 'Credit / Debit Card',
                 'description' => 'Visa, Mastercard accepted',
-                'type'        => 'direct',
+                'type'        => 'redirect',
             ];
         }
 
