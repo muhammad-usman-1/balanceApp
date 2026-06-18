@@ -121,7 +121,7 @@ class HesabePaymentController extends Controller
             $orderReference  = 'KNET-' . now()->timestamp . '-' . strtoupper(Str::random(6));
 
             // Persist the full subscription payload so the callback can create it later
-            $subscriptionData = $request->safe()->except(['payment_method', 'amount', 'currency'])->toArray();
+            $subscriptionData = $request->safe()->except(['payment_method', 'amount', 'currency']);
 
             $paymentOrder = PaymentOrder::create([
                 'order_token'             => $orderToken,
