@@ -143,12 +143,17 @@ class HesabePaymentController extends Controller
                 'hesabe_order_reference' => $orderReference,
             ]);
 
+            $responseUrl = config('services.hesabe.return_url') ?: url('/api/v1/payment/callback');
+            $failureUrl  = config('services.hesabe.failure_url') ?: url('/api/v1/payment/callback/failure');
+
             Log::info('HOSTED INITIATE: PaymentOrder created', [
                 'payment_method' => $paymentMethod,
                 'order_token'    => $orderToken,
                 'reference'      => $orderReference,
                 'amount'         => $amount,
                 'user_id'        => $request->user_id,
+                'response_url'   => $responseUrl,
+                'failure_url'    => $failureUrl,
             ]);
 
             $hesabePayload = [
@@ -157,8 +162,8 @@ class HesabePaymentController extends Controller
                 'merchantOrderReferenceNumber' => $orderReference,
                 'customerEmail'                => $user->email ?? '',
                 'customerMobileNumber'         => $user->mobile,
-                'responseUrl'                  => config('services.hesabe.return_url'),
-                'failureUrl'                   => config('services.hesabe.failure_url'),
+                'responseUrl'                  => $responseUrl,
+                'failureUrl'                   => $failureUrl,
                 'paymentType'                  => '0',
                 'version'                      => '2.0',
                 'language'                     => 'en',
@@ -234,17 +239,32 @@ class HesabePaymentController extends Controller
     // =========================================================================
     public function handleCallback(Request $request): \Illuminate\Http\Response
     {
-        $encryptedData = $request->input('data') ?? $request->query('data');
+        // Try all possible locations Hesabe may send the data parameter
+        $encryptedData = $request->input('data')
+            ?? $request->query('data')
+            ?? null;
+
+        // Fallback: parse raw body manually (some gateways send non-standard content-type)
+        if (! $encryptedData) {
+            $rawBody = $request->getContent();
+            if ($rawBody) {
+                parse_str($rawBody, $parsed);
+                $encryptedData = $parsed['data'] ?? null;
+            }
+        }
 
         Log::info('KNET CALLBACK: received', [
-            'method'       => $request->method(),
-            'has_data'     => ! empty($encryptedData),
-            'data_preview' => $encryptedData ? substr($encryptedData, 0, 60) : null,
-            'all_params'   => $request->except(['data']),
+            'method'        => $request->method(),
+            'content_type'  => $request->header('Content-Type'),
+            'has_data'      => ! empty($encryptedData),
+            'data_preview'  => $encryptedData ? substr($encryptedData, 0, 80) : null,
+            'all_inputs'    => array_keys($request->all()),
+            'query_params'  => array_keys($request->query()),
+            'raw_preview'   => substr($request->getContent(), 0, 200),
         ]);
 
         if (! $encryptedData) {
-            Log::warning('KNET CALLBACK: no data received');
+            Log::warning('KNET CALLBACK: no data received — Hesabe may not have sent callback');
             return response('OK', 200);
         }
 
@@ -315,7 +335,7 @@ class HesabePaymentController extends Controller
                 [
                     'status'    => 'paid',
                     'reference' => $paymentId,
-                    'gateway'   => 'hesabe_knet',
+                    'gateway'   => 'hesabe_' . ($paymentOrder->payment_method ?? 'knet'),
                     'currency'  => $paymentOrder->currency,
                     'meta'      => $callbackData,
                 ]
