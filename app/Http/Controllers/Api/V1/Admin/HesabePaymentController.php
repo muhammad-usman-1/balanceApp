@@ -269,11 +269,28 @@ class HesabePaymentController extends Controller
         }
 
         // Decrypt the callback payload
+        // Hesabe wraps payment data in two layers:
+        //   Outer: { status, token, response: { data: "<encrypted>" } }
+        //   Inner: { resultCode, paymentId, merchantOrderReferenceNumber, variable1, amount, ... }
         try {
-            $callbackData = $this->hesabePaymentService->decryptCallbackData($encryptedData);
+            $outerData = $this->hesabePaymentService->decryptCallbackData($encryptedData);
         } catch (\Throwable $e) {
-            Log::error('KNET CALLBACK: decrypt failed', ['error' => $e->getMessage()]);
+            Log::error('KNET CALLBACK: outer decrypt failed', ['error' => $e->getMessage()]);
             return response('OK', 200);
+        }
+
+        // If actual payment fields are nested inside response.data, decrypt that too
+        $callbackData = $outerData;
+        if (empty($outerData['resultCode']) && ! empty($outerData['response']['data'])) {
+            try {
+                $innerData = $this->hesabePaymentService->decryptCallbackData($outerData['response']['data']);
+                if (! empty($innerData)) {
+                    $callbackData = $innerData;
+                    Log::info('KNET CALLBACK: used inner response.data layer');
+                }
+            } catch (\Throwable $e) {
+                Log::warning('KNET CALLBACK: inner decrypt failed, using outer data', ['error' => $e->getMessage()]);
+            }
         }
 
         Log::info('KNET CALLBACK: decrypted', [
@@ -282,6 +299,8 @@ class HesabePaymentController extends Controller
             'reference'    => $callbackData['merchantOrderReferenceNumber'] ?? null,
             'variable1'    => $callbackData['variable1'] ?? null,
             'amount'       => $callbackData['amount'] ?? null,
+            'outer_keys'   => array_keys($outerData),
+            'inner_keys'   => isset($innerData) ? array_keys($innerData) : [],
         ]);
 
         // Locate the pending order via variable1 (order_token) or merchantOrderReferenceNumber
