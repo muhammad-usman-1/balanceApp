@@ -279,18 +279,44 @@ class HesabePaymentController extends Controller
             return response('OK', 200);
         }
 
-        // If actual payment fields are nested inside response.data, decrypt that too
-        $callbackData = $outerData;
-        if (empty($outerData['resultCode']) && ! empty($outerData['response']['data'])) {
+        // Resolve the actual payment fields from Hesabe's nested response structure.
+        // Hesabe may return payment data in one of these locations (checked in order):
+        //   1. $outerData['response']         — direct array with resultCode, paymentId, etc.
+        //   2. $outerData['response']['data']  — another encrypted hex blob (decrypt again)
+        //   3. $outerData                      — flat response (fallback)
+
+        $response = $outerData['response'] ?? null;
+
+        if (is_array($response) && isset($response['resultCode'])) {
+            // Case 1: payment data is directly in response array
+            $callbackData = $response;
+            Log::info('KNET CALLBACK: used response array directly');
+
+        } elseif (is_array($response) && ! empty($response['data'])) {
+            // Case 2: payment data is encrypted inside response.data
             try {
-                $innerData = $this->hesabePaymentService->decryptCallbackData($outerData['response']['data']);
-                if (! empty($innerData)) {
-                    $callbackData = $innerData;
-                    Log::info('KNET CALLBACK: used inner response.data layer');
-                }
+                $innerData    = $this->hesabePaymentService->decryptCallbackData($response['data']);
+                $callbackData = ! empty($innerData) ? $innerData : $outerData;
+                Log::info('KNET CALLBACK: decrypted inner response.data', ['keys' => array_keys($innerData ?? [])]);
             } catch (\Throwable $e) {
-                Log::warning('KNET CALLBACK: inner decrypt failed, using outer data', ['error' => $e->getMessage()]);
+                $callbackData = $outerData;
+                Log::warning('KNET CALLBACK: inner decrypt failed', ['error' => $e->getMessage()]);
             }
+
+        } elseif (is_string($response) && ctype_xdigit($response)) {
+            // Case 3: response is itself an encrypted hex string
+            try {
+                $innerData    = $this->hesabePaymentService->decryptCallbackData($response);
+                $callbackData = ! empty($innerData) ? $innerData : $outerData;
+                Log::info('KNET CALLBACK: decrypted response hex string', ['keys' => array_keys($innerData ?? [])]);
+            } catch (\Throwable $e) {
+                $callbackData = $outerData;
+                Log::warning('KNET CALLBACK: response string decrypt failed', ['error' => $e->getMessage()]);
+            }
+
+        } else {
+            // Fallback
+            $callbackData = $outerData;
         }
 
         Log::info('KNET CALLBACK: decrypted', [
@@ -299,8 +325,8 @@ class HesabePaymentController extends Controller
             'reference'    => $callbackData['merchantOrderReferenceNumber'] ?? null,
             'variable1'    => $callbackData['variable1'] ?? null,
             'amount'       => $callbackData['amount'] ?? null,
-            'outer_keys'   => array_keys($outerData),
-            'inner_keys'   => isset($innerData) ? array_keys($innerData) : [],
+            'response_type' => gettype($response),
+            'response_keys' => is_array($response) ? array_keys($response) : 'n/a',
         ]);
 
         // Locate the pending order via variable1 (order_token) or merchantOrderReferenceNumber
