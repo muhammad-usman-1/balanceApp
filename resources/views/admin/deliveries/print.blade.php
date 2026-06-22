@@ -86,7 +86,7 @@
         <div class="delivery-meta">
             <strong>Delivery ID #: {{ $deliveryOrder->id }}</strong><br>
             Date: {{ $deliveryOrder->delivery_date->format('Y-m-d') }}<br>
-            Time: {{ $addr->preferred_delivery_slot ?? '—' }}
+            Time: {{ $slotLabels[$addr->preferred_delivery_slot ?? ''] ?? ($addr->preferred_delivery_slot ? ucwords(str_replace('_', ' ', $addr->preferred_delivery_slot)) : '—') }}
         </div>
     </div>
 

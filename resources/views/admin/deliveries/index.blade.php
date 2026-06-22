@@ -109,28 +109,7 @@
 
 @section('content')
 @php
-$formatSlot = function($slot) {
-    if (!$slot) return '—';
-    if (strpos($slot, '_') === false) return $slot;
-    $nums = [
-        'zero'=>'0','one'=>'1','two'=>'2','three'=>'3','four'=>'4','five'=>'5',
-        'six'=>'6','seven'=>'7','eight'=>'8','nine'=>'9','ten'=>'10',
-        'eleven'=>'11','twelve'=>'12','midnight'=>'Midnight','noon'=>'Noon',
-        'am'=>'am','pm'=>'pm','to'=>'to',
-    ];
-    $parts = explode('_', strtolower($slot));
-    $out = [];
-    for ($i = 0; $i < count($parts); $i++) {
-        $val = $nums[$parts[$i]] ?? ucfirst($parts[$i]);
-        if (is_numeric($val) && isset($parts[$i+1]) && in_array($parts[$i+1], ['am','pm'])) {
-            $out[] = $val . ($nums[$parts[$i+1]] ?? $parts[$i+1]);
-            $i++;
-        } else {
-            $out[] = $val;
-        }
-    }
-    return implode(' ', $out);
-};
+$formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_', ' ', $slot)) : '—');
 @endphp
 
 <div class="card card-do">

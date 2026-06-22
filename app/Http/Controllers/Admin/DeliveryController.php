@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryOrder;
+use App\Models\DeliveryTimeSlot;
 use App\Models\SubscriptionDay;
 use App\Models\UserSubcrption;
 use Carbon\Carbon;
@@ -80,7 +81,9 @@ class DeliveryController extends Controller
             'date'         => $date->toDateString(),
         ]);
 
-        return view('admin.deliveries.index', compact('deliveryOrders', 'date'));
+        $slotLabels = DeliveryTimeSlot::pluck('label_en', 'value')->all();
+
+        return view('admin.deliveries.index', compact('deliveryOrders', 'date', 'slotLabels'));
     }
 
     public function printNote(DeliveryOrder $deliveryOrder)
@@ -93,7 +96,9 @@ class DeliveryController extends Controller
             'subscriptionDay.subscription_meals.meal',
         ]);
 
-        return view('admin.deliveries.print', compact('deliveryOrder'));
+        $slotLabels = DeliveryTimeSlot::pluck('label_en', 'value')->all();
+
+        return view('admin.deliveries.print', compact('deliveryOrder', 'slotLabels'));
     }
 
     public function printAll(Request $request)
@@ -147,7 +152,9 @@ class DeliveryController extends Controller
             $deliveryOrders->push($order);
         }
 
-        return view('admin.deliveries.print-all', compact('deliveryOrders', 'date'));
+        $slotLabels = DeliveryTimeSlot::pluck('label_en', 'value')->all();
+
+        return view('admin.deliveries.print-all', compact('deliveryOrders', 'date', 'slotLabels'));
     }
 
     public function updateStatus(Request $request, DeliveryOrder $deliveryOrder)
