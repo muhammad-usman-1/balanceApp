@@ -475,7 +475,7 @@ class HesabePaymentController extends Controller
         if ($paymentOrder->isPaid() && $paymentOrder->subscription_id) {
             $subscription = UserSubcrption::with([
                 'subcrption_plans',
-                'subscription_days',
+                'subscription_days.subscription_meals',
             ])->find($paymentOrder->subscription_id);
 
             $data['subscription'] = $subscription;
