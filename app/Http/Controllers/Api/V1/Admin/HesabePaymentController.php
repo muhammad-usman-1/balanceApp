@@ -355,15 +355,18 @@ class HesabePaymentController extends Controller
             return response('OK', 200);
         }
 
-        $resultCode = (int) ($callbackData['resultCode'] ?? 0);
+        $rawResultCode = $callbackData['resultCode'] ?? null;
+        $isSuccess = $rawResultCode === 1
+            || $rawResultCode === '1'
+            || strtoupper((string) $rawResultCode) === 'CAPTURED';
 
-        if ($resultCode !== 1) {
+        if (! $isSuccess) {
             $paymentOrder->update([
                 'status'           => 'failed',
                 'hesabe_response'  => $callbackData,
             ]);
             Log::warning('KNET CALLBACK: payment failed', [
-                'result_code' => $resultCode,
+                'result_code' => $rawResultCode,
                 'order_token' => $paymentOrder->order_token,
             ]);
             return response('OK', 200);
