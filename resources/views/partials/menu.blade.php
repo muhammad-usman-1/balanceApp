@@ -1,257 +1,205 @@
-<aside class="main-sidebar sb-sidebar">
+<aside class="main-sidebar app-sb" id="appSidebar">
 
-    {{-- ── Brand ── --}}
-    <a href="{{ route('admin.home') }}" class="sb-brand">
-        <div class="sb-brand-logo">
-            <img src="{{ asset('images/balance-text.png') }}" alt="Balance">
-        </div>
-        <span class="sb-brand-sub">Admin Panel</span>
-    </a>
+    {{-- Header --}}
+    <div class="app-sb__head">
+        <a href="{{ route('admin.home') }}" class="app-sb__brand">
+            <img src="{{ asset('images/balance-text.png') }}" alt="Balance" class="app-sb__logo">
+            <span class="app-sb__sub">Admin Panel</span>
+        </a>
+        <button class="app-sb__close" id="sbClose" aria-label="Close sidebar">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
 
-    {{-- ── Scrollable nav ── --}}
-    <div class="sb-scroll">
-        <ul class="nav nav-pills nav-sidebar flex-column sb-nav" data-widget="treeview" role="menu" data-accordion="false">
+    {{-- Scrollable nav --}}
+    <div class="app-sb__body">
+        <nav>
 
             {{-- ─── OVERVIEW ─── --}}
             @if(!$isBranchUser)
-            <li class="sb-section-label">Overview</li>
-            <li class="nav-item sb-item">
-                <a class="nav-link sb-link {{ request()->routeIs('admin.home') ? 'active' : '' }}"
-                   href="{{ route('admin.home') }}">
-                    <span class="sb-icon si-blue"><i class="fas fa-th-large"></i></span>
-                    <span class="sb-label">Dashboard</span>
-                </a>
-            </li>
+            <p class="app-sb__sec">Overview</p>
+            <a href="{{ route('admin.home') }}"
+               class="app-sb__link {{ request()->routeIs('admin.home') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-blue"><i class="fas fa-th-large"></i></span>
+                <span class="app-sb__txt">Dashboard</span>
+            </a>
             @endif
 
             {{-- ─── OPERATIONS ─── --}}
-            <li class="sb-section-label">
-                @if($isBranchUser)
-                    {{ $branchName }} Branch
-                @else
-                    Operations
-                @endif
-            </li>
+            @if($isBranchUser)
+            <p class="app-sb__sec">{{ $branchName }} Branch</p>
+            @else
+            <p class="app-sb__sec">Operations</p>
+            @endif
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.delivery-orders.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/delivery-orders*') ? 'active' : '' }}">
-                    <span class="sb-icon si-teal"><i class="fas fa-truck"></i></span>
-                    <span class="sb-label">Delivery Orders</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.delivery-orders.index') }}"
+               class="app-sb__link {{ request()->is('admin/delivery-orders*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-teal"><i class="fas fa-truck"></i></span>
+                <span class="app-sb__txt">Delivery Orders</span>
+            </a>
 
             @can('user_subcrption_access')
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.user-subcrptions.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/user-subcrptions*') ? 'active' : '' }}">
-                    <span class="sb-icon si-green"><i class="fas fa-clipboard-list"></i></span>
-                    <span class="sb-label">Subscriptions</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.user-subcrptions.index') }}"
+               class="app-sb__link {{ request()->is('admin/user-subcrptions*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-green"><i class="fas fa-clipboard-list"></i></span>
+                <span class="app-sb__txt">Subscriptions</span>
+            </a>
             @endcan
 
             @if(!$isBranchUser)
             @can('user_subcrption_access')
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.pause-requests.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/pause-requests*') ? 'active' : '' }}">
-                    <span class="sb-icon" style="background:#fef3c7; color:#d97706;"><i class="fas fa-pause-circle"></i></span>
-                    <span class="sb-label">Pause Requests</span>
-                    @php $pendingCount = \App\Models\SubscriptionPauseRequest::where('status','pending')->count(); @endphp
-                    @if($pendingCount > 0)
-                        <span style="margin-left:auto; background:#d97706; color:#fff; border-radius:10px; padding:1px 7px; font-size:.68rem; font-weight:700;">
-                            {{ $pendingCount }}
-                        </span>
-                    @endif
-                </a>
-            </li>
+            @php $pendingCount = \App\Models\SubscriptionPauseRequest::where('status','pending')->count(); @endphp
+            <a href="{{ route('admin.pause-requests.index') }}"
+               class="app-sb__link {{ request()->is('admin/pause-requests*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-amber"><i class="fas fa-pause-circle"></i></span>
+                <span class="app-sb__txt">Pause Requests</span>
+                @if($pendingCount > 0)
+                <span class="app-sb__badge">{{ $pendingCount }}</span>
+                @endif
+            </a>
             @endcan
             @endif
 
             {{-- ─── MEAL CATALOG (superadmin only) ─── --}}
             @if(!$isBranchUser)
-            <li class="sb-section-label">Meal Catalog</li>
+            <p class="app-sb__sec">Meal Catalog</p>
 
             @can('meal_access')
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.meals.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/meals*') && !request()->is('admin/meal-restrictions*') ? 'active' : '' }}">
-                    <span class="sb-icon si-orange"><i class="fas fa-utensils"></i></span>
-                    <span class="sb-label">Meals</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.meals.index') }}"
+               class="app-sb__link {{ request()->is('admin/meals*') && !request()->is('admin/meal-restrictions*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-orange"><i class="fas fa-utensils"></i></span>
+                <span class="app-sb__txt">Meals</span>
+            </a>
             @endcan
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.meal-restrictions.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/meal-restrictions*') ? 'active' : '' }}">
-                    <span class="sb-icon si-red" style="background:#fee2e2; color:#dc2626;"><i class="fas fa-ban"></i></span>
-                    <span class="sb-label">Meal Limits</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.meal-restrictions.index') }}"
+               class="app-sb__link {{ request()->is('admin/meal-restrictions*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-red"><i class="fas fa-ban"></i></span>
+                <span class="app-sb__txt">Meal Limits</span>
+            </a>
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.categories.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/categories*') ? 'active' : '' }}">
-                    <span class="sb-icon si-violet"><i class="fas fa-tags"></i></span>
-                    <span class="sb-label">Categories</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.categories.index') }}"
+               class="app-sb__link {{ request()->is('admin/categories*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-violet"><i class="fas fa-tags"></i></span>
+                <span class="app-sb__txt">Categories</span>
+            </a>
 
             @can('subcrption_plan_access')
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.subcrption-plans.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/subcrption-plans*') ? 'active' : '' }}">
-                    <span class="sb-icon si-indigo"><i class="fas fa-layer-group"></i></span>
-                    <span class="sb-label">Subscription Plans</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.subcrption-plans.index') }}"
+               class="app-sb__link {{ request()->is('admin/subcrption-plans*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-indigo"><i class="fas fa-layer-group"></i></span>
+                <span class="app-sb__txt">Subscription Plans</span>
+            </a>
             @endcan
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.protein-options.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/protein-options*') ? 'active' : '' }}">
-                    <span class="sb-icon si-amber"><i class="fas fa-dumbbell"></i></span>
-                    <span class="sb-label">Protein Pricing</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.protein-options.index') }}"
+               class="app-sb__link {{ request()->is('admin/protein-options*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-amber"><i class="fas fa-dumbbell"></i></span>
+                <span class="app-sb__txt">Protein Pricing</span>
+            </a>
 
             {{-- ─── LOCATIONS ─── --}}
-            <li class="sb-section-label">Locations</li>
+            <p class="app-sb__sec">Locations</p>
 
-            <li class="nav-item has-treeview sb-item
-                {{ request()->is('admin/areas*') || request()->is('admin/branches*') ? 'menu-open' : '' }}">
-                <a class="nav-link sb-link sb-has-sub
-                    {{ request()->is('admin/areas*') || request()->is('admin/branches*') ? 'active' : '' }}"
-                   href="#">
-                    <span class="sb-icon si-emerald"><i class="fas fa-map-marker-alt"></i></span>
-                    <span class="sb-label">Branches &amp; Areas</span>
-                    <i class="sb-chevron fas fa-chevron-right"></i>
+            <div class="app-sb__tree {{ request()->is('admin/areas*') || request()->is('admin/branches*') ? 'is-open' : '' }}">
+                <a href="#" class="app-sb__link app-sb__tree-trigger">
+                    <span class="app-sb__ic si-emerald"><i class="fas fa-map-marker-alt"></i></span>
+                    <span class="app-sb__txt">Branches &amp; Areas</span>
+                    <i class="app-sb__chev fas fa-chevron-right"></i>
                 </a>
-                <ul class="nav nav-treeview sb-submenu">
-                    <li class="nav-item">
-                        <a href="{{ route('admin.branches.index') }}"
-                           class="nav-link sb-sublink {{ request()->is('admin/branches*') ? 'active' : '' }}">
-                            <i class="fas fa-circle"></i>
-                            <span>Branches</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('admin.areas.index') }}"
-                           class="nav-link sb-sublink {{ request()->is('admin/areas*') ? 'active' : '' }}">
-                            <i class="fas fa-circle"></i>
-                            <span>Areas</span>
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                <div class="app-sb__sub-list">
+                    <a href="{{ route('admin.branches.index') }}"
+                       class="app-sb__sub-link {{ request()->is('admin/branches*') ? 'is-active' : '' }}">
+                        <i class="fas fa-circle app-sb__dot"></i><span>Branches</span>
+                    </a>
+                    <a href="{{ route('admin.areas.index') }}"
+                       class="app-sb__sub-link {{ request()->is('admin/areas*') ? 'is-active' : '' }}">
+                        <i class="fas fa-circle app-sb__dot"></i><span>Areas</span>
+                    </a>
+                </div>
+            </div>
 
             {{-- ─── MARKETING ─── --}}
-            <li class="sb-section-label">Marketing</li>
+            <p class="app-sb__sec">Marketing</p>
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.coupons.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/coupons*') ? 'active' : '' }}">
-                    <span class="sb-icon si-pink"><i class="fas fa-ticket-alt"></i></span>
-                    <span class="sb-label">Coupons</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.coupons.index') }}"
+               class="app-sb__link {{ request()->is('admin/coupons*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-pink"><i class="fas fa-ticket-alt"></i></span>
+                <span class="app-sb__txt">Coupons</span>
+            </a>
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.notifications.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/notifications*') ? 'active' : '' }}">
-                    <span class="sb-icon si-amber"><i class="fas fa-bell"></i></span>
-                    <span class="sb-label">Notifications</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.notifications.index') }}"
+               class="app-sb__link {{ request()->is('admin/notifications*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-amber"><i class="fas fa-bell"></i></span>
+                <span class="app-sb__txt">Notifications</span>
+            </a>
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.affiliated-codes.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/affiliated-codes*') ? 'active' : '' }}">
-                    <span class="sb-icon si-cyan"><i class="fas fa-link"></i></span>
-                    <span class="sb-label">Affiliated Codes</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.affiliated-codes.index') }}"
+               class="app-sb__link {{ request()->is('admin/affiliated-codes*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-cyan"><i class="fas fa-link"></i></span>
+                <span class="app-sb__txt">Affiliated Codes</span>
+            </a>
 
             {{-- ─── USER PREFERENCES ─── --}}
-            <li class="sb-section-label">User Preferences</li>
+            <p class="app-sb__sec">User Preferences</p>
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.user-allergies.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/user-allergies*') ? 'active' : '' }}">
-                    <span class="sb-icon" style="background:#fee2e2; color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></span>
-                    <span class="sb-label">Allergies</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.user-allergies.index') }}"
+               class="app-sb__link {{ request()->is('admin/user-allergies*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-red"><i class="fas fa-exclamation-triangle"></i></span>
+                <span class="app-sb__txt">Allergies</span>
+            </a>
 
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.user-dislikes.index') }}"
-                   class="nav-link sb-link {{ request()->is('admin/user-dislikes*') ? 'active' : '' }}">
-                    <span class="sb-icon" style="background:#ffedd5; color:#c2410c;"><i class="fas fa-thumbs-down"></i></span>
-                    <span class="sb-label">Dislikes</span>
-                </a>
-            </li>
+            <a href="{{ route('admin.user-dislikes.index') }}"
+               class="app-sb__link {{ request()->is('admin/user-dislikes*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-orange"><i class="fas fa-thumbs-down"></i></span>
+                <span class="app-sb__txt">Dislikes</span>
+            </a>
 
             {{-- ─── USER MANAGEMENT ─── --}}
             @can('user_management_access')
-            <li class="sb-section-label">User Management</li>
+            <p class="app-sb__sec">User Management</p>
 
-            <li class="nav-item has-treeview sb-item
-                {{ request()->is('admin/users*') || request()->is('admin/roles*') || request()->is('admin/permissions*') ? 'menu-open' : '' }}">
-                <a class="nav-link sb-link sb-has-sub
-                    {{ request()->is('admin/users*') || request()->is('admin/roles*') || request()->is('admin/permissions*') ? 'active' : '' }}"
-                   href="#">
-                    <span class="sb-icon si-slate"><i class="fas fa-users-cog"></i></span>
-                    <span class="sb-label">{{ trans('cruds.userManagement.title') }}</span>
-                    <i class="sb-chevron fas fa-chevron-right"></i>
+            <div class="app-sb__tree {{ request()->is('admin/users*') || request()->is('admin/roles*') || request()->is('admin/permissions*') ? 'is-open' : '' }}">
+                <a href="#" class="app-sb__link app-sb__tree-trigger">
+                    <span class="app-sb__ic si-slate"><i class="fas fa-users-cog"></i></span>
+                    <span class="app-sb__txt">{{ trans('cruds.userManagement.title') }}</span>
+                    <i class="app-sb__chev fas fa-chevron-right"></i>
                 </a>
-                <ul class="nav nav-treeview sb-submenu">
+                <div class="app-sb__sub-list">
                     @can('user_access')
-                    <li class="nav-item">
-                        <a href="{{ route('admin.users.index') }}"
-                           class="nav-link sb-sublink {{ request()->is('admin/users*') ? 'active' : '' }}">
-                            <i class="fas fa-circle"></i>
-                            <span>{{ trans('cruds.user.title') }}</span>
-                        </a>
-                    </li>
+                    <a href="{{ route('admin.users.index') }}"
+                       class="app-sb__sub-link {{ request()->is('admin/users*') ? 'is-active' : '' }}">
+                        <i class="fas fa-circle app-sb__dot"></i><span>{{ trans('cruds.user.title') }}</span>
+                    </a>
                     @endcan
                     @can('role_access')
-                    <li class="nav-item">
-                        <a href="{{ route('admin.roles.index') }}"
-                           class="nav-link sb-sublink {{ request()->is('admin/roles*') ? 'active' : '' }}">
-                            <i class="fas fa-circle"></i>
-                            <span>{{ trans('cruds.role.title') }}</span>
-                        </a>
-                    </li>
+                    <a href="{{ route('admin.roles.index') }}"
+                       class="app-sb__sub-link {{ request()->is('admin/roles*') ? 'is-active' : '' }}">
+                        <i class="fas fa-circle app-sb__dot"></i><span>{{ trans('cruds.role.title') }}</span>
+                    </a>
                     @endcan
                     @can('permission_access')
-                    <li class="nav-item">
-                        <a href="{{ route('admin.permissions.index') }}"
-                           class="nav-link sb-sublink {{ request()->is('admin/permissions*') ? 'active' : '' }}">
-                            <i class="fas fa-circle"></i>
-                            <span>{{ trans('cruds.permission.title') }}</span>
-                        </a>
-                    </li>
+                    <a href="{{ route('admin.permissions.index') }}"
+                       class="app-sb__sub-link {{ request()->is('admin/permissions*') ? 'is-active' : '' }}">
+                        <i class="fas fa-circle app-sb__dot"></i><span>{{ trans('cruds.permission.title') }}</span>
+                    </a>
                     @endcan
-                </ul>
-            </li>
+                </div>
+            </div>
             @endcan
 
             {{-- ─── SYSTEM ─── --}}
             @if(auth()->user() && auth()->user()->is_admin)
-            <li class="sb-section-label">System</li>
-            <li class="nav-item sb-item">
-                <a href="{{ route('admin.settings.edit') }}"
-                   class="nav-link sb-link {{ request()->is('admin/settings*') ? 'active' : '' }}">
-                    <span class="sb-icon si-slate"><i class="fas fa-cog"></i></span>
-                    <span class="sb-label">Settings</span>
-                </a>
-            </li>
+            <p class="app-sb__sec">System</p>
+            <a href="{{ route('admin.settings.edit') }}"
+               class="app-sb__link {{ request()->is('admin/settings*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-slate"><i class="fas fa-cog"></i></span>
+                <span class="app-sb__txt">Settings</span>
+            </a>
             @endif
             @endif {{-- end !$isBranchUser --}}
 
-        </ul>
+        </nav>
     </div>
 
 </aside>
