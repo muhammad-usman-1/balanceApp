@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(ls -la \"c:\\\\Users\\\\ST\\\\Downloads\\\\dev-balanceapp-admin\\\\\" | head -30)",
-      "Read(//c/Users/ST/Downloads/**)"
-    ]
-  }
-}
