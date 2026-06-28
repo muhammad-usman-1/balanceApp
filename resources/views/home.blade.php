@@ -254,10 +254,30 @@
 .db-empty { padding: 48px; text-align: center; color: var(--c-sub); }
 .db-empty i { font-size: 2rem; opacity: .25; display: block; margin-bottom: 10px; }
 
+/* ── Branch dashboard ── */
+.branch-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+}
+.branch-del-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 24px;
+}
+.branch-stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
 /* ── Responsive ── */
-@media (max-width: 1200px) { .kpi-row { grid-template-columns: repeat(2,1fr); } .stat-row { grid-template-columns: repeat(3,1fr); } }
-@media (max-width: 900px)  { .stat-row { grid-template-columns: repeat(2,1fr); } .mid-row { grid-template-columns: 1fr; } }
-@media (max-width: 640px)  { .db { padding: 16px 14px 32px; } .kpi-row { grid-template-columns: 1fr; } .stat-row { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 1200px) { .kpi-row { grid-template-columns: repeat(2,1fr); } .stat-row { grid-template-columns: repeat(3,1fr); } .branch-kpi-row { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px)  { .stat-row { grid-template-columns: repeat(2,1fr); } .mid-row { grid-template-columns: 1fr; } .branch-del-grid { grid-template-columns: 1fr; } .branch-stat-row { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 640px)  { .db { padding: 16px 14px 32px; } .kpi-row { grid-template-columns: 1fr; } .stat-row { grid-template-columns: repeat(2,1fr); } .branch-kpi-row { grid-template-columns: 1fr; } .branch-stat-row { grid-template-columns: 1fr; } }
 </style>
 @endsection
 
@@ -274,14 +294,200 @@
     {{-- ── Topbar ── --}}
     <div class="db-topbar">
         <div>
+            @if($isBranchUser)
+            <h2>{{ $branchName }} Branch</h2>
+            <p>Today's operations overview for your branch.</p>
+            @else
             <h2>Welcome back, {{ auth()->user()->name ?? 'Admin' }}</h2>
             <p>Here's an overview of Balance operations for today.</p>
+            @endif
         </div>
         <div class="db-date">
             <i class="fas fa-calendar-alt"></i>
             {{ now()->format('l, F j, Y') }}
         </div>
     </div>
+
+    @if($isBranchUser)
+    {{-- ══════════════════════════════════════════
+         BRANCH DASHBOARD
+    ══════════════════════════════════════════ --}}
+
+    {{-- Branch KPI cards --}}
+    <p class="db-sec-title">Today's Overview</p>
+    <div class="branch-kpi-row">
+
+        <div class="kpi kpi-teal" style="cursor:default;">
+            <div class="kpi-top">
+                <div class="kpi-icon ki-teal"><i class="fas fa-truck"></i></div>
+                <span class="kpi-badge">Today</span>
+            </div>
+            <div class="kpi-value">{{ number_format($branchDeliveryTotal) }}</div>
+            <p class="kpi-label">Scheduled Deliveries</p>
+        </div>
+
+        <a href="{{ route('admin.delivery-orders.index') }}" class="kpi kpi-green">
+            <div class="kpi-top">
+                <div class="kpi-icon ki-green"><i class="fas fa-check-circle"></i></div>
+                <span class="kpi-badge">Done</span>
+            </div>
+            <div class="kpi-value">{{ number_format($branchDelivered) }}</div>
+            <p class="kpi-label">Delivered Today</p>
+            <span class="kpi-link">View orders <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+        <div class="kpi kpi-purple" style="cursor:default;">
+            <div class="kpi-top">
+                <div class="kpi-icon ki-purple"><i class="fas fa-hourglass-half"></i></div>
+                <span class="kpi-badge">Pending</span>
+            </div>
+            <div class="kpi-value">{{ number_format($branchPending) }}</div>
+            <p class="kpi-label">Pending Deliveries</p>
+        </div>
+
+        <a href="{{ route('admin.user-subcrptions.index') }}" class="kpi kpi-blue">
+            <div class="kpi-top">
+                <div class="kpi-icon ki-blue"><i class="fas fa-clipboard-check"></i></div>
+                <span class="kpi-badge">Active</span>
+            </div>
+            <div class="kpi-value">{{ number_format($branchActiveSubscriptions) }}</div>
+            <p class="kpi-label">Active Subscriptions <span style="font-size:.75rem;color:#9ca3af;">/ {{ number_format($branchTotalSubscriptions) }} total</span></p>
+            <span class="kpi-link">View all <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+    </div>
+
+    {{-- Branch stat row --}}
+    <p class="db-sec-title">Quick Stats</p>
+    <div class="branch-stat-row">
+
+        <a href="{{ route('admin.user-subcrptions.index') }}" class="stat">
+            <div class="stat-icon si-blue"><i class="fas fa-user-plus"></i></div>
+            <div>
+                <div class="stat-val">{{ number_format($branchTodaySubscriptions) }}</div>
+                <div class="stat-label">New Subscriptions Today</div>
+            </div>
+        </a>
+
+        <a href="{{ route('admin.pause-requests.index') }}" class="stat">
+            <div class="stat-icon si-orange"><i class="fas fa-pause-circle"></i></div>
+            <div>
+                <div class="stat-val">{{ number_format($branchPauseRequests) }}</div>
+                <div class="stat-label">Pending Pause Requests</div>
+            </div>
+        </a>
+
+        <a href="{{ route('admin.meals.index') }}" class="stat">
+            <div class="stat-icon" style="background:#fff7ed;color:#ea580c;"><i class="fas fa-utensils"></i></div>
+            <div>
+                <div class="stat-val">{{ number_format($branchTotalMeals) }}</div>
+                <div class="stat-label">Total Meals</div>
+            </div>
+        </a>
+
+    </div>
+
+    {{-- Branch delivery progress --}}
+    <p class="db-sec-title">Delivery Progress</p>
+    <div class="db-card" style="margin-bottom:24px;">
+        <div class="panel-hdr">
+            <div class="panel-hdr-icon" style="background:#f0fdfa;color:#0d9488;"><i class="fas fa-truck"></i></div>
+            <h6>Today's Delivery Status</h6>
+            <span style="font-size:.75rem;color:#9ca3af;">{{ now()->format('d M Y') }}</span>
+        </div>
+        <div class="panel-body">
+            <div class="del-row">
+                <div class="del-box del-total">
+                    <div class="del-box-val" style="color:#374151;">{{ $branchDeliveryTotal }}</div>
+                    <div class="del-box-label">Scheduled</div>
+                </div>
+                <div class="del-box del-done">
+                    <div class="del-box-val">{{ $branchDelivered }}</div>
+                    <div class="del-box-label">Delivered</div>
+                </div>
+                <div class="del-box del-pend">
+                    <div class="del-box-val">{{ $branchPending }}</div>
+                    <div class="del-box-label">Pending</div>
+                </div>
+            </div>
+            @if($branchDeliveryTotal > 0)
+            <div style="margin-top:16px;">
+                <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#9ca3af;margin-bottom:6px;">
+                    <span>Completion Rate</span>
+                    <span style="font-weight:600;color:#374151;">{{ round($branchDelivered / $branchDeliveryTotal * 100) }}%</span>
+                </div>
+                <div style="height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;">
+                    <div style="height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px;width:{{ round($branchDelivered/$branchDeliveryTotal*100) }}%;transition:width .6s ease;"></div>
+                </div>
+            </div>
+            @endif
+            <a href="{{ route('admin.delivery-orders.index') }}" class="del-link">
+                <i class="fas fa-external-link-alt"></i> Manage Delivery Orders
+            </a>
+        </div>
+    </div>
+
+    {{-- Branch recent deliveries table --}}
+    <p class="db-sec-title">Today's Deliveries</p>
+    <div class="db-card">
+        <div class="tbl-hdr">
+            <div>
+                <h6>Today's Delivery Orders</h6>
+                <p>All orders scheduled for today in your branch</p>
+            </div>
+            <a href="{{ route('admin.delivery-orders.index') }}" class="view-all">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+        @if($recentDeliveries->count() > 0)
+        <div class="table-responsive">
+            <table class="db-tbl">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Customer</th>
+                        <th>Delivery Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($recentDeliveries as $order)
+                    <tr>
+                        <td style="color:#9ca3af;font-size:.78rem;">#{{ $order->id }}</td>
+                        <td style="font-weight:500;">{{ $order->subscription->user->name ?? '—' }}</td>
+                        <td style="white-space:nowrap;color:#6b7280;">{{ $order->delivery_date ?? '—' }}</td>
+                        <td>
+                            @if($order->status === 'delivered')
+                                <span class="pill pill-green">Delivered</span>
+                            @elseif($order->status === 'pending')
+                                <span class="pill" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;">Pending</span>
+                            @else
+                                <span class="pill pill-gray">{{ ucfirst($order->status ?? '—') }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('admin.delivery-orders.show', $order->id) }}" class="act-btn" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <div class="db-empty">
+            <i class="fas fa-truck"></i>
+            <p>No deliveries scheduled for today.</p>
+        </div>
+        @endif
+    </div>
+
+    @else
+    {{-- ══════════════════════════════════════════
+         SUPERADMIN DASHBOARD
+    ══════════════════════════════════════════ --}}
 
     {{-- ── KPI row ── --}}
     <p class="db-sec-title">Key Metrics</p>
@@ -523,6 +729,8 @@
         </div>
         @endif
     </div>
+
+    @endif {{-- end $isBranchUser --}}
 
 </div>
 @endsection

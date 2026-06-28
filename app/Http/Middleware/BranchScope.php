@@ -15,7 +15,6 @@ class BranchScope
         if ($user && $user->isBranchUser()) {
             // Block branch admins from accessing admin-only routes
             $blockedPrefixes = [
-                'admin/meals',
                 'admin/categories',
                 'admin/subcrption-plans',
                 'admin/protein-options',
@@ -28,10 +27,7 @@ class BranchScope
                 'admin/roles',
                 'admin/permissions',
                 'admin/settings',
-                'admin/pause-requests',
                 'admin/meal-restrictions',
-                'admin/user-allergies',
-                'admin/user-dislikes',
             ];
 
             foreach ($blockedPrefixes as $prefix) {

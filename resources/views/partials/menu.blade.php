@@ -4,7 +4,7 @@
     <div class="app-sb__head">
         <a href="{{ route('admin.home') }}" class="app-sb__brand">
             <img src="{{ asset('images/balance-text.png') }}" alt="Balance" class="app-sb__logo">
-            <span class="app-sb__sub">Admin Panel</span>
+            <span class="app-sb__sub">{{ $isBranchUser ? ($branchName.' Branch') : 'Admin Panel' }}</span>
         </a>
         <button class="app-sb__close" id="sbClose" aria-label="Close sidebar">
             <i class="fas fa-times"></i>
@@ -15,15 +15,13 @@
     <div class="app-sb__body">
         <nav>
 
-            {{-- ─── OVERVIEW ─── --}}
-            @if(!$isBranchUser)
+            {{-- ─── OVERVIEW (everyone) ─── --}}
             <p class="app-sb__sec">Overview</p>
             <a href="{{ route('admin.home') }}"
                class="app-sb__link {{ request()->routeIs('admin.home') ? 'is-active' : '' }}">
                 <span class="app-sb__ic si-blue"><i class="fas fa-th-large"></i></span>
                 <span class="app-sb__txt">Dashboard</span>
             </a>
-            @endif
 
             {{-- ─── OPERATIONS ─── --}}
             @if($isBranchUser)
@@ -46,7 +44,6 @@
             </a>
             @endcan
 
-            @if(!$isBranchUser)
             @can('user_subcrption_access')
             @php $pendingCount = \App\Models\SubscriptionPauseRequest::where('status','pending')->count(); @endphp
             <a href="{{ route('admin.pause-requests.index') }}"
@@ -58,20 +55,19 @@
                 @endif
             </a>
             @endcan
-            @endif
 
-            {{-- ─── MEAL CATALOG (superadmin only) ─── --}}
-            @if(!$isBranchUser)
+            {{-- ─── MEAL CATALOG ─── --}}
             <p class="app-sb__sec">Meal Catalog</p>
 
-            @can('meal_access')
+            @if($isBranchUser || auth()->user()->can('meal_access'))
             <a href="{{ route('admin.meals.index') }}"
                class="app-sb__link {{ request()->is('admin/meals*') && !request()->is('admin/meal-restrictions*') ? 'is-active' : '' }}">
                 <span class="app-sb__ic si-orange"><i class="fas fa-utensils"></i></span>
                 <span class="app-sb__txt">Meals</span>
             </a>
-            @endcan
+            @endif
 
+            @if(!$isBranchUser)
             <a href="{{ route('admin.meal-restrictions.index') }}"
                class="app-sb__link {{ request()->is('admin/meal-restrictions*') ? 'is-active' : '' }}">
                 <span class="app-sb__ic si-red"><i class="fas fa-ban"></i></span>
@@ -98,7 +94,7 @@
                 <span class="app-sb__txt">Protein Pricing</span>
             </a>
 
-            {{-- ─── LOCATIONS ─── --}}
+            {{-- ─── LOCATIONS (superadmin only) ─── --}}
             <p class="app-sb__sec">Locations</p>
 
             <div class="app-sb__tree {{ request()->is('admin/areas*') || request()->is('admin/branches*') ? 'is-open' : '' }}">
@@ -119,7 +115,7 @@
                 </div>
             </div>
 
-            {{-- ─── MARKETING ─── --}}
+            {{-- ─── MARKETING (superadmin only) ─── --}}
             <p class="app-sb__sec">Marketing</p>
 
             <a href="{{ route('admin.coupons.index') }}"
@@ -139,8 +135,9 @@
                 <span class="app-sb__ic si-cyan"><i class="fas fa-link"></i></span>
                 <span class="app-sb__txt">Affiliated Codes</span>
             </a>
+            @endif {{-- end !$isBranchUser for Locations & Marketing --}}
 
-            {{-- ─── USER PREFERENCES ─── --}}
+            {{-- ─── USER PREFERENCES (everyone) ─── --}}
             <p class="app-sb__sec">User Preferences</p>
 
             <a href="{{ route('admin.user-allergies.index') }}"
@@ -155,7 +152,9 @@
                 <span class="app-sb__txt">Dislikes</span>
             </a>
 
-            {{-- ─── USER MANAGEMENT ─── --}}
+            {{-- ─── USER MANAGEMENT + SYSTEM (superadmin only) ─── --}}
+            @if(!$isBranchUser)
+
             @can('user_management_access')
             <p class="app-sb__sec">User Management</p>
 
@@ -188,7 +187,6 @@
             </div>
             @endcan
 
-            {{-- ─── SYSTEM ─── --}}
             @if(auth()->user() && auth()->user()->is_admin)
             <p class="app-sb__sec">System</p>
             <a href="{{ route('admin.settings.edit') }}"
@@ -197,6 +195,7 @@
                 <span class="app-sb__txt">Settings</span>
             </a>
             @endif
+
             @endif {{-- end !$isBranchUser --}}
 
         </nav>
