@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -19,22 +22,22 @@
                             <div class="info-box-content">
                                 <strong>Coupon Details:</strong><br>
                                 <small>
-                                    Code: <strong>{{ $coupon->coupon_code }}</strong> | 
-                                    Type: <strong>{{ ucfirst($coupon->type) }}</strong> | 
+                                    Code: <strong>{{ $coupon->coupon_code }}</strong> |
+                                    Type: <strong>{{ ucfirst($coupon->type) }}</strong> |
                                     Value: <strong>
                                         @if($coupon->type === 'percentage')
                                             {{ number_format($coupon->value, 2) }}%
                                         @else
                                             {{ number_format($coupon->value, 2) }}
                                         @endif
-                                    </strong> | 
+                                    </strong> |
                                     Usage Limit: <strong>
                                         @if($coupon->usage_limit_per_user)
                                             {{ $coupon->usage_limit_per_user }} per user
                                         @else
                                             Unlimited
                                         @endif
-                                    </strong> | 
+                                    </strong> |
                                     Total Uses: <strong>{{ $usages->count() }}</strong>
                                 </small>
                             </div>

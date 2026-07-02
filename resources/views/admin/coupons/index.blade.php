@@ -2,7 +2,9 @@
 @section('content')
 
 @include('partials.idx-styles')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-ticket-alt mr-2" style="color:#db2777;"></i> Coupons</h3>

@@ -3,6 +3,8 @@
 
 @include('partials.idx-styles')
 <style>
+ .content-wrapper { background: #fff !important; }
+
 .mf-label {
     font-size: .75rem; font-weight: 700; color: #374151;
     text-transform: uppercase; letter-spacing: .04em;

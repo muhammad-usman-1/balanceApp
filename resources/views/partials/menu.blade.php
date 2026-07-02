@@ -56,6 +56,27 @@
             </a>
             @endcan
 
+            {{-- ─── APP INQUIRIES (everyone) ─── --}}
+            @php $unreadInquiries = \App\Models\AppInquiry::where('status','new')->count(); @endphp
+            <a href="{{ route('admin.inquiries.index') }}"
+               class="app-sb__link {{ request()->is('admin/inquiries*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-teal"><i class="fas fa-envelope-open-text"></i></span>
+                <span class="app-sb__txt">App Inquiries</span>
+                @if($unreadInquiries > 0)
+                    <span class="app-sb__badge">{{ $unreadInquiries }}</span>
+                @endif
+            </a>
+
+            {{-- ─── REPORTS (superadmin only) ─── --}}
+            @if(!$isBranchUser)
+            <p class="app-sb__sec">Reports</p>
+            <a href="{{ route('admin.reports.sales') }}"
+               class="app-sb__link {{ request()->is('admin/reports/sales*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-teal"><i class="fas fa-receipt"></i></span>
+                <span class="app-sb__txt">Sales Report</span>
+            </a>
+            @endif
+
             {{-- ─── MEAL CATALOG ─── --}}
             <p class="app-sb__sec">Meal Catalog</p>
 
@@ -187,7 +208,7 @@
             </div>
             @endcan
 
-            @if(auth()->user() && auth()->user()->is_admin)
+            @if(auth()->user()?->is_admin)
             <p class="app-sb__sec">System</p>
             <a href="{{ route('admin.settings.edit') }}"
                class="app-sb__link {{ request()->is('admin/settings*') ? 'is-active' : '' }}">

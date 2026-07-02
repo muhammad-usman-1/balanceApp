@@ -79,7 +79,7 @@
     height: var(--hdr-h);
     border-bottom: 1px solid var(--sb-border);
     flex-shrink: 0;
-    background: #fff;
+    background: white;
 }
 
 .app-sb__brand {
@@ -99,6 +99,7 @@
 }
 
 .app-sb__sub {
+    margin-top: 10px;
     font-size: .68rem;
     font-weight: 600;
     color: var(--sb-sec);
@@ -132,7 +133,7 @@
 }
 .app-sb__body::-webkit-scrollbar { width: 3px; }
 .app-sb__body::-webkit-scrollbar-track { background: transparent; }
-.app-sb__body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+.app-sb__body::-webkit-scrollbar-thumb { background: white; border-radius: 3px; }
 .app-sb__body nav { padding: 0 10px; }
 
 /* ── Section labels ── */

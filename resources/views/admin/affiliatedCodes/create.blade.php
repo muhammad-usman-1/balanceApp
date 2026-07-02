@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -12,7 +15,7 @@
                     @csrf
             <div class="form-group">
                 <label for="full_name">Full Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control @error('full_name') is-invalid @enderror" 
+                <input type="text" class="form-control @error('full_name') is-invalid @enderror"
                        id="full_name" name="full_name" value="{{ old('full_name') }}" required>
                 @error('full_name')
                     <span class="invalid-feedback">{{ $message }}</span>
@@ -22,8 +25,8 @@
             <div class="form-group">
                 <label for="code">Affiliated Code</label>
                 <div class="input-group">
-                    <input type="text" class="form-control @error('code') is-invalid @enderror" 
-                           id="code" name="code" value="{{ old('code') }}" 
+                    <input type="text" class="form-control @error('code') is-invalid @enderror"
+                           id="code" name="code" value="{{ old('code') }}"
                            placeholder="Leave empty to auto-generate" maxlength="50">
                     <div class="input-group-append">
                         <button type="button" class="btn btn-secondary" id="generateCodeBtn">
@@ -52,7 +55,7 @@
 
             <div class="form-group">
                 <label for="notes">Notes</label>
-                <textarea class="form-control @error('notes') is-invalid @enderror" 
+                <textarea class="form-control @error('notes') is-invalid @enderror"
                           id="notes" name="notes" rows="3" maxlength="1000">{{ old('notes') }}</textarea>
                 @error('notes')
                     <span class="invalid-feedback">{{ $message }}</span>

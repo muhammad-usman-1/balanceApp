@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card">
     <div class="card-header">
         <h3>Edit Coupon</h3>
@@ -66,8 +69,8 @@
             </div>
             <div class="form-group">
                 <label for="usage_limit_per_user">Usage Limit Per User</label>
-                <input type="number" name="usage_limit_per_user" id="usage_limit_per_user" 
-                       class="form-control @error('usage_limit_per_user') is-invalid @enderror" 
+                <input type="number" name="usage_limit_per_user" id="usage_limit_per_user"
+                       class="form-control @error('usage_limit_per_user') is-invalid @enderror"
                        value="{{ old('usage_limit_per_user', $coupon->usage_limit_per_user) }}" min="1" placeholder="Leave empty for unlimited">
                 <small class="form-text text-muted">
                     Maximum number of times a single user can use this coupon. Leave empty for unlimited usage.

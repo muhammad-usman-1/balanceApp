@@ -3,6 +3,7 @@
 
 @include('partials.idx-styles')
 <style>
+    .content-wrapper { background: #fff !important; }
 .meal-thumb {
     width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;
 }

@@ -3,7 +3,7 @@
 @section('styles')
 <style>
 /* ── Force white bg for content wrapper ── */
-.content-wrapper { background: #ffffff !important; }
+.content-wrapper { background: #ffffff}
 .main-footer      { background: #ffffff !important; border-top: 1px solid #e5e7eb !important; }
 
 /* ── Variables ── */
@@ -11,14 +11,14 @@
     --c-text:    #111827;
     --c-sub:     #6b7280;
     --c-border:  #e5e7eb;
-    --c-bg:      #f9fafb;
+    --c-bg:      white;
     --c-white:   #ffffff;
     --c-radius:  12px;
     --c-shadow:  0 1px 3px rgba(0,0,0,.07), 0 2px 8px rgba(0,0,0,.05);
 }
 
 /* ── Page ── */
-.db { padding: 28px 28px 48px; background: #ffffff; }
+.db { padding:5px 10px 48px}
 
 /* ── Topbar ── */
 .db-topbar {

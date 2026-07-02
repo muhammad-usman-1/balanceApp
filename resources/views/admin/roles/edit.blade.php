@@ -1,6 +1,8 @@
 @extends('layouts.admin')
 @section('content')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card">
     <div class="card-header">
         {{ trans('global.edit') }} {{ trans('cruds.role.title_singular') }}

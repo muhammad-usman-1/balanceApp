@@ -30,12 +30,6 @@ class RegisterUserRequest extends FormRequest
                 'min:1000',
                 'max:999999',
             ],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($userId),
-            ],
             'name' => [
                 'required',
                 'string',

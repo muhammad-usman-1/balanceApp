@@ -2,7 +2,9 @@
 @section('content')
 
 @include('partials.idx-styles')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-layer-group mr-2" style="color:#4338ca;"></i> Subscription Plans</h3>

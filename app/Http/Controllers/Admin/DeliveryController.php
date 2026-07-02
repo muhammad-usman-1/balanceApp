@@ -9,6 +9,7 @@ use App\Models\SubscriptionDay;
 use App\Models\UserSubcrption;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 
 class DeliveryController extends Controller
@@ -16,6 +17,7 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $branchId  = auth()->user()->isBranchUser() ? auth()->user()->branch_id : null;
+        $search    = trim($request->get('search', ''));
 
         $dateInput = $request->filled('date') ? trim($request->input('date')) : null;
         $date = ($dateInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateInput))
@@ -33,7 +35,6 @@ class DeliveryController extends Controller
             'url'             => $request->fullUrl(),
         ]);
 
-        // Get all active subscriptions that have this day scheduled and are within their date range
         $subscriptionDays = SubscriptionDay::where('day', $dayName)
             ->with([
                 'subscription_meals.meal',
@@ -42,11 +43,12 @@ class DeliveryController extends Controller
                 'user_subcrption.branch',
                 'user_subcrption.area',
             ])
-            ->whereHas('user_subcrption', function ($q) use ($date, $branchId) {
+            ->whereHas('user_subcrption', function ($q) use ($date, $branchId, $search) {
                 $q->where('status', 'active')
                   ->whereDate('start_date', '<=', $date)
                   ->whereDate('end_date', '>=', $date)
                   ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
+                  ->when($search, fn($q2) => $q2->whereHas('user', fn($q3) => $q3->where('name', 'like', '%'.$search.'%')))
                   ->where(function ($q2) use ($date) {
                       $q2->where('is_paused', false)
                          ->orWhere(function ($q3) use ($date) {
@@ -62,28 +64,37 @@ class DeliveryController extends Controller
             })
             ->get();
 
-        // Resolve or create a DeliveryOrder for each subscription day
-        $deliveryOrders = collect();
+        $allOrders = collect();
         foreach ($subscriptionDays as $subDay) {
             $order = DeliveryOrder::firstOrCreate([
-                'user_subcrption_id' => $subDay->user_subcrptions_id,
+                'user_subcrption_id'  => $subDay->user_subcrptions_id,
                 'subscription_day_id' => $subDay->id,
-                'delivery_date' => $date->toDateString(),
+                'delivery_date'       => $date->toDateString(),
             ], ['status' => 'pending']);
 
             $order->setRelation('subscriptionDay', $subDay);
             $order->setRelation('subscription', $subDay->user_subcrption);
-            $deliveryOrders->push($order);
+            $allOrders->push($order);
         }
 
         Log::info('DeliveryOrders.index result', [
-            'orders_count' => $deliveryOrders->count(),
+            'orders_count' => $allOrders->count(),
             'date'         => $date->toDateString(),
+        ]);
+
+        $perPage  = 25;
+        $page     = max(1, (int) $request->get('page', 1));
+        $total    = $allOrders->count();
+        $items    = $allOrders->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $deliveryOrders = new LengthAwarePaginator($items, $total, $perPage, $page, [
+            'path'  => $request->url(),
+            'query' => $request->query(),
         ]);
 
         $slotLabels = DeliveryTimeSlot::pluck('label_en', 'value')->all();
 
-        return view('admin.deliveries.index', compact('deliveryOrders', 'date', 'slotLabels'));
+        return view('admin.deliveries.index', compact('deliveryOrders', 'date', 'slotLabels', 'search'));
     }
 
     public function printNote(DeliveryOrder $deliveryOrder)

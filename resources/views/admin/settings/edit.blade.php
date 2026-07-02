@@ -4,6 +4,8 @@
 @include('partials.idx-styles')
 
 <style>
+.content-wrapper { background: #fff !important; }
+
 /* iOS-style toggle — only custom piece not in idx-styles */
 .st-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
 .st-switch input { opacity: 0; width: 0; height: 0; }

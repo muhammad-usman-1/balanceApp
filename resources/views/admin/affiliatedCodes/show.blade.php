@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="row">
     <div class="col-12">
         <div class="card">

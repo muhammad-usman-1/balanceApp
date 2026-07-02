@@ -2,15 +2,12 @@
 @section('content')
 
 @include('partials.idx-styles')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-clipboard-list mr-2" style="color:#16a34a;"></i> Subscriptions</h3>
-        @can('user_subcrption_create')
-        <a href="{{ route('admin.user-subcrptions.create') }}" class="idx-btn ib-green">
-            <i class="fas fa-plus"></i> Add Subscription
-        </a>
-        @endcan
     </div>
 
     @if(session('success'))
@@ -36,7 +33,6 @@
                         <th>End</th>
                         <th>Payment</th>
                         <th>Status</th>
-                        <th>Pause</th>
                         <th>Personalized</th>
                         <th>Actions</th>
                     </tr>
@@ -68,14 +64,6 @@
                             @endif
                         </td>
                         <td>
-                            @if($sub->is_paused)
-                                <span class="idx-chip chip-yellow"><i class="fas fa-pause" style="font-size:.55rem;"></i> Paused</span>
-                                <div style="font-size:.7rem; color:#9ca3af; margin-top:2px;">{{ $sub->total_paused_days ?? 0 }} days</div>
-                            @else
-                                <span style="font-size:.78rem; color:#9ca3af;">—</span>
-                            @endif
-                        </td>
-                        <td>
                             @if($sub->is_personalized)
                                 <span class="idx-chip chip-blue">Yes</span>
                             @else
@@ -88,12 +76,7 @@
                                 <i class="fas fa-utensils"></i> Meals
                             </a>
                             @endcan
-                            @if($sub->pause_logs()->count() > 0)
-                            <a href="{{ route('admin.user-subcrptions.pause-logs', $sub->id) }}" class="idx-btn ib-purple">
-                                <i class="fas fa-history"></i> Logs
-                            </a>
-                            @endif
-                            @can('user_subcrption_delete')
+@can('user_subcrption_delete')
                             <form action="{{ route('admin.user-subcrptions.destroy', $sub->id) }}" method="POST"
                                   onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
                                 @csrf @method('DELETE')
@@ -104,7 +87,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="idx-empty">
+                        <td colspan="9" class="idx-empty">
                             <i class="fas fa-clipboard-list" style="font-size:2rem; color:#d1d5db;"></i><br>
                             No subscriptions found.
                         </td>

@@ -230,4 +230,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']
     Route::get('my-subscriptions/{id}/renewal', 'Api\V1\SubscriptionRenewalApiController@show')->name('my-subscriptions.renewal.show');
     Route::post('my-subscriptions/{id}/cancel-renewal', 'Api\V1\SubscriptionRenewalApiController@cancel')->name('my-subscriptions.renewal.cancel');
     Route::put('my-subscriptions/{id}/renewal-plan', 'Api\V1\SubscriptionRenewalApiController@changePlan')->name('my-subscriptions.renewal.change-plan');
+
+    // App Inquiries — authenticated user submits and views their own
+    Route::post('inquiries', 'Api\V1\InquiryController@store')->name('inquiries.store');
+    Route::get('inquiries', 'Api\V1\InquiryController@myInquiries')->name('inquiries.mine');
 });

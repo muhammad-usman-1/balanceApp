@@ -1,30 +1,32 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 @section('content')
 
 @include('partials.idx-styles')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-pause-circle mr-2" style="color:#d97706;"></i> Pause Requests</h3>
+        <span class="badge badge-secondary" style="font-size:.75rem;">{{ $pauseRequests->total() }}</span>
     </div>
 
-    {{-- Flash messages --}}
     @if(session('success'))
-        <div style="margin:16px 20px 0; padding:10px 14px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; border-radius:8px; font-size:.83rem;">
-            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+        <div class="idx-flash idx-flash-success" style="margin:16px 20px 0;">
+            <i class="fas fa-check-circle"></i> {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div style="margin:16px 20px 0; padding:10px 14px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:8px; font-size:.83rem;">
-            <i class="fas fa-exclamation-circle mr-1"></i> {{ session('error') }}
+        <div class="idx-flash idx-flash-error" style="margin:16px 20px 0;">
+            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
         </div>
     @endif
 
     {{-- Status filter tabs --}}
-    <div style="padding:16px 20px 0; display:flex; gap:8px; flex-wrap:wrap;">
+    <div style="padding:14px 20px 10px; display:flex; gap:8px; flex-wrap:wrap;">
         @foreach(['pending' => ['#d97706','#fef3c7'], 'approved' => ['#16a34a','#dcfce7'], 'rejected' => ['#dc2626','#fee2e2'], 'all' => ['#4b5563','#f3f4f6']] as $tab => $colors)
         <a href="{{ route('admin.pause-requests.index', ['status' => $tab]) }}"
-           style="padding:6px 14px; border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none;
+           style="padding:5px 14px; border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none;
                   background:{{ $status === $tab ? $colors[1] : '#f9fafb' }};
                   color:{{ $status === $tab ? $colors[0] : '#6b7280' }};
                   border:1px solid {{ $status === $tab ? $colors[0].'33' : '#e5e7eb' }};">
@@ -40,7 +42,7 @@
 
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table idx-table datatable" style="width:100%;">
+            <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -60,44 +62,41 @@
                     <tr>
                         <td style="font-weight:600; color:#111827;">{{ $pr->id }}</td>
                         <td>
-                            <div style="font-weight:600; font-size:.83rem;">{{ $pr->user->name ?? '—' }}</div>
+                            <div style="font-weight:600;">{{ $pr->user->name ?? '—' }}</div>
                             <div style="font-size:.72rem; color:#9ca3af;">{{ $pr->user->mobile ?? '' }}</div>
                         </td>
-                        <td style="font-size:.83rem;">{{ $pr->subscription->subcrption_plans->title ?? '—' }}</td>
-                        <td style="white-space:nowrap; font-size:.83rem;">{{ $pr->pause_start_date?->format('Y-m-d') }}</td>
-                        <td style="white-space:nowrap; font-size:.83rem;">{{ $pr->pause_end_date?->format('Y-m-d') }}</td>
+                        <td>
+                            <span class="idx-chip chip-violet">{{ $pr->subscription->subcrption_plans->title ?? '—' }}</span>
+                        </td>
+                        <td style="white-space:nowrap;">{{ $pr->pause_start_date?->format('Y-m-d') }}</td>
+                        <td style="white-space:nowrap;">{{ $pr->pause_end_date?->format('Y-m-d') }}</td>
                         <td style="font-weight:600; text-align:center;">{{ $pr->pause_days }}</td>
-                        <td style="max-width:200px; font-size:.8rem; color:#374151;">
-                            {{ Str::limit($pr->reason, 80) }}
+                        <td style="max-width:180px;">
+                            <span style="font-size:.8rem; color:#374151;">{{ Str::limit($pr->reason, 80) }}</span>
                         </td>
                         <td style="white-space:nowrap; font-size:.78rem; color:#6b7280;">
                             {{ $pr->created_at?->format('Y-m-d') }}
                         </td>
                         <td>
                             @if($pr->status === 'pending')
-                                <span class="idx-chip chip-orange"><i class="fas fa-clock" style="font-size:.5rem;"></i> Pending</span>
+                                <span class="idx-chip chip-yellow"><i class="fas fa-clock" style="font-size:.5rem;"></i> Pending</span>
                             @elseif($pr->status === 'approved')
                                 <span class="idx-chip chip-green"><i class="fas fa-check" style="font-size:.5rem;"></i> Approved</span>
                             @else
-                                <span class="idx-chip" style="background:#fee2e2;color:#dc2626;border-color:#fecaca;">
-                                    <i class="fas fa-times" style="font-size:.5rem;"></i> Rejected
-                                </span>
+                                <span class="idx-chip chip-red"><i class="fas fa-times" style="font-size:.5rem;"></i> Rejected</span>
                             @endif
                             @if($pr->admin_notes)
-                                <div style="font-size:.7rem; color:#9ca3af; margin-top:2px;" title="{{ $pr->admin_notes }}">
+                                <div style="font-size:.7rem; color:#9ca3af; margin-top:3px;" title="{{ $pr->admin_notes }}">
                                     <i class="fas fa-comment-alt"></i> {{ Str::limit($pr->admin_notes, 40) }}
                                 </div>
                             @endif
                         </td>
                         <td style="white-space:nowrap;">
                             @if($pr->status === 'pending')
-                                {{-- Approve --}}
                                 <button type="button" class="idx-btn ib-green"
                                         data-toggle="modal" data-target="#approveModal{{ $pr->id }}">
                                     <i class="fas fa-check"></i> Approve
                                 </button>
-
-                                {{-- Reject --}}
                                 <button type="button" class="idx-btn ib-del"
                                         data-toggle="modal" data-target="#rejectModal{{ $pr->id }}">
                                     <i class="fas fa-times"></i> Reject
@@ -170,10 +169,9 @@
                                         </div>
                                     </div>
                                 </div>
-
                             @else
                                 <span style="font-size:.75rem; color:#9ca3af;">
-                                    Reviewed by {{ $pr->reviewer->name ?? '—' }}<br>
+                                    {{ $pr->reviewer->name ?? '—' }}<br>
                                     {{ $pr->reviewed_at?->format('Y-m-d') }}
                                 </span>
                             @endif
@@ -181,8 +179,8 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" style="text-align:center; color:#9ca3af; padding:32px; font-size:.85rem;">
-                            <i class="fas fa-inbox fa-2x" style="display:block; margin-bottom:8px;"></i>
+                        <td colspan="10" class="idx-empty">
+                            <i class="fas fa-inbox" style="font-size:1.6rem; color:#e5e7eb; display:block; margin-bottom:8px;"></i>
                             No {{ $status !== 'all' ? $status : '' }} pause requests found.
                         </td>
                     </tr>
@@ -190,20 +188,13 @@
                 </tbody>
             </table>
         </div>
+
+        @if($pauseRequests->hasPages())
+        <div style="padding: 14px 20px; border-top: 1px solid #f3f4f6;">
+            {{ $pauseRequests->links('partials.pagination') }}
+        </div>
+        @endif
     </div>
 </div>
 
-@endsection
-@section('scripts')
-@parent
-<script>
-$(function () {
-    $.extend(true, $.fn.dataTable.defaults, { orderCellsTop: true, order: [[0, 'desc']], pageLength: 25 });
-    $('.datatable:not(.ajaxTable)').DataTable({
-        buttons: [],
-        columnDefs: [{ orderable: false, targets: -1 }],
-        select: false
-    });
-});
-</script>
 @endsection

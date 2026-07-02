@@ -1,5 +1,8 @@
 @extends('layouts.admin')
 @section('content')
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 @can('permission_create')
     <div style="margin-bottom: 10px;" class="row">
         <div class="col-lg-12">
@@ -124,7 +127,7 @@
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
   });
-  
+
 })
 
 </script>

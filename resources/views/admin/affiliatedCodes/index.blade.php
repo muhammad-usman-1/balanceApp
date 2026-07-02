@@ -2,7 +2,9 @@
 @section('content')
 
 @include('partials.idx-styles')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-link mr-2" style="color:#0284c7;"></i> Affiliated Codes</h3>

@@ -13,6 +13,16 @@ Auth::routes(['register' => false]);
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth', 'branch.scope']], function () {
     Route::get('/', 'HomeController@index')->name('home');
+
+    // Reports
+    Route::get('reports/sales', 'ReportController@sales')->name('reports.sales');
+
+    // Inquiries
+    Route::get('inquiries', 'InquiryController@index')->name('inquiries.index');
+    Route::get('inquiries/{inquiry}', 'InquiryController@show')->name('inquiries.show');
+    Route::post('inquiries/{inquiry}/reply', 'InquiryController@reply')->name('inquiries.reply');
+    Route::delete('inquiries/{inquiry}', 'InquiryController@destroy')->name('inquiries.destroy');
+
     // Permissions
     Route::delete('permissions/destroy', 'PermissionsController@massDestroy')->name('permissions.massDestroy');
     Route::resource('permissions', 'PermissionsController');

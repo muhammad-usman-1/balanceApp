@@ -31,13 +31,16 @@ class HomeController extends Controller
     private function branchDashboard(Carbon $today, int $branchId)
     {
         $branchDeliveryTotal = DeliveryOrder::whereDate('delivery_date', $today)
-            ->where('branch_id', $branchId)->count();
+            ->whereHas('subscription', fn($q) => $q->where('branch_id', $branchId))
+            ->count();
 
         $branchDelivered = DeliveryOrder::whereDate('delivery_date', $today)
-            ->where('branch_id', $branchId)->where('status', 'delivered')->count();
+            ->whereHas('subscription', fn($q) => $q->where('branch_id', $branchId))
+            ->where('status', 'delivered')->count();
 
         $branchPending = DeliveryOrder::whereDate('delivery_date', $today)
-            ->where('branch_id', $branchId)->where('status', 'pending')->count();
+            ->whereHas('subscription', fn($q) => $q->where('branch_id', $branchId))
+            ->where('status', 'pending')->count();
 
         $branchActiveSubscriptions = UserSubcrption::where('branch_id', $branchId)
             ->where('status', 'active')
@@ -56,7 +59,7 @@ class HomeController extends Controller
 
         $recentDeliveries = DeliveryOrder::with(['subscription.user'])
             ->whereDate('delivery_date', $today)
-            ->where('branch_id', $branchId)
+            ->whereHas('subscription', fn($q) => $q->where('branch_id', $branchId))
             ->latest()
             ->take(8)
             ->get();

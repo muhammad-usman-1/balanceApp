@@ -4,6 +4,9 @@
 @include('partials.idx-styles')
 
 <style>
+
+    .content-wrapper { background: #fff !important; }
+
 .dislike-tag {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px;

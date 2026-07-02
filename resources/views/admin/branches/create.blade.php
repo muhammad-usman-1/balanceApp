@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 <div class="card">
     <div class="card-header">
         <h3>Add Branch</h3>

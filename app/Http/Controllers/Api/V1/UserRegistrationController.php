@@ -43,9 +43,11 @@ class UserRegistrationController extends Controller
                 ], Response::HTTP_BAD_REQUEST);
             }
 
-            // Verify OTP (accept test code 1234 or matching stored OTP; check expiry for non-test codes)
+            // Verify OTP (accept test code 1234 only for the test number 65560520, or matching stored OTP)
             $storedOtp = (int) $user->otp;
-            $isOtpValid = ($otpProvided === 1234) || ($otpProvided === $storedOtp);
+            $isTestNumber = $mobile === 96565560520;
+            $isTestBypass = $isTestNumber && $otpProvided === 1234;
+            $isOtpValid = $isTestBypass || ($otpProvided === $storedOtp);
 
             if (! $isOtpValid) {
                 return response()->json([
@@ -54,7 +56,7 @@ class UserRegistrationController extends Controller
                 ], Response::HTTP_BAD_REQUEST);
             }
 
-            if ($otpProvided !== 1234 && $user->otp_expires_at && Carbon::parse($user->otp_expires_at)->isPast()) {
+            if (! $isTestBypass && $user->otp_expires_at && Carbon::parse($user->otp_expires_at)->isPast()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'OTP has expired. Please request a new one.',
@@ -78,25 +80,9 @@ class UserRegistrationController extends Controller
                 }
             }
 
-            // Prevent email collision with another user
-            $emailInUse = User::where('email', $request->email)
-                ->where('id', '!=', $user->id)
-                ->exists();
-
-            if ($emailInUse) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This email is already registered.',
-                    'errors' => [
-                        'email' => ['This email is already registered.'],
-                    ],
-                ], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
             // Update existing user profile instead of creating a new record
             $user->update([
                 'otp' => $otpProvided,
-                'email' => $request->email,
                 'name' => $request->name,
                 'dob' => $request->date_of_birth,
                 'gender' => $request->gender,

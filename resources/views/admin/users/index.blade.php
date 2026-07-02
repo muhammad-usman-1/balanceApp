@@ -2,7 +2,9 @@
 @section('content')
 
 @include('partials.idx-styles')
-
+<style>
+    .content-wrapper { background: #fff !important; }
+</style>
 {{-- ═══════════════════════════════════════════════════════
      FULL ADMIN ACCOUNTS  (superadmin only)
 ═══════════════════════════════════════════════════════ --}}

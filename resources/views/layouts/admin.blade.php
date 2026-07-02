@@ -119,7 +119,7 @@
 
         <div id="sbBackdrop" class="sb-backdrop"></div>
         @include('partials.menu')
-        <div class="content-wrapper" style="min-height: 917px;">
+        <div class="content-wrapper">
             <!-- Main content -->
             <section class="content" style="padding-top: 10px">
                 @if(session('message'))

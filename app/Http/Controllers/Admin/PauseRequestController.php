@@ -23,7 +23,8 @@ class PauseRequestController extends Controller
         ])
         ->when($status !== 'all', fn($q) => $q->where('status', $status))
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->paginate(25)
+        ->withQueryString();
 
         $counts = [
             'pending'  => SubscriptionPauseRequest::where('status', 'pending')->count(),
