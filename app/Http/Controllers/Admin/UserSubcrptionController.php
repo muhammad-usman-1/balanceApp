@@ -7,8 +7,10 @@ use App\Http\Requests\MassDestroyUserSubcrptionRequest;
 use App\Http\Requests\StoreUserSubcrptionRequest;
 use App\Http\Requests\UpdateUserSubcrptionRequest;
 use App\Models\Duration;
+use App\Models\Meal;
 use App\Models\SubcrptionPlan;
 use App\Models\SubscriptionDay;
+use App\Models\SubscriptionMeal;
 use App\Models\SubscriptionPauseLog;
 use App\Models\User;
 use App\Models\UserSubcrption;
@@ -85,7 +87,12 @@ class UserSubcrptionController extends Controller
             ->orderByRaw("FIELD(day, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
             ->get();
 
-        return view('admin.userSubcrptions.show', compact('userSubcrption', 'subscriptionDays'));
+        $allMeals   = Meal::orderBy('title')->pluck('title', 'id');
+        $plan       = $userSubcrption->subcrption_plans;
+        $mealLimit  = $plan->meal_count  ?? null;
+        $snackLimit = $plan->snack_count ?? null;
+
+        return view('admin.userSubcrptions.show', compact('userSubcrption', 'subscriptionDays', 'allMeals', 'mealLimit', 'snackLimit'));
     }
 
     public function destroy(UserSubcrption $userSubcrption)
@@ -212,9 +219,6 @@ class UserSubcrptionController extends Controller
 
     /**
      * Show pause/resume logs for a subscription
-     * 
-     * @param UserSubcrption $userSubcrption
-     * @return \Illuminate\View\View
      */
     public function pauseLogs(UserSubcrption $userSubcrption)
     {
@@ -224,5 +228,49 @@ class UserSubcrptionController extends Controller
         $pauseLogs = $userSubcrption->pause_logs()->orderBy('action_timestamp', 'desc')->get();
 
         return view('admin.userSubcrptions.pause-logs', compact('userSubcrption', 'pauseLogs'));
+    }
+
+    /**
+     * Add a meal to a specific day of a subscription
+     */
+    public function addMeal(Request $request, UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validate([
+            'day'     => ['required', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
+            'meal_id' => ['required', 'exists:meals,id'],
+            'type'    => ['required', 'in:is meal,is snack'],
+        ]);
+
+        $userSubcrption->load('subcrption_plans');
+        $plan = $userSubcrption->subcrption_plans;
+
+        $day = SubscriptionDay::firstOrCreate([
+            'user_subcrptions_id' => $userSubcrption->id,
+            'day'                 => $request->day,
+        ]);
+
+        if ($request->type === 'is meal' && $plan && $plan->meal_count !== null) {
+            $current = SubscriptionMeal::where('subscription_days_id', $day->id)->where('type', 'is meal')->count();
+            if ($current >= $plan->meal_count) {
+                return redirect()->back()->with('error', "Limit reached: this plan allows {$plan->meal_count} meal(s) per day.");
+            }
+        }
+
+        if ($request->type === 'is snack' && $plan && $plan->snack_count !== null) {
+            $current = SubscriptionMeal::where('subscription_days_id', $day->id)->where('type', 'is snack')->count();
+            if ($current >= $plan->snack_count) {
+                return redirect()->back()->with('error', "Limit reached: this plan allows {$plan->snack_count} snack(s) per day.");
+            }
+        }
+
+        SubscriptionMeal::create([
+            'subscription_days_id' => $day->id,
+            'meal_id'              => $request->meal_id,
+            'type'                 => $request->type,
+        ]);
+
+        return redirect()->back()->with('success', 'Meal added to ' . ucfirst($request->day) . ' successfully.');
     }
 }

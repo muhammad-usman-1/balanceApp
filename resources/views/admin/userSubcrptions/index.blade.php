@@ -5,6 +5,7 @@
 <style>
     .content-wrapper { background: #fff !important; }
 </style>
+
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-clipboard-list mr-2" style="color:#16a34a;"></i> Subscriptions</h3>
@@ -76,11 +77,14 @@
                                 <i class="fas fa-utensils"></i> Meals
                             </a>
                             @endcan
-@can('user_subcrption_delete')
+                            @can('user_subcrption_delete')
                             <form action="{{ route('admin.user-subcrptions.destroy', $sub->id) }}" method="POST"
-                                  onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                                  class="delete-form" style="display:inline-block;">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                                <button type="button" class="idx-btn ib-del swal-delete-btn"
+                                    data-name="{{ $sub->user->name ?? 'subscription #'.$sub->id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </form>
                             @endcan
                         </td>
@@ -105,4 +109,27 @@
     </div>
 </div>
 
+@endsection
+@section('scripts')
+<script>
+document.querySelectorAll('.swal-delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var name = this.dataset.name || 'this subscription';
+        var f    = this.closest('.delete-form');
+        Swal.fire({
+            title: 'Delete subscription?',
+            html: 'Delete subscription for <strong>' + name + '</strong>?<br><span style="font-size:.85rem;color:#6b7280;">This action cannot be undone.</span>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        }).then(function (result) {
+            if (result.isConfirmed) f.submit();
+        });
+    });
+});
+</script>
 @endsection

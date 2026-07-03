@@ -2,24 +2,24 @@
 @section('content')
 
 <style>
- .content-wrapper { background: #fff !important; }
+ .content-wrapper { background: #f9fafb !important; }
 
 .sv-header {
     display: flex; align-items: center; justify-content: space-between;
     gap: 16px; flex-wrap: wrap;
-    background: #fff; border: 1px solid #e5e7eb;
-    border-radius: 14px; padding: 20px 24px; margin-bottom: 24px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-radius: 16px; padding: 24px 28px; margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(37,99,235,.18);
 }
-.sv-header-left { display: flex; align-items: center; gap: 14px; }
+.sv-header-left { display: flex; align-items: center; gap: 16px; }
 .sv-avatar {
     width: 52px; height: 52px; border-radius: 50%;
-    background: linear-gradient(135deg,#3b82f6,#2563eb);
-    color: #fff; font-size: 1.2rem; font-weight: 700;
+    background: rgba(255,255,255,.2);
+    color: #fff; font-size: 1.3rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.sv-header-title { font-size: 1.2rem; font-weight: 700; color: #111827; line-height: 1.2; }
-.sv-header-sub   { font-size: .82rem; color: #6b7280; margin-top: 2px; }
+.sv-header-title { font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.2; }
+.sv-header-sub   { font-size: .82rem; color: rgba(255,255,255,.8); margin-top: 2px; }
 .sv-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .sv-chip {
@@ -40,12 +40,12 @@
 @media(max-width:640px){ .sv-info-grid { grid-template-columns: 1fr; } }
 
 .sv-card {
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
-    padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+    padding: 20px 22px; box-shadow: 0 1px 6px rgba(0,0,0,.05);
 }
 .sv-card-full {
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
-    padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+    padding: 20px 22px; box-shadow: 0 1px 6px rgba(0,0,0,.05);
     margin-bottom: 24px;
 }
 .sv-card-title {
@@ -67,8 +67,9 @@
     transition: opacity .15s, transform .12s;
 }
 .sv-btn:hover { opacity: .87; transform: translateY(-1px); text-decoration: none; }
-.sv-btn-back  { background: #f3f4f6; color: #374151; }
-.sv-btn-edit  { background: #dbeafe; color: #1d4ed8; }
+.sv-btn-back  { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+.sv-btn-back:hover { background: rgba(255,255,255,.25); color: #fff; }
+.sv-btn-edit  { background: #fff; color: #2563eb; }
 
 .sv-section-title {
     font-size: .7rem; font-weight: 700; text-transform: uppercase;
@@ -118,10 +119,14 @@
             </div>
         </div>
         @if($isCustomer)
-            <span class="sv-chip sv-chip-blue"><i class="fas fa-circle" style="font-size:.45rem;"></i> Customer</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:600;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);">
+                <i class="fas fa-circle" style="font-size:.4rem;"></i> Customer
+            </span>
         @else
             @foreach($user->roles as $role)
-                <span class="sv-chip sv-chip-violet">{{ $role->title }}</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:600;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);">
+                    {{ $role->title }}
+                </span>
             @endforeach
         @endif
     </div>

@@ -50,9 +50,9 @@
                             <a href="{{ route('admin.users.edit', $admin->id) }}" class="idx-btn ib-edit"><i class="fas fa-pen"></i> Edit</a>
                             @endcan
                             @can('user_delete')
-                            <form action="{{ route('admin.users.destroy', $admin->id) }}" method="POST" onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                            <form action="{{ route('admin.users.destroy', $admin->id) }}" method="POST" class="delete-form" style="display:inline-block;">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                                <button type="button" class="idx-btn ib-del swal-delete-btn" data-name="{{ $admin->name }}"><i class="fas fa-trash"></i></button>
                             </form>
                             @endcan
                         </td>
@@ -114,9 +114,9 @@
                             <a href="{{ route('admin.users.edit', $admin->id) }}" class="idx-btn ib-edit"><i class="fas fa-pen"></i> Edit</a>
                             @endcan
                             @can('user_delete')
-                            <form action="{{ route('admin.users.destroy', $admin->id) }}" method="POST" onsubmit="return confirm('Are you sure?');" style="display:inline-block;">
+                            <form action="{{ route('admin.users.destroy', $admin->id) }}" method="POST" class="delete-form" style="display:inline-block;">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                                <button type="button" class="idx-btn ib-del swal-delete-btn" data-name="{{ $admin->name }}"><i class="fas fa-trash"></i></button>
                             </form>
                             @endcan
                         </td>
@@ -138,7 +138,7 @@
     <div class="card-header">
         <h3><i class="fas fa-users mr-2" style="color:#2563eb;"></i> App Customers</h3>
         @can('user_create')
-        <a href="{{ route('admin.users.create') }}" class="idx-btn ib-green">
+        <a href="{{ route('admin.users.createCustomer') }}" class="idx-btn ib-green">
             <i class="fas fa-plus"></i> Add Customer
         </a>
         @endcan
@@ -178,9 +178,6 @@
                         <td>
                             <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-size:.72rem;font-weight:700;margin-right:8px;vertical-align:middle;flex-shrink:0;">{{ $initial }}</span>
                             <span style="font-weight:600;">{{ $user->name ?? '—' }}</span>
-                            @if($user->email)
-                                <div style="font-size:.72rem;color:#9ca3af;">{{ $user->email }}</div>
-                            @endif
                         </td>
                         <td>{{ $user->mobile ?? '—' }}</td>
                         <td>
@@ -223,9 +220,9 @@
                             <a href="{{ route('admin.users.edit', $user->id) }}" class="idx-btn ib-edit"><i class="fas fa-pen"></i></a>
                             @endcan
                             @can('user_delete')
-                            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display:inline-block;">
+                            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="delete-form" style="display:inline-block;">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="idx-btn ib-del"><i class="fas fa-trash"></i></button>
+                                <button type="button" class="idx-btn ib-del swal-delete-btn" data-name="{{ $user->name }}"><i class="fas fa-trash"></i></button>
                             </form>
                             @endcan
                         </td>
@@ -243,4 +240,29 @@
     </div>
 </div>
 
+@endsection
+@section('scripts')
+<script>
+document.querySelectorAll('.swal-delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var name = this.dataset.name || 'this record';
+        var form = this.closest('.delete-form');
+        Swal.fire({
+            title: 'Delete ' + name + '?',
+            text: 'This will permanently delete the customer and ALL related data (subscriptions, meals, addresses). This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete permanently',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
 @endsection

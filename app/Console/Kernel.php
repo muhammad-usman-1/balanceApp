@@ -12,6 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Expire subscriptions whose end_date has passed
+        $schedule->command('subscriptions:expire')->dailyAt('00:00');
+
         // Activate queued subscriptions whose parent plan ended yesterday
         $schedule->command('subscriptions:activate-queued')->dailyAt('00:05');
 

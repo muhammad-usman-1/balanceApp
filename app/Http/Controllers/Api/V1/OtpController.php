@@ -172,7 +172,6 @@ class OtpController extends Controller
     {
         $requiredFields = [
             'name',
-            'email',
             'dob',
             'gender',
             'height',

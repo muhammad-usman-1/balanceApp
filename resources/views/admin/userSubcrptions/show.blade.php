@@ -170,6 +170,70 @@
 }
 .sv-alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 .sv-alert-error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* ── Add Meal Modal ── */
+.am-modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 1060;
+    align-items: center; justify-content: center;
+}
+.am-modal-backdrop.open { display: flex; }
+.am-modal {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 460px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2); overflow: hidden;
+    animation: amSlideIn .2s ease;
+}
+@keyframes amSlideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+.am-modal-header {
+    background: linear-gradient(135deg,#16a34a,#15803d);
+    padding: 18px 22px; display: flex; align-items: center; gap: 12px;
+}
+.am-modal-header-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(255,255,255,.2); display: flex; align-items: center;
+    justify-content: center; font-size: 1rem; color: #fff; flex-shrink: 0;
+}
+.am-modal-title { font-size: 1rem; font-weight: 700; color: #fff; margin: 0; }
+.am-modal-sub   { font-size: .78rem; color: rgba(255,255,255,.8); margin-top: 2px; }
+.am-modal-body  { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+.am-group label { font-size: .78rem; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
+.am-group label .req { color: #ef4444; }
+.am-select {
+    width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 9px;
+    font-size: .87rem; color: #111827; background: #fff;
+    transition: border-color .15s, box-shadow .15s; outline: none;
+}
+.am-select:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+.am-type-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.am-type-opt {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    border: 1px solid #e5e7eb; border-radius: 9px; cursor: pointer;
+    font-size: .84rem; font-weight: 600; color: #374151;
+    transition: border-color .15s, background .15s;
+}
+.am-type-opt:has(input:checked) { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+.am-type-opt input { accent-color: #16a34a; }
+.am-modal-footer {
+    padding: 16px 22px; border-top: 1px solid #f3f4f6;
+    display: flex; gap: 10px; justify-content: flex-end;
+}
+.am-btn-submit {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 20px; border-radius: 9px; border: none; cursor: pointer;
+    font-size: .86rem; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg,#16a34a,#15803d); transition: opacity .15s;
+}
+.am-btn-submit:hover { opacity: .88; }
+.am-btn-cancel {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 9px; border: 1px solid #e5e7eb; cursor: pointer;
+    font-size: .86rem; font-weight: 600; color: #6b7280; background: #fff;
+    transition: background .15s;
+}
+.am-btn-cancel:hover { background: #f9fafb; }
 </style>
 
 <div class="sv-page">
@@ -219,6 +283,9 @@
                 </a>
             @endif
             @can('user_subcrption_edit')
+                <button type="button" class="sv-btn" style="background:#dcfce7;color:#15803d;" id="addMealBtn">
+                    <i class="fas fa-plus"></i> Add Meal
+                </button>
                 <a href="{{ route('admin.user-subcrptions.edit', $userSubcrption->id) }}" class="sv-btn sv-btn-edit">
                     <i class="fas fa-pen"></i> Edit
                 </a>
@@ -334,15 +401,23 @@
         <div class="sv-days-grid">
             @foreach($subscriptionDays as $day)
                 @php
-                    $meals  = $day->subscription_meals->where('type', 'is meal');
-                    $snacks = $day->subscription_meals->where('type', 'is snack');
-                    $total  = $day->subscription_meals->count();
+                    $dayMeals  = $day->subscription_meals->where('type', 'is meal');
+                    $daySnacks = $day->subscription_meals->where('type', 'is snack');
+                    $total     = $day->subscription_meals->count();
                 @endphp
                 <div class="sv-day-card">
                     <div class="sv-day-header">
                         <div class="sv-day-dot"></div>
                         <span class="sv-day-name">{{ ucfirst($day->day) }}</span>
-                        <span class="sv-day-count">{{ $total }} item{{ $total != 1 ? 's' : '' }}</span>
+                        <span class="sv-day-count">
+                            @if($mealLimit || $snackLimit)
+                                {{ $dayMeals->count() }}/{{ $mealLimit ?? '∞' }} meals
+                                &nbsp;·&nbsp;
+                                {{ $daySnacks->count() }}/{{ $snackLimit ?? '∞' }} snacks
+                            @else
+                                {{ $total }} item{{ $total != 1 ? 's' : '' }}
+                            @endif
+                        </span>
                     </div>
                     <div class="sv-day-body">
                         @forelse($day->subscription_meals as $sm)
@@ -475,5 +550,105 @@
     </div>
 </div>
 @endif
+
+{{-- ── Add Meal Modal ── --}}
+<div class="am-modal-backdrop" id="addMealBackdrop">
+    <div class="am-modal">
+        <div class="am-modal-header">
+            <div class="am-modal-header-icon"><i class="fas fa-utensils"></i></div>
+            <div>
+                <div class="am-modal-title">Add Meal to Day</div>
+                <div class="am-modal-sub">{{ $userSubcrption->user->name ?? 'Customer' }}</div>
+            </div>
+        </div>
+        <form method="POST" action="{{ route('admin.user-subcrptions.add-meal', $userSubcrption->id) }}">
+            @csrf
+            <div class="am-modal-body">
+                {{-- Plan limits info --}}
+                @if($mealLimit || $snackLimit)
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    @if($mealLimit)
+                    <div style="flex:1;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;font-size:.8rem;color:#1d4ed8;">
+                        <i class="fas fa-utensils" style="margin-right:5px;"></i>
+                        <strong>{{ $mealLimit }}</strong> meal{{ $mealLimit > 1 ? 's' : '' }} per day allowed
+                    </div>
+                    @endif
+                    @if($snackLimit)
+                    <div style="flex:1;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;font-size:.8rem;color:#b45309;">
+                        <i class="fas fa-apple-alt" style="margin-right:5px;"></i>
+                        <strong>{{ $snackLimit }}</strong> snack{{ $snackLimit > 1 ? 's' : '' }} per day allowed
+                    </div>
+                    @endif
+                </div>
+                @endif
+
+                <div class="am-group">
+                    <label>Day <span class="req">*</span></label>
+                    <select name="day" class="am-select" required>
+                        <option value="">— Select day —</option>
+                        @foreach(['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as $d)
+                            <option value="{{ $d }}">{{ ucfirst($d) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="am-group">
+                    <label>Meal <span class="req">*</span></label>
+                    <select name="meal_id" class="am-select select2-meal" required>
+                        <option value="">— Search and select meal —</option>
+                        @foreach($allMeals as $id => $title)
+                            <option value="{{ $id }}">{{ $title }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="am-group">
+                    <label>Meal Type <span class="req">*</span></label>
+                    <div class="am-type-row">
+                        <label class="am-type-opt">
+                            <input type="radio" name="type" value="is meal" checked>
+                            <i class="fas fa-utensils"></i> Main Meal
+                            @if($mealLimit) <span style="font-size:.7rem;color:#6b7280;margin-left:auto;">max {{ $mealLimit }}</span> @endif
+                        </label>
+                        <label class="am-type-opt">
+                            <input type="radio" name="type" value="is snack">
+                            <i class="fas fa-apple-alt"></i> Snack
+                            @if($snackLimit) <span style="font-size:.7rem;color:#6b7280;margin-left:auto;">max {{ $snackLimit }}</span> @endif
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="am-modal-footer">
+                <button type="button" class="am-btn-cancel" id="amCancelBtn"><i class="fas fa-times"></i> Cancel</button>
+                <button type="submit" class="am-btn-submit"><i class="fas fa-plus"></i> Add Meal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section('scripts')
+<script>
+var backdrop = document.getElementById('addMealBackdrop');
+
+document.getElementById('addMealBtn').addEventListener('click', function () {
+    backdrop.classList.add('open');
+});
+
+document.getElementById('amCancelBtn').addEventListener('click', function () {
+    backdrop.classList.remove('open');
+});
+
+backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) backdrop.classList.remove('open');
+});
+
+$(document).ready(function () {
+    $('.select2-meal').select2({
+        dropdownParent: $('#addMealBackdrop'),
+        placeholder: 'Search meal...',
+        allowClear: true,
+        width: '100%',
+    });
+});
+</script>
+@endsection
 
 @endsection
