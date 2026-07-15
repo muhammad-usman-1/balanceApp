@@ -1,21 +1,53 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 @section('content')
 
 @include('partials.idx-styles')
 <style>
 .content-wrapper { background: #fff !important; }
+
+/* Tabs */
+.inq-tabs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 16px 20px 0; }
+.inq-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 20px; font-size: .8rem; font-weight: 600;
+    text-decoration: none; border: 1px solid #e5e7eb; background: #fff; color: #6b7280;
+    transition: border-color .15s, background .15s, color .15s;
+}
+.inq-tab:hover { text-decoration: none; border-color: #d1d5db; }
+.inq-tab-count {
+    font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+    background: #f3f4f6; color: #6b7280;
+}
+.inq-tab.is-active { color: #fff; }
+.inq-tab.is-active.tab-all     { background: #4b5563; border-color: #4b5563; }
+.inq-tab.is-active.tab-new     { background: #dc2626; border-color: #dc2626; }
+.inq-tab.is-active.tab-read    { background: #2563eb; border-color: #2563eb; }
+.inq-tab.is-active.tab-replied { background: #16a34a; border-color: #16a34a; }
+.inq-tab.is-active .inq-tab-count { background: rgba(255,255,255,.25); color: #fff; }
+
+/* Search bar */
 .inq-filter-bar {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-    padding: 12px 20px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;
+    padding: 14px 20px; margin-top: 8px;
 }
 .inq-search { position: relative; }
 .inq-search input {
-    padding: 6px 12px 6px 30px; border-radius: 20px;
-    border: 1px solid #e5e7eb; font-size: .82rem; height: 32px; width: 220px; outline: none;
+    padding: 8px 14px 8px 32px; border-radius: 9px;
+    border: 1px solid #d1d5db; font-size: .84rem; height: 36px; width: 260px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
 }
-.inq-search input:focus { border-color: #111827; box-shadow: 0 0 0 2px rgba(17,24,39,.08); }
-.inq-search .fa-search { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:.72rem; }
-.unread-dot { width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block; margin-right:4px; }
+.inq-search input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
+.inq-search .fa-search { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:.78rem; }
+
+/* Table */
+.inq-row-new td:first-child { box-shadow: inset 3px 0 0 #dc2626; }
+.inq-row-new { background: #fffbf5; }
+
+.inq-customer-name { font-weight: 600; color: #111827; font-size: .87rem; }
+.inq-customer-email { font-size: .72rem; color: #9ca3af; }
+
+.inq-subject { font-weight: 600; color: #111827; font-size: .85rem; }
+.inq-desc { font-size: .8rem; color: #6b7280; line-height: 1.4; white-space: normal; }
 </style>
 
 @if(session('success'))
@@ -30,25 +62,20 @@
             <i class="fas fa-envelope-open-text mr-2" style="color:#0d9488;"></i>
             App Inquiries
             @if($counts['new'] > 0)
-                <span class="badge badge-danger ml-1" style="font-size:.72rem;">{{ $counts['new'] }} new</span>
+                <span class="idx-chip chip-red ml-2">{{ $counts['new'] }} new</span>
             @endif
         </h3>
-        <span class="badge badge-secondary" style="font-size:.75rem;">{{ $inquiries->total() }} total</span>
+        <span class="idx-chip chip-gray">{{ $inquiries->total() }} total</span>
     </div>
 
     {{-- Status tabs --}}
-    <div style="padding:14px 20px 10px; display:flex; gap:8px; flex-wrap:wrap;">
-        @foreach(['all' => ['#4b5563','#f3f4f6'], 'new' => ['#dc2626','#fee2e2'], 'read' => ['#2563eb','#dbeafe'], 'replied' => ['#16a34a','#dcfce7']] as $tab => $colors)
+    <div class="inq-tabs">
+        @foreach(['all', 'new', 'read', 'replied'] as $tab)
         <a href="{{ route('admin.inquiries.index', array_merge(request()->query(), ['status' => $tab, 'page' => 1])) }}"
-           style="padding:5px 14px; border-radius:20px; font-size:.78rem; font-weight:600; text-decoration:none;
-                  background:{{ $status === $tab ? $colors[1] : '#f9fafb' }};
-                  color:{{ $status === $tab ? $colors[0] : '#6b7280' }};
-                  border:1px solid {{ $status === $tab ? $colors[0].'33' : '#e5e7eb' }};">
+           class="inq-tab tab-{{ $tab }} {{ $status === $tab ? 'is-active' : '' }}">
             {{ ucfirst($tab) }}
             @if($tab !== 'all')
-                <span style="margin-left:4px; background:{{ $colors[0] }}22; color:{{ $colors[0] }}; border-radius:10px; padding:1px 7px; font-size:.72rem;">
-                    {{ $counts[$tab] }}
-                </span>
+                <span class="inq-tab-count">{{ $counts[$tab] }}</span>
             @endif
         </a>
         @endforeach
@@ -61,11 +88,11 @@
             <i class="fas fa-search"></i>
             <input type="text" name="search" value="{{ $search }}" placeholder="Search name, subject, mobile…">
         </div>
-        <button type="submit" class="idx-btn ib-view" style="height:32px;">
+        <button type="submit" class="idx-btn ib-view" style="height:36px;">
             <i class="fas fa-search"></i> Search
         </button>
         @if($search)
-        <a href="{{ route('admin.inquiries.index', ['status' => $status]) }}" class="idx-btn ib-gray" style="height:32px;">
+        <a href="{{ route('admin.inquiries.index', ['status' => $status]) }}" class="idx-btn ib-gray" style="height:36px;">
             <i class="fas fa-times"></i> Clear
         </a>
         @endif
@@ -76,37 +103,32 @@
             <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
-                        <th style="width:40px;">#</th>
-                        <th>Customer</th>
+                        <th style="width:50px;">#</th>
+                        <th style="width:110px;">Customer</th>
                         <th style="width:110px;">Mobile</th>
-                        <th>Subject</th>
-                        <th style="width:280px;">Description</th>
+                        <th style="width:110px;">Subject</th>
+                        <th>Description</th>
                         <th style="width:90px;">Status</th>
                         <th style="width:95px;">Date</th>
-                        <th style="width:100px;">Actions</th>
+                        <th style="width:110px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($inquiries as $inq)
-                    <tr style="{{ $inq->status === 'new' ? 'background:#fffbeb;' : '' }}">
-                        <td style="font-weight:600; color:#111827;">
-                            @if($inq->status === 'new')
-                                <span class="unread-dot"></span>
-                            @endif
-                            {{ $inq->id }}
-                        </td>
+                    <tr class="{{ $inq->status === 'new' ? 'inq-row-new' : '' }}">
+                        <td style="font-weight:600; color:#111827;">{{ $inq->id }}</td>
                         <td>
-                            <div style="font-weight:600; color:#111827;">{{ $inq->name }}</div>
+                            <div class="inq-customer-name">{{ $inq->name }}</div>
                             @if($inq->email)
-                                <div style="font-size:.72rem; color:#9ca3af;">{{ $inq->email }}</div>
+                                <div class="inq-customer-email">{{ $inq->email }}</div>
                             @endif
                         </td>
                         <td style="font-size:.82rem; color:#374151;">{{ $inq->mobile ?? '—' }}</td>
-                        <td style="font-weight:600; color:#111827;">{{ $inq->subject }}</td>
-                        <td style="font-size:.8rem; color:#6b7280;">{{ Str::limit($inq->description, 100) }}</td>
+                        <td class="inq-subject">{{ $inq->subject }}</td>
+                        <td class="inq-desc">{{ $inq->description }}</td>
                         <td>
                             @if($inq->status === 'new')
-                                <span class="idx-chip chip-red"><i class="fas fa-circle" style="font-size:.4rem;"></i> New</span>
+                                <span class="idx-chip chip-red">New</span>
                             @elseif($inq->status === 'read')
                                 <span class="idx-chip chip-blue"><i class="fas fa-eye" style="font-size:.55rem;"></i> Read</span>
                             @else
