@@ -17,13 +17,24 @@ class MealController extends Controller
 {
     use MediaUploadingTrait;
 
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('meal_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $meals = Meal::with(['media', 'category'])->orderBy('id')->paginate(25);
+        $search = trim($request->get('search', ''));
 
-        return view('admin.meals.index', compact('meals'));
+        $meals = Meal::with(['media', 'category'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('title', 'like', '%' . $search . '%')
+                       ->orWhereHas('category', fn($q3) => $q3->where('name', 'like', '%' . $search . '%'));
+                });
+            })
+            ->orderBy('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('admin.meals.index', compact('meals', 'search'));
     }
 
     public function create()

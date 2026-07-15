@@ -84,12 +84,12 @@ $currency   = 'KWD';
 </div>
 
 {{-- KPI cards --}}
-<div class="rpt-kpi-row">
+<div class="rpt-kpi-row" style="grid-template-columns:repeat(5,1fr);">
     <div class="rpt-kpi">
         <div class="rpt-kpi-ic" style="background:#dcfce7; color:#15803d;"><i class="fas fa-coins"></i></div>
         <div>
             <div class="rpt-kpi-val">{{ number_format($totals['income'], 3) }} <span class="rpt-currency">{{ $currency }}</span></div>
-            <div class="rpt-kpi-lbl">Total Income {{ $year }}</div>
+            <div class="rpt-kpi-lbl">Collected Revenue {{ $year }}</div>
         </div>
     </div>
     <div class="rpt-kpi">
@@ -110,7 +110,14 @@ $currency   = 'KWD';
         <div class="rpt-kpi-ic" style="background:#ede9fe; color:#5b21b6;"><i class="fas fa-clipboard-check"></i></div>
         <div>
             <div class="rpt-kpi-val">{{ $totals['count'] }}</div>
-            <div class="rpt-kpi-lbl">Paid Subscriptions</div>
+            <div class="rpt-kpi-lbl">Total Subscriptions</div>
+        </div>
+    </div>
+    <div class="rpt-kpi">
+        <div class="rpt-kpi-ic" style="background:#fee2e2; color:#dc2626;"><i class="fas fa-clock"></i></div>
+        <div>
+            <div class="rpt-kpi-val">{{ $totals['pending_count'] }}</div>
+            <div class="rpt-kpi-lbl">Pending · {{ number_format($totals['pending_income'], 3) }} <span class="rpt-currency">{{ $currency }}</span></div>
         </div>
     </div>
 </div>
@@ -126,33 +133,40 @@ $currency   = 'KWD';
                 <thead>
                     <tr>
                         <th>Month</th>
-                        <th style="text-align:right;">Subscriptions</th>
+                        <th style="text-align:right;">Total</th>
                         <th style="text-align:right;">Cash ({{ $currency }})</th>
                         <th style="text-align:right;">Card / Online ({{ $currency }})</th>
-                        <th style="text-align:right;">Total Income ({{ $currency }})</th>
+                        <th style="text-align:right;">Pending</th>
+                        <th style="text-align:right;">Collected ({{ $currency }})</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php $grandTotal = 0; $grandCash = 0; $grandCard = 0; $grandCount = 0; @endphp
+                    @php
+                        $grandTotal = 0; $grandCash = 0; $grandCard = 0; $grandCount = 0;
+                        $grandPendingCount = 0; $grandPendingIncome = 0;
+                    @endphp
                     @for($m = 1; $m <= 12; $m++)
                     @php
-                        $row       = $monthly->get($m);
-                        $income    = $row?->total_income ?? 0;
-                        $cash      = $row?->cash_income  ?? 0;
-                        $card      = $row?->card_income  ?? 0;
-                        $count     = $row?->total_count  ?? 0;
-                        $grandTotal += $income;
-                        $grandCash  += $cash;
-                        $grandCard  += $card;
-                        $grandCount += $count;
+                        $row            = $monthly->get($m);
+                        $income         = $row?->total_income   ?? 0;
+                        $cash           = $row?->cash_income    ?? 0;
+                        $card           = $row?->card_income    ?? 0;
+                        $count          = $row?->total_count    ?? 0;
+                        $pendingCount   = $row?->pending_count  ?? 0;
+                        $pendingIncome  = $row?->pending_income ?? 0;
+                        $grandTotal        += $income;
+                        $grandCash         += $cash;
+                        $grandCard         += $card;
+                        $grandCount        += $count;
+                        $grandPendingCount  += $pendingCount;
+                        $grandPendingIncome += $pendingIncome;
                     @endphp
                     <tr style="{{ !$row ? 'color:#d1d5db;' : '' }}">
                         <td style="font-weight:600;">{{ $monthNames[$m-1] }}</td>
                         <td style="text-align:right;">
                             @if($row)
                                 <span class="idx-chip chip-violet">{{ $count }}</span>
-                            @else
-                                —
+                            @else —
                             @endif
                         </td>
                         <td style="text-align:right;">
@@ -165,6 +179,13 @@ $currency   = 'KWD';
                         <td style="text-align:right;">
                             @if($row && $card > 0)
                                 <span class="idx-chip chip-blue">{{ number_format($card, 3) }}</span>
+                            @else
+                                <span style="color:#d1d5db;">—</span>
+                            @endif
+                        </td>
+                        <td style="text-align:right;">
+                            @if($row && $pendingCount > 0)
+                                <span class="idx-chip chip-red" style="font-size:.7rem;">{{ $pendingCount }} · {{ number_format($pendingIncome, 3) }}</span>
                             @else
                                 <span style="color:#d1d5db;">—</span>
                             @endif
@@ -185,6 +206,7 @@ $currency   = 'KWD';
                         <td style="text-align:right; font-weight:700;">{{ $grandCount }}</td>
                         <td style="text-align:right; font-weight:700; color:#b45309;">{{ number_format($grandCash, 3) }}</td>
                         <td style="text-align:right; font-weight:700; color:#1d4ed8;">{{ number_format($grandCard, 3) }}</td>
+                        <td style="text-align:right; font-weight:700; color:#dc2626;">{{ $grandPendingCount }} · {{ number_format($grandPendingIncome, 3) }}</td>
                         <td style="text-align:right; font-weight:700; color:#15803d; font-size:1rem;">{{ number_format($grandTotal, 3) }}</td>
                     </tr>
                 </tfoot>
@@ -204,10 +226,11 @@ $currency   = 'KWD';
                 <thead>
                     <tr>
                         <th>Plan</th>
-                        <th style="text-align:right;">Subscriptions</th>
+                        <th style="text-align:right;">Total</th>
                         <th style="text-align:right;">Cash ({{ $currency }})</th>
                         <th style="text-align:right;">Card / Online ({{ $currency }})</th>
-                        <th style="text-align:right;">Total Income ({{ $currency }})</th>
+                        <th style="text-align:right;">Pending</th>
+                        <th style="text-align:right;">Collected ({{ $currency }})</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -229,11 +252,18 @@ $currency   = 'KWD';
                                 <span style="color:#d1d5db;">—</span>
                             @endif
                         </td>
+                        <td style="text-align:right;">
+                            @if(($row->pending_count ?? 0) > 0)
+                                <span style="color:#dc2626; font-size:.8rem;">{{ $row->pending_count }} · {{ number_format($row->pending_income, 3) }}</span>
+                            @else
+                                <span style="color:#d1d5db;">—</span>
+                            @endif
+                        </td>
                         <td style="text-align:right; font-weight:700; color:#111827;">{{ number_format($row->total_income, 3) }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="idx-empty">
+                        <td colspan="6" class="idx-empty">
                             <i class="fas fa-chart-bar" style="font-size:1.6rem;color:#e5e7eb;display:block;margin-bottom:8px;"></i>
                             No paid subscriptions in {{ $year }}.
                         </td>

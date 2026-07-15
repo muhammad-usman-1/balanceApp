@@ -157,6 +157,15 @@
 .sv-type-meal  { background: #dbeafe; color: #1d4ed8; }
 .sv-type-snack { background: #fef3c7; color: #b45309; }
 
+/* ── Remove meal button ── */
+.rm-meal-btn {
+    width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+    background: #fee2e2; color: #dc2626; font-size: .7rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, transform .1s; flex-shrink: 0;
+}
+.rm-meal-btn:hover { background: #fecaca; transform: scale(1.1); }
+
 /* ── Empty states ── */
 .sv-empty {
     text-align: center; padding: 28px 16px; color: #9ca3af; font-size: .83rem;
@@ -207,6 +216,45 @@
     transition: border-color .15s, box-shadow .15s; outline: none;
 }
 .am-select:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+/* Select2 (meal search) theming */
+.select2-container--default .select2-selection--single {
+    height: auto; border: 1px solid #d1d5db; border-radius: 9px;
+    padding: 9px 12px; transition: border-color .15s, box-shadow .15s;
+}
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12);
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.3; font-size: .87rem; color: #111827; padding: 0 24px 0 2px;
+}
+.select2-container--default .select2-selection--single .select2-selection__placeholder { color: #9ca3af; }
+.select2-container--default .select2-selection--single .select2-selection__arrow { height: 100%; top: 0; right: 8px; }
+.select2-dropdown {
+    border: 1px solid #d1d5db; border-radius: 9px; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+.select2-container--default .select2-search--dropdown {
+    padding: 10px; border-bottom: 1px solid #f3f4f6;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+    font-size: .85rem; outline: none;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12);
+}
+.select2-container--default .select2-results__option {
+    padding: 9px 16px; font-size: .85rem; color: #374151;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: #16a34a; color: #fff;
+}
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background: #f0fdf4; color: #15803d;
+}
+.select2-results__group { padding: 8px 16px; }
+
 .am-type-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .am-type-opt {
     display: flex; align-items: center; gap: 8px; padding: 10px 14px;
@@ -268,11 +316,7 @@
             </span>
         </div>
         <div class="sv-header-actions">
-            @if(!$isPaused && $isActive)
-                <button type="button" class="sv-btn sv-btn-pause" data-toggle="modal" data-target="#pauseModal">
-                    <i class="fas fa-pause"></i> Pause
-                </button>
-            @elseif($isPaused)
+            @if($isPaused)
                 <button type="button" class="sv-btn sv-btn-resume" data-toggle="modal" data-target="#resumeModal">
                     <i class="fas fa-play"></i> Resume
                 </button>
@@ -286,9 +330,6 @@
                 <button type="button" class="sv-btn" style="background:#dcfce7;color:#15803d;" id="addMealBtn">
                     <i class="fas fa-plus"></i> Add Meal
                 </button>
-                <a href="{{ route('admin.user-subcrptions.edit', $userSubcrption->id) }}" class="sv-btn sv-btn-edit">
-                    <i class="fas fa-pen"></i> Edit
-                </a>
             @endcan
             <a href="{{ route('admin.user-subcrptions.index') }}" class="sv-btn sv-btn-back">
                 <i class="fas fa-arrow-left"></i> Back
@@ -447,6 +488,17 @@
                                 <span class="sv-meal-type-chip {{ $sm->type === 'is meal' ? 'sv-type-meal' : 'sv-type-snack' }}">
                                     {{ $sm->type === 'is meal' ? 'Meal' : 'Snack' }}
                                 </span>
+                                @can('user_subcrption_edit')
+                                <form action="{{ route('admin.user-subcrptions.remove-meal', [$userSubcrption->id, $sm->id]) }}"
+                                      method="POST" class="rm-meal-form" style="flex-shrink:0;">
+                                    @csrf @method('DELETE')
+                                    <button type="button" class="rm-meal-btn swal-rm-meal"
+                                        title="Remove meal"
+                                        data-name="{{ $sm->meal->title ?? 'this meal' }}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                                @endcan
                             </div>
                         @empty
                             <div class="sv-empty">
@@ -468,44 +520,6 @@
     @endif
 
 </div>
-
-{{-- ── Pause Modal ── --}}
-@if(!$isPaused && $isActive)
-<div class="modal fade" id="pauseModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="border-radius:14px; border:none; box-shadow:0 20px 60px rgba(0,0,0,.15);">
-            <div class="modal-header" style="border-bottom:1px solid #f3f4f6; padding:18px 22px;">
-                <h5 class="modal-title" style="font-weight:700; color:#111827;">
-                    <i class="fas fa-pause-circle text-warning mr-2"></i> Pause Subscription
-                </h5>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <form action="{{ route('admin.user-subcrptions.pause', $userSubcrption->id) }}" method="POST">
-                @csrf
-                <div class="modal-body" style="padding:20px 22px;">
-                    <div class="form-group">
-                        <label style="font-size:.82rem; font-weight:600; color:#374151;">Days to Pause <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" name="days" min="1" max="365" required placeholder="e.g. 7">
-                        <small class="text-muted">End date will be extended by this many days.</small>
-                    </div>
-                    <div class="form-group">
-                        <label style="font-size:.82rem; font-weight:600; color:#374151;">Reason</label>
-                        <textarea class="form-control" name="reason" rows="2" maxlength="1000"></textarea>
-                    </div>
-                    <div class="form-group mb-0">
-                        <label style="font-size:.82rem; font-weight:600; color:#374151;">Notes</label>
-                        <textarea class="form-control" name="notes" rows="2" maxlength="1000"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid #f3f4f6; padding:14px 22px;">
-                    <button type="button" class="sv-btn sv-btn-back" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="sv-btn sv-btn-pause"><i class="fas fa-pause"></i> Pause Subscription</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
 
 {{-- ── Resume Modal ── --}}
 @if($isPaused)
@@ -626,6 +640,27 @@
 
 @section('scripts')
 <script>
+// Remove meal confirmation
+document.querySelectorAll('.swal-rm-meal').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var name = this.dataset.name || 'this meal';
+        var form = this.closest('.rm-meal-form');
+        Swal.fire({
+            title: 'Remove meal?',
+            html: 'Remove <strong>' + name + '</strong> from this day?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, remove it',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        }).then(function (result) {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+});
+
 var backdrop = document.getElementById('addMealBackdrop');
 
 document.getElementById('addMealBtn').addEventListener('click', function () {

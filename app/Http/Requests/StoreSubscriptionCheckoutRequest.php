@@ -124,6 +124,11 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
                 'string',
                 'in:is meal,is snack',
             ],
+            'coupon_code' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
             'address' => [
                 'required',
                 'array',

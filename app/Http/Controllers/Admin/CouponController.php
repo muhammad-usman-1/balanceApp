@@ -11,7 +11,7 @@ class CouponController extends Controller
 {
     public function index()
     {
-        $coupons = Coupon::withTrashed()->withCount('usages')->orderBy('created_at', 'desc')->get();
+        $coupons = Coupon::withCount('usages')->orderBy('created_at', 'desc')->get();
         return view('admin.coupons.index', compact('coupons'));
     }
 

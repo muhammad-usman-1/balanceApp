@@ -30,6 +30,11 @@
 .gw-hesabe  { background:#dbeafe; color:#1e40af; }
 .gw-card    { background:#ede9fe; color:#5b21b6; }
 .gw-default { background:#f3f4f6; color:#374151; }
+.pay-pending {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    background:#fee2e2; color:#dc2626; margin-left:4px;
+}
 
 .ref-cell {
     font-family: monospace; font-size: .75rem; color: #374151;
@@ -109,6 +114,9 @@
                         <th style="width:100px;">Start Date</th>
                         <th style="width:90px;">Payment</th>
                         <th style="width:90px; text-align:right;">Amount</th>
+                        @if(auth()->user()->is_admin)
+                        <th style="width:70px; text-align:center;">Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -156,6 +164,9 @@
                                     @endif
                                     {{ ucfirst($sub->payment_gateway) }}
                                 </span>
+                                @if($sub->payment !== 'paid')
+                                    <span class="pay-pending"><i class="fas fa-clock"></i> Pending</span>
+                                @endif
                             @else
                                 <span style="color:#d1d5db; font-size:.78rem;">—</span>
                             @endif
@@ -163,10 +174,20 @@
                         <td style="text-align:right; font-weight:700; color:#15803d; white-space:nowrap;">
                             {{ number_format($sub->price, 3) }} <span style="font-size:.7rem;color:#9ca3af;font-weight:400;">KWD</span>
                         </td>
+                        @if(auth()->user()->is_admin)
+                        <td style="text-align:center;">
+                            <form action="{{ route('admin.user-subcrptions.destroy', $sub->id) }}" method="POST" class="rpt-del-form" style="display:inline-block;">
+                                @csrf @method('DELETE')
+                                <button type="button" class="idx-btn ib-del rpt-del-btn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="idx-empty">
+                        <td colspan="{{ auth()->user()->is_admin ? 11 : 10 }}" class="idx-empty">
                             <i class="fas fa-receipt" style="font-size:1.6rem;color:#e5e7eb;display:block;margin-bottom:8px;"></i>
                             No sales records found.
                             @if($search || $gateway || $dateFrom || $dateTo)
@@ -186,5 +207,30 @@
         @endif
     </div>
 </div>
+
+@if(auth()->user()->is_admin)
+@section('scripts')
+<script>
+document.querySelectorAll('.rpt-del-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var form = this.closest('.rpt-del-form');
+        Swal.fire({
+            title: 'Delete this sale record?',
+            text: 'This will permanently delete the subscription record. This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        }).then(function (result) {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+});
+</script>
+@endsection
+@endif
 
 @endsection

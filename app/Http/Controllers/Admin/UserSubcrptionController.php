@@ -231,6 +231,26 @@ class UserSubcrptionController extends Controller
     }
 
     /**
+     * Remove a meal from a subscription day
+     */
+    public function removeMeal(Request $request, UserSubcrption $userSubcrption, SubscriptionMeal $subscriptionMeal)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $belongs = SubscriptionDay::where('id', $subscriptionMeal->subscription_days_id)
+            ->where('user_subcrptions_id', $userSubcrption->id)
+            ->exists();
+
+        if (! $belongs) {
+            return redirect()->back()->with('error', 'Meal does not belong to this subscription.');
+        }
+
+        $subscriptionMeal->delete();
+
+        return redirect()->back()->with('success', 'Meal removed successfully.');
+    }
+
+    /**
      * Add a meal to a specific day of a subscription
      */
     public function addMeal(Request $request, UserSubcrption $userSubcrption)

@@ -59,6 +59,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // User Subcrption
     Route::delete('user-subcrptions/destroy', 'UserSubcrptionController@massDestroy')->name('user-subcrptions.massDestroy');
     Route::post('user-subcrptions/{userSubcrption}/add-meal', 'UserSubcrptionController@addMeal')->name('user-subcrptions.add-meal');
+    Route::delete('user-subcrptions/{userSubcrption}/meals/{subscriptionMeal}', 'UserSubcrptionController@removeMeal')->name('user-subcrptions.remove-meal');
     Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');
     Route::post('user-subcrptions/{userSubcrption}/pause', 'UserSubcrptionController@pause')->name('user-subcrptions.pause');
     Route::post('user-subcrptions/{userSubcrption}/resume', 'UserSubcrptionController@resume')->name('user-subcrptions.resume');

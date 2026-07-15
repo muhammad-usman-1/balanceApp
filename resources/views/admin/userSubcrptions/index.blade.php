@@ -35,6 +35,7 @@
                         <th>Payment</th>
                         <th>Status</th>
                         <th>Personalized</th>
+                        <th>Coupon</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -71,6 +72,18 @@
                                 <span style="font-size:.78rem; color:#9ca3af;">No</span>
                             @endif
                         </td>
+                        <td>
+                            @if($sub->coupon_code)
+                                <span class="idx-chip chip-teal" style="font-family:monospace;font-size:.78rem;letter-spacing:.03em;">
+                                    {{ $sub->coupon_code }}
+                                </span>
+                                @if($sub->discount_amount)
+                                    <div style="font-size:.7rem;color:#9ca3af;margin-top:2px;">-{{ number_format($sub->discount_amount, 3) }} KWD</div>
+                                @endif
+                            @else
+                                <span style="font-size:.78rem;color:#d1d5db;">—</span>
+                            @endif
+                        </td>
                         <td style="white-space:nowrap;">
                             @can('user_subcrption_show')
                             <a href="{{ route('admin.user-subcrptions.show', $sub->id) }}" class="idx-btn ib-view">
@@ -91,7 +104,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="idx-empty">
+                        <td colspan="10" class="idx-empty">
                             <i class="fas fa-clipboard-list" style="font-size:2rem; color:#d1d5db;"></i><br>
                             No subscriptions found.
                         </td>

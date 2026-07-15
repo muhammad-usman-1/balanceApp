@@ -36,6 +36,32 @@
         </div>
     @endif
 
+    {{-- Search bar --}}
+    <div style="padding:16px 20px 10px;">
+        <form method="GET" action="{{ route('admin.meals.index') }}" style="display:flex;gap:8px;align-items:center;max-width:420px;">
+            <div style="position:relative;flex:1;">
+                <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:.8rem;"></i>
+                <input type="text" name="search" value="{{ $search ?? '' }}"
+                    placeholder="Search by title or category…"
+                    style="width:100%;padding:8px 12px 8px 30px;border:1px solid #e5e7eb;border-radius:8px;font-size:.84rem;outline:none;color:#111827;"
+                    onfocus="this.style.borderColor='#ea580c'" onblur="this.style.borderColor='#e5e7eb'">
+            </div>
+            <button type="submit" style="padding:8px 16px;background:#ea580c;color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer;">
+                Search
+            </button>
+            @if(!empty($search))
+            <a href="{{ route('admin.meals.index') }}" style="padding:8px 12px;background:#f3f4f6;color:#374151;border-radius:8px;font-size:.84rem;font-weight:600;text-decoration:none;">
+                Clear
+            </a>
+            @endif
+        </form>
+        @if(!empty($search))
+        <div style="margin-top:8px;font-size:.78rem;color:#9ca3af;">
+            Showing results for "<strong style="color:#374151;">{{ $search }}</strong>" — {{ $meals->total() }} meal(s) found
+        </div>
+        @endif
+    </div>
+
     <div class="card-body">
         <div class="table-responsive">
             <table class="table idx-table" style="width:100%;">

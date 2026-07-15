@@ -13,17 +13,18 @@ class ReportController extends Controller
     {
         $year = (int) $request->get('year', now()->year);
 
-        // Monthly breakdown: total, cash, online
+        // Monthly breakdown: paid, cash, pending
         $monthly = UserSubcrption::selectRaw("
-                MONTH(created_at)                                              AS month,
-                COUNT(*)                                                       AS total_count,
-                SUM(price)                                                     AS total_income,
-                SUM(CASE WHEN payment_gateway = 'cash' THEN price ELSE 0 END) AS cash_income,
-                SUM(CASE WHEN payment_gateway != 'cash' AND payment_gateway IS NOT NULL AND payment_gateway != '' THEN price ELSE 0 END) AS card_income,
-                SUM(CASE WHEN payment = 'paid'    THEN 1 ELSE 0 END)          AS paid_count,
-                SUM(CASE WHEN payment = 'pending' THEN 1 ELSE 0 END)          AS pending_count
+                MONTH(created_at)                                                                    AS month,
+                COUNT(*)                                                                             AS total_count,
+                SUM(CASE WHEN payment = 'paid' THEN price ELSE 0 END)                              AS total_income,
+                SUM(CASE WHEN payment_gateway = 'cash' THEN price ELSE 0 END)                      AS cash_income,
+                SUM(CASE WHEN payment_gateway != 'cash' AND payment_gateway IS NOT NULL
+                         AND payment_gateway != '' AND payment = 'paid' THEN price ELSE 0 END)     AS card_income,
+                SUM(CASE WHEN payment = 'paid'    THEN 1 ELSE 0 END)                               AS paid_count,
+                SUM(CASE WHEN payment = 'pending' THEN 1 ELSE 0 END)                               AS pending_count,
+                SUM(CASE WHEN payment = 'pending' THEN price ELSE 0 END)                           AS pending_income
             ")
-            ->where('payment', 'paid')
             ->whereYear('created_at', $year)
             ->groupByRaw('MONTH(created_at)')
             ->orderByRaw('MONTH(created_at)')
@@ -33,13 +34,15 @@ class ReportController extends Controller
         // Plan breakdown for selected year
         $byPlan = UserSubcrption::selectRaw("
                 subcrption_plans_id,
-                COUNT(*)    AS total_count,
-                SUM(price)  AS total_income,
-                SUM(CASE WHEN payment_gateway = 'cash' THEN price ELSE 0 END) AS cash_income,
-                SUM(CASE WHEN payment_gateway != 'cash' AND payment_gateway IS NOT NULL AND payment_gateway != '' THEN price ELSE 0 END) AS card_income
+                COUNT(*)                                                                           AS total_count,
+                SUM(CASE WHEN payment = 'paid' THEN price ELSE 0 END)                            AS total_income,
+                SUM(CASE WHEN payment_gateway = 'cash' THEN price ELSE 0 END)                    AS cash_income,
+                SUM(CASE WHEN payment_gateway != 'cash' AND payment_gateway IS NOT NULL
+                         AND payment_gateway != '' AND payment = 'paid' THEN price ELSE 0 END)   AS card_income,
+                SUM(CASE WHEN payment = 'pending' THEN 1 ELSE 0 END)                             AS pending_count,
+                SUM(CASE WHEN payment = 'pending' THEN price ELSE 0 END)                         AS pending_income
             ")
             ->with('subcrption_plans:id,title')
-            ->where('payment', 'paid')
             ->whereYear('created_at', $year)
             ->groupBy('subcrption_plans_id')
             ->orderByRaw('total_income DESC')
@@ -47,10 +50,12 @@ class ReportController extends Controller
 
         // Totals for the year
         $totals = [
-            'income' => $monthly->sum('total_income'),
-            'cash'   => $monthly->sum('cash_income'),
-            'card'   => $monthly->sum('card_income'),
-            'count'  => $monthly->sum('total_count'),
+            'income'          => $monthly->sum('total_income'),
+            'cash'            => $monthly->sum('cash_income'),
+            'card'            => $monthly->sum('card_income'),
+            'count'           => $monthly->sum('total_count'),
+            'pending_count'   => $monthly->sum('pending_count'),
+            'pending_income'  => $monthly->sum('pending_income'),
         ];
 
         // Available years for filter
@@ -73,7 +78,10 @@ class ReportController extends Controller
                 'user:id,name,mobile',
                 'subcrption_plans:id,title,meal_count,snack_count',
             ])
-            ->where('payment', 'paid')
+            ->where(function ($q) {
+                $q->where('payment', 'paid')
+                  ->orWhere('payment_gateway', 'cash');
+            })
             ->when($gateway, fn($q) => $q->where('payment_gateway', $gateway))
             ->when($dateFrom, fn($q) => $q->whereDate('created_at', '>=', $dateFrom))
             ->when($dateTo,   fn($q) => $q->whereDate('created_at', '<=', $dateTo))
@@ -88,7 +96,10 @@ class ReportController extends Controller
 
         $sales = $query->paginate(25)->withQueryString();
 
-        $gateways = UserSubcrption::where('payment', 'paid')
+        $gateways = UserSubcrption::where(function ($q) {
+                $q->where('payment', 'paid')
+                  ->orWhere('payment_gateway', 'cash');
+            })
             ->whereNotNull('payment_gateway')
             ->where('payment_gateway', '!=', '')
             ->distinct()

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Area;
+use App\Models\Coupon;
 use App\Models\Meal;
 use App\Models\MealRestriction;
 use App\Models\ProteinOption;
@@ -64,6 +65,28 @@ class SubscriptionService
             $price    = round($basePrice + $proteinSurcharge, 3);
             $currency = $paymentContext['currency'] ?? ($payload['currency'] ?? 'KWD');
 
+            // Apply coupon discount if provided
+            $couponCode     = ! empty($payload['coupon_code']) ? strtoupper(trim($payload['coupon_code'])) : null;
+            $couponId       = null;
+            $discountAmount = 0.0;
+            $coupon         = null;
+
+            if ($couponCode) {
+                $coupon = Coupon::where('coupon_code', $couponCode)->first();
+                if ($coupon) {
+                    $check = $coupon->canUserUse($payload['user_id']);
+                    if ($check['can_use']) {
+                        if ($coupon->type === 'percentage') {
+                            $discountAmount = round($price * ($coupon->value / 100), 3);
+                        } else {
+                            $discountAmount = min((float) $coupon->value, $price);
+                        }
+                        $couponId = $coupon->id;
+                        $price    = round(max(0, $price - $discountAmount), 3);
+                    }
+                }
+            }
+
             $selectedDaysRaw = $payload['selected_days'] ?? [];
             $selectedDaysStr = is_array($selectedDaysRaw)
                 ? implode(',', $selectedDaysRaw)
@@ -104,7 +127,20 @@ class SubscriptionService
                 'is_personalized'              => $isPersonalized,
                 'protein'             => $isPersonalized ? ($payload['protein'] ?? null) : null,
                 'carbs'               => $isPersonalized ? ($payload['carbs'] ?? null) : null,
+                'coupon_code'         => $couponId ? $couponCode : null,
+                'coupon_id'           => $couponId,
+                'discount_amount'     => $couponId ? $discountAmount : null,
             ]);
+
+            // Record coupon usage after subscription is persisted
+            if ($coupon && $couponId) {
+                $coupon->recordUsage(
+                    $payload['user_id'],
+                    $discountAmount,
+                    $basePrice + $proteinSurcharge,
+                    'Subscription #' . $userSubscription->id
+                );
+            }
 
             // Create one SubscriptionDay record per selected day (weekly pattern)
             [$subscriptionDays, $createdDays] = $this->createSubscriptionDays(
