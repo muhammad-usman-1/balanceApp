@@ -63,6 +63,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');
     Route::post('user-subcrptions/{userSubcrption}/pause', 'UserSubcrptionController@pause')->name('user-subcrptions.pause');
     Route::post('user-subcrptions/{userSubcrption}/resume', 'UserSubcrptionController@resume')->name('user-subcrptions.resume');
+    Route::post('user-subcrptions/{userSubcrption}/mark-paid', 'UserSubcrptionController@markPaid')->name('user-subcrptions.mark-paid');
     Route::get('user-subcrptions/{userSubcrption}/pause-logs', 'UserSubcrptionController@pauseLogs')->name('user-subcrptions.pause-logs');
     Route::resource('user-subcrptions', 'UserSubcrptionController');
 

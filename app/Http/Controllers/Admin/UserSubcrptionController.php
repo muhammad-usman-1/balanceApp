@@ -218,6 +218,26 @@ class UserSubcrptionController extends Controller
     }
 
     /**
+     * Record a cash-on-delivery payment as collected
+     *
+     * @param UserSubcrption $userSubcrption
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function markPaid(UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if ($userSubcrption->payment_gateway !== 'cash' || $userSubcrption->payment === 'paid') {
+            return redirect()->back()->with('error', 'Only pending cash-on-delivery subscriptions can be marked as paid.');
+        }
+
+        $userSubcrption->payment = 'paid';
+        $userSubcrption->save();
+
+        return redirect()->back()->with('success', 'Payment recorded as received for this subscription.');
+    }
+
+    /**
      * Show pause/resume logs for a subscription
      */
     public function pauseLogs(UserSubcrption $userSubcrption)

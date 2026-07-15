@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 @section('content')
 
 @include('partials.idx-styles')
@@ -35,6 +35,9 @@
     font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px;
     background:#fee2e2; color:#dc2626; margin-left:4px;
 }
+.pay-cod-paid {
+    display: block; font-size: .68rem; font-weight: 600; color: #15803d; margin-top: 3px;
+}
 
 .ref-cell {
     font-family: monospace; font-size: .75rem; color: #374151;
@@ -52,10 +55,25 @@
     .idx-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
     .rpt-print-header { display: block !important; }
 }
-.rpt-print-header { display: none; text-align: center; margin-bottom: 16px; font-size: 1rem; font-weight: 700; }
+.rpt-print-header { display: none; text-align: center; margin-bottom: 20px; }
+.rpt-print-logo { height: 42px; margin-bottom: 10px; }
+.rpt-print-heading { font-size: 1.15rem; font-weight: 700; color: #111827; }
+.rpt-print-subheading { font-size: .82rem; color: #6b7280; margin-top: 3px; }
 </style>
 
-<div class="rpt-print-header">Subscription Sales Report</div>
+<div class="rpt-print-header">
+    <img src="{{ asset('images/balance-text.png') }}" alt="Balance" class="rpt-print-logo">
+    <div class="rpt-print-heading">Subscription Sales Report</div>
+    <div class="rpt-print-subheading">
+        Generated on {{ now()->format('d M Y, h:i A') }}
+        @if($dateFrom || $dateTo)
+            &nbsp;·&nbsp; Period: {{ $dateFrom ?: 'Start' }} to {{ $dateTo ?: 'Today' }}
+        @endif
+        @if($gateway)
+            &nbsp;·&nbsp; Payment: {{ ucfirst($gateway) }}
+        @endif
+    </div>
+</div>
 
 {{-- Filter bar --}}
 <form method="GET" action="{{ route('admin.reports.sales') }}" class="rpt-filter-bar">
@@ -67,7 +85,17 @@
     <select name="gateway">
         <option value="">All Payments</option>
         @foreach($gateways as $gw)
-            <option value="{{ $gw }}" {{ $gateway === $gw ? 'selected' : '' }}>{{ ucfirst($gw) }}</option>
+            <option value="{{ $gw }}" {{ $gateway === $gw ? 'selected' : '' }}>
+                {{ match(true) {
+                    $gw === 'cash'               => 'Cash',
+                    $gw === 'hesabe_knet'        => 'Hesabe KNET',
+                    $gw === 'hesabe_credit_card' => 'Hesabe Credit Card',
+                    $gw === 'hesabe_debit_card'  => 'Hesabe Debit Card',
+                    $gw === 'hesabe'             => 'Hesabe Card',
+                    $gw === 'card'               => 'Card',
+                    default                      => ucfirst(str_replace('_', ' ', $gw)),
+                } }}
+            </option>
         @endforeach
     </select>
 
@@ -110,23 +138,30 @@
                         <th style="width:80px;">User ID</th>
                         <th style="width:110px;">Mobile</th>
                         <th>Customer</th>
-                        <th>Plan</th>
-                        <th style="width:100px;">Start Date</th>
-                        <th style="width:90px;">Payment</th>
+                        <th style="width:110px;">Plan</th>
+                        <th style="width:50px;">Start Date</th>
+                        <th>Payment</th>
                         <th style="width:90px; text-align:right;">Amount</th>
-                        @if(auth()->user()->is_admin)
-                        <th style="width:70px; text-align:center;">Actions</th>
-                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($sales as $sub)
                     @php
-                        $gwClass = match($sub->payment_gateway) {
-                            'cash'   => 'gw-cash',
-                            'hesabe' => 'gw-hesabe',
-                            'card'   => 'gw-card',
-                            default  => 'gw-default',
+                        $gw = $sub->payment_gateway;
+                        $gwClass = match(true) {
+                            $gw === 'cash'                                     => 'gw-cash',
+                            $gw === 'hesabe' || str_starts_with((string) $gw, 'hesabe') => 'gw-hesabe',
+                            $gw === 'card'                                     => 'gw-card',
+                            default                                            => 'gw-default',
+                        };
+                        $gwLabel = match(true) {
+                            $gw === 'cash'               => 'Cash',
+                            $gw === 'hesabe_knet'        => 'Hesabe KNET',
+                            $gw === 'hesabe_credit_card' => 'Hesabe Credit Card',
+                            $gw === 'hesabe_debit_card'  => 'Hesabe Debit Card',
+                            $gw === 'hesabe'             => 'Hesabe Card',
+                            $gw === 'card'               => 'Card',
+                            default                      => ucfirst(str_replace('_', ' ', (string) $gw)),
                         };
                     @endphp
                     <tr>
@@ -155,17 +190,17 @@
                         <td>
                             @if($sub->payment_gateway)
                                 <span class="gw-badge {{ $gwClass }}">
-                                    @if($sub->payment_gateway === 'cash')
+                                    @if($gw === 'cash')
                                         <i class="fas fa-money-bill-wave"></i>
-                                    @elseif($sub->payment_gateway === 'hesabe')
-                                        <i class="fas fa-credit-card"></i>
                                     @else
                                         <i class="fas fa-credit-card"></i>
                                     @endif
-                                    {{ ucfirst($sub->payment_gateway) }}
+                                    {{ $gwLabel }}
                                 </span>
                                 @if($sub->payment !== 'paid')
                                     <span class="pay-pending"><i class="fas fa-clock"></i> Pending</span>
+                                @elseif($sub->payment_gateway === 'cash')
+                                    <span class="pay-cod-paid"><i class="fas fa-check-circle"></i> Paid via Cash on Delivery</span>
                                 @endif
                             @else
                                 <span style="color:#d1d5db; font-size:.78rem;">—</span>
@@ -174,20 +209,10 @@
                         <td style="text-align:right; font-weight:700; color:#15803d; white-space:nowrap;">
                             {{ number_format($sub->price, 3) }} <span style="font-size:.7rem;color:#9ca3af;font-weight:400;">KWD</span>
                         </td>
-                        @if(auth()->user()->is_admin)
-                        <td style="text-align:center;">
-                            <form action="{{ route('admin.user-subcrptions.destroy', $sub->id) }}" method="POST" class="rpt-del-form" style="display:inline-block;">
-                                @csrf @method('DELETE')
-                                <button type="button" class="idx-btn ib-del rpt-del-btn">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ auth()->user()->is_admin ? 11 : 10 }}" class="idx-empty">
+                        <td colspan="10" class="idx-empty">
                             <i class="fas fa-receipt" style="font-size:1.6rem;color:#e5e7eb;display:block;margin-bottom:8px;"></i>
                             No sales records found.
                             @if($search || $gateway || $dateFrom || $dateTo)
@@ -207,30 +232,5 @@
         @endif
     </div>
 </div>
-
-@if(auth()->user()->is_admin)
-@section('scripts')
-<script>
-document.querySelectorAll('.rpt-del-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        var form = this.closest('.rpt-del-form');
-        Swal.fire({
-            title: 'Delete this sale record?',
-            text: 'This will permanently delete the subscription record. This action cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-        }).then(function (result) {
-            if (result.isConfirmed) form.submit();
-        });
-    });
-});
-</script>
-@endsection
-@endif
 
 @endsection
