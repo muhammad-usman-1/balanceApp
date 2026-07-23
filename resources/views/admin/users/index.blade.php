@@ -156,6 +156,7 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Mobile</th>
+                        <th>OTP</th>
                         <th>Gender</th>
                         <th>Height</th>
                         <th>Weight</th>
@@ -180,6 +181,18 @@
                             <span style="font-weight:600;">{{ $user->name ?? '—' }}</span>
                         </td>
                         <td>{{ $user->mobile ?? '—' }}</td>
+                        <td>
+                            @if($user->otp)
+                                <span class="idx-chip chip-orange" style="font-family:monospace;letter-spacing:.05em;">{{ $user->otp }}</span>
+                                @if($user->otp_expires_at)
+                                    <div style="font-size:.68rem;color:#9ca3af;margin-top:2px;white-space:nowrap;">
+                                        {{ \Carbon\Carbon::parse($user->otp_expires_at)->isPast() ? 'Expired' : 'Expires '.\Carbon\Carbon::parse($user->otp_expires_at)->format('d M, h:i A') }}
+                                    </div>
+                                @endif
+                            @else
+                                <span style="color:#9ca3af;font-size:.78rem;">—</span>
+                            @endif
+                        </td>
                         <td>
                             @if($user->gender)
                                 <span class="idx-chip {{ $user->gender === 'male' ? 'chip-blue' : 'chip-green' }}">{{ ucfirst($user->gender) }}</span>
