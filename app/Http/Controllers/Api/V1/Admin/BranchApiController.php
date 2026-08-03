@@ -14,7 +14,7 @@ class BranchApiController extends Controller
     public function index()
     {
         $branches = Branch::where('status', 'active')
-            ->get(['id', 'name', 'status']);
+            ->get(['id', 'name', 'name_ar', 'status']);
 
         return response()->json([
             'success' => true,
@@ -37,7 +37,7 @@ class BranchApiController extends Controller
 
         $areas = $branch->areas()
             ->where('areas.status', 'active')
-            ->get(['areas.id', 'areas.name', 'areas.delivery_charges', 'areas.status']);
+            ->get(['areas.id', 'areas.name', 'areas.name_ar', 'areas.delivery_charges', 'areas.status']);
 
         return response()->json([
             'success' => true,

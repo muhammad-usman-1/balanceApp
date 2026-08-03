@@ -23,11 +23,12 @@ class AreaController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'name_ar' => 'nullable|string|max:255',
             'delivery_charges' => 'required|numeric|min:0',
             'status' => 'required|in:active,inactive',
         ]);
 
-        Area::create($request->only(['name', 'delivery_charges', 'status']));
+        Area::create($request->only(['name', 'name_ar', 'delivery_charges', 'status']));
 
         return redirect()->route('admin.areas.index')->with('success', 'Area created successfully');
     }
@@ -41,11 +42,12 @@ class AreaController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'name_ar' => 'nullable|string|max:255',
             'delivery_charges' => 'required|numeric|min:0',
             'status' => 'required|in:active,inactive',
         ]);
 
-        $area->update($request->only(['name', 'delivery_charges', 'status']));
+        $area->update($request->only(['name', 'name_ar', 'delivery_charges', 'status']));
 
         return redirect()->route('admin.areas.index')->with('success', 'Area updated successfully');
     }

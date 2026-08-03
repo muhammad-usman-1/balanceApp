@@ -45,6 +45,17 @@
 }
 .del-search input:focus { border-color: #111827; box-shadow: 0 0 0 2px rgba(17,24,39,.08); }
 .del-search .fa-search { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: .72rem; }
+
+.diet-chip {
+    display: inline-block; font-size: .68rem; font-weight: 600; padding: 1px 8px;
+    border-radius: 20px; margin: 1px 2px 1px 0;
+}
+.diet-personalized { background: #dbeafe; color: #1e40af; }
+.diet-label { font-size: .74rem; color: #374151; margin-top: 3px; line-height: 1.4; }
+.diet-label strong { color: #111827; font-weight: 700; }
+.diet-note { font-size: .72rem; color: #6b7280; }
+.diet-note i { color: #9ca3af; margin-right: 3px; }
+.diet-none { font-size: .78rem; color: #d1d5db; }
 </style>
 
 @php
@@ -58,7 +69,7 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
             @if($date->isToday() && !request()->has('date'))
                 Today's Delivery Orders
             @else
-                Delivery Orders &mdash; {{ $date->format('l, d M Y') }}
+                Delivery Orders : {{ $date->format('l, d M Y') }}
                 @if($date->isToday())
                     <span style="font-size:.8rem; font-weight:400; color:#9ca3af;">(Today)</span>
                 @endif
@@ -109,10 +120,12 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
             <table class="table idx-table" style="width:100%;">
                 <thead>
                     <tr>
-                        <th style="width:18%;">Customer</th>
-                        <th style="width:140px;">Delivery Time</th>
+                        <th style="width:16%;">Customer</th>
+                        <th style="width:120px;">Delivery Time</th>
                         <th>Meals</th>
                         <th>Snacks</th>
+                        <th style="width:14%;">Diet</th>
+                        <th style="width:14%;">Delivery Notes</th>
                         <th style="width:148px;">Status</th>
                         <th style="width:64px; text-align:center;">Print</th>
                     </tr>
@@ -175,6 +188,31 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
                             @endforelse
                         </td>
                         <td>
+                            @php $user = $sub->user; @endphp
+                            @if($sub->is_personalized)
+                                <span class="diet-chip diet-personalized">
+                                    <i class="fas fa-dumbbell" style="font-size:.6rem;"></i>
+                                    Protein: {{ $sub->protein ?? '—' }}g · Carbs: {{ $sub->carbs ?? '—' }}g
+                                </span>
+                            @endif
+                            @if($user && $user->has_food_allergies && !empty($user->allergies))
+                                <div class="diet-label"><strong>Allergies:</strong> {{ implode(', ', (array) $user->allergies) }}</div>
+                            @endif
+                            @if($user && !empty($user->dislikes))
+                                <div class="diet-label"><strong>Dislike:</strong> {{ implode(', ', (array) $user->dislikes) }}</div>
+                            @endif
+                            @if(!$sub->is_personalized && (!$user || !$user->has_food_allergies || empty($user->allergies)) && (!$user || empty($user->dislikes)))
+                                <span class="diet-none">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($addr?->delivery_notes)
+                                <div class="diet-note"><i class="fas fa-sticky-note"></i> {{ $addr->delivery_notes }}</div>
+                            @else
+                                <span class="diet-none">—</span>
+                            @endif
+                        </td>
+                        <td>
                             <select class="status-select status-{{ $order->status }}"
                                     data-order-id="{{ $order->id }}">
                                 <option value="pending"   {{ $order->status === 'pending'   ? 'selected' : '' }}>Pending</option>
@@ -191,7 +229,7 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="idx-empty">
+                        <td colspan="8" class="idx-empty">
                             <i class="fas fa-box-open" style="font-size:1.6rem; color:#e5e7eb; display:block; margin-bottom:8px;"></i>
                             No delivery orders scheduled for <strong>{{ $date->format('l, d M Y') }}</strong>.
                             @if($search)

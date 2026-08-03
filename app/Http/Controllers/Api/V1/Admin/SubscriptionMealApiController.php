@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateSubscriptionMealApiRequest;
-use App\Models\MealRestriction;
+use App\Models\Meal;
 use App\Models\SubscriptionDay;
 use App\Models\SubscriptionMeal;
 use App\Models\UserSubcrption;
@@ -44,25 +44,29 @@ class SubscriptionMealApiController extends Controller
                 ], Response::HTTP_NOT_FOUND);
             }
 
-            // Enforce weekly meal restriction before any write
-            $restriction = MealRestriction::where('meal_id', $request->meal_id)->first();
-            if ($restriction) {
+            // Enforce weekly meal-group limit before any write — the limit is shared
+            // across every meal in the same group, not just the one being added.
+            $meal = Meal::find($request->meal_id);
+            $group = $meal?->mealGroup;
+
+            if ($group) {
                 $alreadyAssigned = SubscriptionMeal::whereHas('subscription_days', function ($q) use ($userSubscription) {
                     $q->where('user_subcrptions_id', $userSubscription->id);
                 })
-                ->where('meal_id', $request->meal_id)
+                ->whereHas('meal', function ($q) use ($group) {
+                    $q->where('meal_group_id', $group->id);
+                })
                 ->when(
                     $request->filled('subscription_meal_id'),
                     fn ($q) => $q->where('id', '!=', $request->subscription_meal_id)
                 )
                 ->count();
 
-                if ($alreadyAssigned >= $restriction->weekly_limit) {
+                if ($alreadyAssigned >= $group->weekly_limit) {
                     DB::rollBack();
-                    $mealTitle = $restriction->meal->title ?? 'This meal';
                     return response()->json([
                         'success' => false,
-                        'message' => "{$mealTitle} can only be added {$restriction->weekly_limit} time(s) per week. It has already been added {$alreadyAssigned} time(s).",
+                        'message' => 'Weekly meal limit reached. You have reached the maximum number of meals allowed from this category for the current week. Please choose a meal from another category or remove one of your previously selected meals.',
                     ], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
             }

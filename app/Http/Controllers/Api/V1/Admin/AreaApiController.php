@@ -21,10 +21,10 @@ class AreaApiController extends Controller
     {
         $areas = Area::where('status', 'active')
             ->with([
-                'branches' => fn ($q) => $q->where('status', 'active')->select('branches.id', 'branches.name'),
+                'branches' => fn ($q) => $q->where('status', 'active')->select('branches.id', 'branches.name', 'branches.name_ar'),
             ])
             ->orderBy('name')
-            ->get(['id', 'name', 'delivery_charges', 'status']);
+            ->get(['id', 'name', 'name_ar', 'delivery_charges', 'status']);
 
         $data = $areas->map(function (Area $area) {
             // Each area is linked to one branch in this system
@@ -33,9 +33,11 @@ class AreaApiController extends Controller
             return [
                 'id'               => $area->id,
                 'name'             => $area->name,
+                'name_ar'          => $area->name_ar,
                 'delivery_charges' => (float) $area->delivery_charges,
                 'branch_id'        => $branch?->id,
                 'branch_name'      => $branch?->name,
+                'branch_name_ar'   => $branch?->name_ar,
             ];
         });
 

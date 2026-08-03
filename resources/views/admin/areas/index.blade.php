@@ -36,7 +36,12 @@
                     @forelse($areas as $area)
                     <tr>
                         <td style="font-weight:600;color:#111827;">#{{ $area->id }}</td>
-                        <td style="font-weight:600;">{{ $area->name }}</td>
+                        <td style="font-weight:600;">
+                            {{ $area->name }}
+                            @if($area->name_ar)
+                                <div style="font-size:.75rem;color:#9ca3af;font-weight:400;" dir="rtl">{{ $area->name_ar }}</div>
+                            @endif
+                        </td>
                         <td>
                             <span style="font-weight:700;">{{ number_format($area->delivery_charges, 2) }}</span>
                             <span style="color:#9ca3af;font-size:.78rem;"> KWD</span>

@@ -20,18 +20,47 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserSubcrptionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('user_subcrption_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $branchId = auth()->user()->isBranchUser() ? auth()->user()->branch_id : null;
+        $branchId     = auth()->user()->isBranchUser() ? auth()->user()->branch_id : null;
+        $search       = trim($request->get('search', ''));
+        $statusFilter = $request->get('status_filter', 'active');
+        $today        = now()->toDateString();
 
         $userSubcrptions = UserSubcrption::with(['user', 'subcrption_plans'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($search, function ($q) use ($search) {
+                $q->whereHas('user', function ($q2) use ($search) {
+                    $q2->where('name', 'like', '%'.$search.'%')
+                       ->orWhere('mobile', 'like', '%'.$search.'%');
+                });
+            })
+            // A subscription is only truly "active" if it's marked active AND its end
+            // date hasn't passed yet — this covers the (rare) lag before the daily
+            // subscriptions:expire job flips a stale record's status to "inactive".
+            ->when($statusFilter === 'active', function ($q) use ($today) {
+                $q->where('status', 'active')
+                  ->where(function ($q2) use ($today) {
+                      $q2->whereNull('end_date')->orWhereDate('end_date', '>=', $today);
+                  });
+            })
+            ->when($statusFilter === 'ended', function ($q) use ($today) {
+                $q->where(function ($q2) use ($today) {
+                    $q2->where('status', 'inactive')
+                       ->orWhere(function ($q3) use ($today) {
+                           $q3->where('status', 'active')->whereDate('end_date', '<', $today);
+                       });
+                });
+            })
+            ->when($statusFilter === 'queued', fn($q) => $q->where('status', 'queued'))
+            // 'all' => no status restriction
             ->orderByDesc('id')
-            ->paginate(25);
+            ->paginate(25)
+            ->withQueryString();
 
-        return view('admin.userSubcrptions.index', compact('userSubcrptions'));
+        return view('admin.userSubcrptions.index', compact('userSubcrptions', 'search', 'statusFilter'));
     }
 
     public function create()
@@ -302,6 +331,25 @@ class UserSubcrptionController extends Controller
             $current = SubscriptionMeal::where('subscription_days_id', $day->id)->where('type', 'is snack')->count();
             if ($current >= $plan->snack_count) {
                 return redirect()->back()->with('error', "Limit reached: this plan allows {$plan->snack_count} snack(s) per day.");
+            }
+        }
+
+        // Enforce weekly meal-group limit — shared across every meal in the same
+        // group, counted across the whole subscription (all days), not per day.
+        $meal = Meal::find($request->meal_id);
+        $group = $meal?->mealGroup;
+
+        if ($group) {
+            $alreadyAssigned = SubscriptionMeal::whereHas('subscription_days', function ($q) use ($userSubcrption) {
+                $q->where('user_subcrptions_id', $userSubcrption->id);
+            })
+            ->whereHas('meal', function ($q) use ($group) {
+                $q->where('meal_group_id', $group->id);
+            })
+            ->count();
+
+            if ($alreadyAssigned >= $group->weekly_limit) {
+                return redirect()->back()->with('error', "Weekly limit reached: \"{$group->name}\" allows a maximum of {$group->weekly_limit} meal(s) per week. {$alreadyAssigned} have already been added from this group.");
             }
         }
 

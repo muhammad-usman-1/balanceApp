@@ -13,6 +13,7 @@ class MealResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'title_ar' => $this->title_ar,
             'description' => $this->description,
             'category_id' => $this->category_id,
             'category' => $this->category ? [
@@ -38,7 +39,13 @@ class MealResource extends JsonResource
             ] : null,
             'image_url' => $image ? $image->getUrl() : null,
             'image_thumb_url' => $image ? ($image->getUrl('thumb') ?: $image->getUrl()) : null,
-            'weekly_limit' => $this->restriction?->weekly_limit ?? null,
+            'meal_group_id' => $this->meal_group_id,
+            'meal_group' => $this->mealGroup ? [
+                'id' => $this->mealGroup->id,
+                'name' => $this->mealGroup->name,
+                'weekly_limit' => $this->mealGroup->weekly_limit,
+            ] : null,
+            'weekly_limit' => $this->mealGroup?->weekly_limit ?? null,
             'created_at' => $this->created_at ? $this->created_at->toDateTimeString() : null,
             'updated_at' => $this->updated_at ? $this->updated_at->toDateTimeString() : null,
             'deleted_at' => $this->deleted_at ? $this->deleted_at->toDateTimeString() : null,

@@ -43,9 +43,9 @@ class StoreUserSubcrptionRequest extends FormRequest
             ],
             'price' => [
                 'nullable',
-                'integer',
-                'min:-2147483648',
-                'max:2147483647',
+                'numeric',
+                'min:-99999999.999',
+                'max:99999999.999',
             ],
         ];
     }

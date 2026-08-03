@@ -75,8 +75,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('subscription-meals/destroy', 'SubscriptionMealsController@massDestroy')->name('subscription-meals.massDestroy');
     Route::resource('subscription-meals', 'SubscriptionMealsController');
 
-    // Meal Restrictions
-    Route::resource('meal-restrictions', 'MealRestrictionController')->only(['index', 'store', 'update', 'destroy']);
+    // Meal Groups (weekly meal limits)
+    Route::resource('meal-groups', 'MealGroupController')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     // Categories
     Route::post('categories/{id}/restore', 'CategoryController@restore')->name('categories.restore');

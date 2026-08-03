@@ -36,7 +36,12 @@
                     @forelse($branches as $branch)
                     <tr>
                         <td style="font-weight:600;color:#111827;">#{{ $branch->id }}</td>
-                        <td style="font-weight:600;">{{ $branch->name }}</td>
+                        <td style="font-weight:600;">
+                            {{ $branch->name }}
+                            @if($branch->name_ar)
+                                <div style="font-size:.75rem;color:#9ca3af;font-weight:400;" dir="rtl">{{ $branch->name_ar }}</div>
+                            @endif
+                        </td>
                         <td>
                             @if($branch->areas->count() > 0)
                                 @foreach($branch->areas as $area)

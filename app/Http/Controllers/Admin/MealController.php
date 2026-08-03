@@ -50,6 +50,7 @@ class MealController extends Controller
     {
         $meal = Meal::create([
             'title' => $request->input('title'),
+            'title_ar' => $request->input('title_ar'),
             'description' => $request->input('description'),
             'category_id' => $request->input('category_id'),
             'calories' => $request->input('calories'),
@@ -89,6 +90,7 @@ class MealController extends Controller
     {
         $meal->update([
             'title' => $request->input('title'),
+            'title_ar' => $request->input('title_ar'),
             'description' => $request->input('description'),
             'category_id' => $request->input('category_id'),
             'calories' => $request->input('calories'),

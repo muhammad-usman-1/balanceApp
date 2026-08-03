@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Area;
 use App\Models\Coupon;
 use App\Models\Meal;
-use App\Models\MealRestriction;
+use App\Models\MealGroup;
 use App\Models\ProteinOption;
 use App\Models\SubcrptionPlan;
 use App\Models\SubscriptionDay;
@@ -244,27 +244,7 @@ class SubscriptionService
             return $subscriptionMeals;
         }
 
-        // Count how many times each meal_id appears in the request
-        $mealCounts = [];
-        foreach ($meals as $m) {
-            $id = $m['meal_id'] ?? null;
-            if ($id) {
-                $mealCounts[$id] = ($mealCounts[$id] ?? 0) + 1;
-            }
-        }
-
-        // Validate against restrictions
-        $restrictions = MealRestriction::whereIn('meal_id', array_keys($mealCounts))
-            ->pluck('weekly_limit', 'meal_id');
-
-        foreach ($mealCounts as $mealId => $count) {
-            if (isset($restrictions[$mealId]) && $count > $restrictions[$mealId]) {
-                $mealTitle = Meal::find($mealId)?->title ?? "Meal #{$mealId}";
-                throw new \InvalidArgumentException(
-                    "\"{$mealTitle}\" can only be added {$restrictions[$mealId]} time(s) per week, but was selected {$count} time(s)."
-                );
-            }
-        }
+        $this->validateMealGroupLimits($meals);
 
         foreach ($meals as $mealData) {
             if (! isset($mealData['day'], $mealData['meal_id'])) {
@@ -288,5 +268,62 @@ class SubscriptionService
         }
 
         return $subscriptionMeals;
+    }
+
+    /**
+     * Validate a set of meal picks against meal-group weekly limits, without
+     * persisting anything. Shared by checkout (createSubscriptionMeals) and
+     * the standalone validate-pick endpoint used while building a new plan.
+     *
+     * The limit is shared across every meal in a group, not per individual
+     * meal — e.g. a group of 10 meals with limit 2 allows any combination of
+     * 2 meals from that group per week, total, not 2 of each meal.
+     *
+     * @param array<int, array<string, mixed>> $meals e.g. [["day"=>"monday","meal_id"=>10,"type"=>"is meal"]]
+     * @throws \InvalidArgumentException if any group's weekly limit is exceeded
+     */
+    public function validateMealGroupLimits(array $meals): void
+    {
+        if (empty($meals)) {
+            return;
+        }
+
+        // Count how many times each meal_id appears in the request
+        $mealCounts = [];
+        foreach ($meals as $m) {
+            $id = $m['meal_id'] ?? null;
+            if ($id) {
+                $mealCounts[$id] = ($mealCounts[$id] ?? 0) + 1;
+            }
+        }
+
+        if (empty($mealCounts)) {
+            return;
+        }
+
+        $mealsById = Meal::whereIn('id', array_keys($mealCounts))->get(['id', 'title', 'meal_group_id'])->keyBy('id');
+
+        $groupCounts = [];
+        foreach ($mealCounts as $mealId => $count) {
+            $groupId = $mealsById->get($mealId)?->meal_group_id;
+            if ($groupId) {
+                $groupCounts[$groupId] = ($groupCounts[$groupId] ?? 0) + $count;
+            }
+        }
+
+        if (empty($groupCounts)) {
+            return;
+        }
+
+        $groups = MealGroup::whereIn('id', array_keys($groupCounts))->get()->keyBy('id');
+
+        foreach ($groupCounts as $groupId => $count) {
+            $group = $groups->get($groupId);
+            if ($group && $count > $group->weekly_limit) {
+                throw new \InvalidArgumentException(
+                    "\"{$group->name}\" allows a maximum of {$group->weekly_limit} meal(s) per week, but {$count} were selected."
+                );
+            }
+        }
     }
 }

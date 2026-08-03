@@ -10,7 +10,7 @@
 .dislike-tag {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px;
-    background: #ffedd5; color: #c2410c; white-space: nowrap; margin: 2px 2px;
+    background: #f3f4f6; color: #374151; white-space: nowrap; margin: 2px 2px;
 }
 .search-bar {
     display: flex; gap: 8px; align-items: center;
@@ -84,7 +84,7 @@
                         </td>
                         <td>
                             @forelse($user->dislikes as $dislike)
-                                <span class="dislike-tag"><i class="fas fa-times-circle" style="font-size:.6rem;"></i> {{ $dislike }}</span>
+                                <span class="dislike-tag">{{ $dislike }}</span>
                             @empty
                                 <span style="color:#9ca3af;font-size:.8rem;">—</span>
                             @endforelse

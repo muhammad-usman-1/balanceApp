@@ -80,6 +80,8 @@ class UserSubcrption extends Model
 
     protected $casts = [
         'payment_meta' => 'array',
+        'price'        => 'float',
+        'discount_amount' => 'float',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

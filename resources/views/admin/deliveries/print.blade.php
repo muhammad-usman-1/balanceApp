@@ -111,7 +111,20 @@
                 @if($addr->remarks)
                     Remarks: {{ $addr->remarks }}<br>
                 @endif
-                Mobile No: {{ $addr->phone_number ?? '—' }}
+                Mobile No: {{ $addr->phone_number ?? '—' }}<br>
+                @if($addr->delivery_notes)
+                    Delivery Notes: {{ $addr->delivery_notes }}<br>
+                @endif
+            @endif
+            @if($sub->is_personalized)
+                Personalized Plan &mdash; Protein: {{ $sub->protein ?? '—' }}g, Carbs: {{ $sub->carbs ?? '—' }}g<br>
+            @endif
+            @php $user = $sub->user; @endphp
+            @if($user && $user->has_food_allergies && !empty($user->allergies))
+                Allergies: {{ implode(', ', (array) $user->allergies) }}<br>
+            @endif
+            @if($user && !empty($user->dislikes))
+                Dislikes: {{ implode(', ', (array) $user->dislikes) }}
             @endif
         </div>
     </div>

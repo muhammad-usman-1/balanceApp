@@ -225,6 +225,7 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']
     // User Subscriptions
     Route::get('my-subscriptions', 'Api\V1\Admin\UserSubscriptionApiController@index')->name('my-subscriptions.index');
     Route::get('my-subscriptions/{id}', 'Api\V1\Admin\UserSubscriptionApiController@show')->name('my-subscriptions.show');
+    Route::get('my-subscriptions/{id}/calendar', 'Api\V1\Admin\UserSubscriptionApiController@calendar')->name('my-subscriptions.calendar');
 
     // Renewal management — view, cancel, or change plan for queued renewal
     Route::get('my-subscriptions/{id}/renewal', 'Api\V1\SubscriptionRenewalApiController@show')->name('my-subscriptions.renewal.show');

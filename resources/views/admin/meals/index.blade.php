@@ -99,6 +99,9 @@
                         </td>
                         <td>
                             <span style="font-weight:600;">{{ $meal->title ?? '—' }}</span>
+                            @if($meal->title_ar)
+                                <div style="font-size:.75rem;color:#9ca3af;" dir="rtl">{{ $meal->title_ar }}</div>
+                            @endif
                             @if($meal->description)
                                 <div style="font-size:.72rem; color:#9ca3af; margin-top:2px;">
                                     {{ Str::limit($meal->description, 60) }}

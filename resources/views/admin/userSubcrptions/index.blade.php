@@ -4,12 +4,65 @@
 @include('partials.idx-styles')
 <style>
     .content-wrapper { background: #fff !important; }
+.us-filter-bar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 10px 20px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;
+}
+.us-search { position: relative; }
+.us-search input {
+    padding: 5px 12px 5px 30px; border-radius: 20px;
+    border: 1px solid #e5e7eb; font-size: .82rem; height: 32px; width: 240px; outline: none;
+}
+.us-search input:focus { border-color: #111827; box-shadow: 0 0 0 2px rgba(17,24,39,.08); }
+.us-search .fa-search { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: .72rem; }
+.us-filter-bar select {
+    padding: 5px 12px; border-radius: 20px; border: 1px solid #e5e7eb;
+    font-size: .82rem; height: 32px; outline: none; background: #fff; color: #374151;
+}
+.us-filter-bar select:focus { border-color: #111827; box-shadow: 0 0 0 2px rgba(17,24,39,.08); }
+.us-info-note {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin: 14px 20px 10px; padding: 10px 14px; background: #eff6ff;
+    border: 1px solid #bfdbfe; border-radius: 8px; font-size: .78rem; color: #1e40af;
+}
+.us-info-note i { margin-top: 1px; }
 </style>
 
 <div class="card idx-card">
     <div class="card-header">
         <h3><i class="fas fa-clipboard-list mr-2" style="color:#16a34a;"></i> Subscriptions</h3>
     </div>
+
+    <div class="us-info-note">
+        <i class="fas fa-info-circle"></i>
+        <span>
+            <strong style="display:block; margin-bottom:3px;">Why the "Record Payment" button?</strong>
+            It appears only next to Cash on Delivery subscriptions whose payment is still "Pending". It does
+            not collect any money itself, it's a manual bookkeeping step for the admin to confirm the driver
+            has physically collected the cash from the customer on delivery. Clicking it asks for confirmation,
+            then marks that subscription's payment status as "Paid" and removes the button, since it's no
+            longer needed once payment is recorded. This has no effect on card/KNET payments, which are marked
+            paid automatically by the payment gateway.
+        </span>
+    </div>
+
+    <form method="GET" action="{{ route('admin.user-subcrptions.index') }}" class="us-filter-bar">
+        <div class="us-search">
+            <i class="fas fa-search"></i>
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search by name or phone…">
+        </div>
+        <select name="status_filter" onchange="this.form.submit()">
+            <option value="active" {{ $statusFilter === 'active' ? 'selected' : '' }}>Active</option>
+            <option value="ended" {{ $statusFilter === 'ended' ? 'selected' : '' }}>Ended / Inactive</option>
+            <option value="queued" {{ $statusFilter === 'queued' ? 'selected' : '' }}>Queued</option>
+            <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>All</option>
+        </select>
+        @if($search || $statusFilter !== 'active')
+        <a href="{{ route('admin.user-subcrptions.index') }}" class="idx-btn ib-gray" style="height:32px;">
+            <i class="fas fa-times"></i> Clear
+        </a>
+        @endif
+    </form>
 
     @if(session('success'))
         <div class="idx-flash idx-flash-success" style="margin:16px 20px 10px;">
@@ -34,13 +87,18 @@
                         <th>End</th>
                         <th>Payment</th>
                         <th>Status</th>
-                        <th>Personalized</th>
+                        <th>Personalized?</th>
                         <th>Coupon</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($userSubcrptions as $sub)
+                    @php
+                        $rawEndDate = $sub->getRawOriginal('end_date');
+                        $hasEnded = $rawEndDate && \Carbon\Carbon::parse($rawEndDate)->lt(\Carbon\Carbon::today());
+                        $isEffectivelyEnded = $sub->status === 'inactive' || ($sub->status === 'active' && $hasEnded);
+                    @endphp
                     <tr>
                         <td style="font-weight:600; color:#111827;">#{{ $sub->id }}</td>
                         <td>
@@ -74,7 +132,9 @@
                             @endif
                         </td>
                         <td>
-                            @if($sub->status === 'active')
+                            @if($isEffectivelyEnded)
+                                <span class="idx-chip chip-gray"><i class="fas fa-flag-checkered" style="font-size:.55rem;"></i> Ended</span>
+                            @elseif($sub->status === 'active')
                                 <span class="idx-chip chip-green"><i class="fas fa-circle" style="font-size:.4rem;"></i> Active</span>
                             @else
                                 <span class="idx-chip chip-gray">{{ ucfirst($sub->status ?? 'inactive') }}</span>
@@ -125,6 +185,12 @@
                         <td colspan="10" class="idx-empty">
                             <i class="fas fa-clipboard-list" style="font-size:2rem; color:#d1d5db;"></i><br>
                             No subscriptions found.
+                            @if($search)
+                                <br><span style="font-size:.8rem;">No results matching "<em>{{ $search }}</em>"</span>
+                            @endif
+                            @if(!$search && $statusFilter !== 'all')
+                                <br><span style="font-size:.8rem;">Try switching the status filter to "All".</span>
+                            @endif
                         </td>
                     </tr>
                     @endforelse

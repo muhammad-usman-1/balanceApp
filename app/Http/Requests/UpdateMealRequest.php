@@ -20,6 +20,10 @@ class UpdateMealRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'title_ar' => [
+                'string',
+                'nullable',
+            ],
             'description' => [
                 'string',
                 'nullable',

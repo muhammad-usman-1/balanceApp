@@ -82,17 +82,17 @@
 
             @if($isBranchUser || auth()->user()->can('meal_access'))
             <a href="{{ route('admin.meals.index') }}"
-               class="app-sb__link {{ request()->is('admin/meals*') && !request()->is('admin/meal-restrictions*') ? 'is-active' : '' }}">
+               class="app-sb__link {{ request()->is('admin/meals*') && !request()->is('admin/meal-groups*') ? 'is-active' : '' }}">
                 <span class="app-sb__ic si-orange"><i class="fas fa-utensils"></i></span>
                 <span class="app-sb__txt">Meals</span>
             </a>
             @endif
 
             @if(!$isBranchUser)
-            <a href="{{ route('admin.meal-restrictions.index') }}"
-               class="app-sb__link {{ request()->is('admin/meal-restrictions*') ? 'is-active' : '' }}">
-                <span class="app-sb__ic si-red"><i class="fas fa-ban"></i></span>
-                <span class="app-sb__txt">Meal Limits</span>
+            <a href="{{ route('admin.meal-groups.index') }}"
+               class="app-sb__link {{ request()->is('admin/meal-groups*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-red"><i class="fas fa-layer-group"></i></span>
+                <span class="app-sb__txt">Meal Groups</span>
             </a>
 
             <a href="{{ route('admin.categories.index') }}"

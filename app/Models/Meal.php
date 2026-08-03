@@ -33,8 +33,10 @@ class Meal extends Model implements HasMedia
 
     protected $fillable = [
         'title',
+        'title_ar',
         'description',
         'category_id',
+        'meal_group_id',
         'calories',
         'protein_g',
         'fat_g',
@@ -52,9 +54,9 @@ class Meal extends Model implements HasMedia
         return $this->belongsTo(Category::class)->withTrashed();
     }
 
-    public function restriction()
+    public function mealGroup()
     {
-        return $this->hasOne(MealRestriction::class);
+        return $this->belongsTo(MealGroup::class);
     }
 
     protected function serializeDate(DateTimeInterface $date)

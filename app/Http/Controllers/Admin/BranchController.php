@@ -30,6 +30,7 @@ class BranchController extends Controller
     {
         $request->validate([
             'name'     => 'required|string|max:255',
+            'name_ar'  => 'nullable|string|max:255',
             'areas'    => 'nullable|array',
             'areas.*'  => 'exists:areas,id',
             'status'   => 'required|in:active,inactive',
@@ -49,7 +50,7 @@ class BranchController extends Controller
             }
         }
 
-        $branch = Branch::create($request->only(['name', 'status']));
+        $branch = Branch::create($request->only(['name', 'name_ar', 'status']));
 
         if ($request->filled('areas')) {
             $branch->areas()->sync($request->areas);
@@ -79,6 +80,7 @@ class BranchController extends Controller
     {
         $request->validate([
             'name'     => 'required|string|max:255',
+            'name_ar'  => 'nullable|string|max:255',
             'areas'    => 'nullable|array',
             'areas.*'  => 'exists:areas,id',
             'status'   => 'required|in:active,inactive',
@@ -99,7 +101,7 @@ class BranchController extends Controller
             }
         }
 
-        $branch->update($request->only(['name', 'status']));
+        $branch->update($request->only(['name', 'name_ar', 'status']));
 
         if ($request->filled('areas')) {
             $branch->areas()->sync($request->areas);

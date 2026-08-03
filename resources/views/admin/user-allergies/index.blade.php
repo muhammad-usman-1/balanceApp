@@ -10,7 +10,7 @@
 .allergy-tag {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px;
-    background: #fee2e2; color: #dc2626; white-space: nowrap; margin: 2px 2px;
+    background: #f3f4f6; color: #374151; white-space: nowrap; margin: 2px 2px;
 }
 .search-bar {
     display: flex; gap: 8px; align-items: center;
@@ -84,7 +84,7 @@
                         </td>
                         <td>
                             @forelse($user->allergies as $allergy)
-                                <span class="allergy-tag"><i class="fas fa-exclamation-triangle" style="font-size:.6rem;"></i> {{ $allergy }}</span>
+                                <span class="allergy-tag">{{ $allergy }}</span>
                             @empty
                                 <span style="color:#9ca3af;font-size:.8rem;">—</span>
                             @endforelse

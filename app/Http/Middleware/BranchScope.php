@@ -27,7 +27,7 @@ class BranchScope
                 'admin/roles',
                 'admin/permissions',
                 'admin/settings',
-                'admin/meal-restrictions',
+                'admin/meal-groups',
             ];
 
             foreach ($blockedPrefixes as $prefix) {
