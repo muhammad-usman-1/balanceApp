@@ -55,6 +55,16 @@ class UpdateSubscriptionMealApiRequest extends FormRequest
                 'integer',
                 'exists:subscription_meals,id',
             ],
+            // The customer's chosen extra options (meal_extra_ingredients ids).
+            // Optional — omit to leave existing choices untouched.
+            'extra_ingredient_ids' => [
+                'nullable',
+                'array',
+            ],
+            'extra_ingredient_ids.*' => [
+                'integer',
+                'exists:meal_extra_ingredients,id',
+            ],
         ];
     }
 

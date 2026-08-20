@@ -112,16 +112,44 @@ class UserSubcrptionController extends Controller
         $userSubcrption->load('user', 'subcrption_plans', 'duration');
 
         $subscriptionDays = SubscriptionDay::where('user_subcrptions_id', $userSubcrption->id)
-            ->with(['subscription_meals.meal'])
+            ->with(['subscription_meals.meal', 'subscription_meals.selectedIngredients.mealExtra'])
             ->orderByRaw("FIELD(day, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
             ->get();
 
         $allMeals   = Meal::orderBy('title')->pluck('title', 'id');
+        $mainMeals  = Meal::where('type', 'is meal')->orderBy('title')->pluck('title', 'id');
+        $snackMeals = Meal::where('type', 'is snack')->orderBy('title')->pluck('title', 'id');
         $plan       = $userSubcrption->subcrption_plans;
         $mealLimit  = $plan->meal_count  ?? null;
         $snackLimit = $plan->snack_count ?? null;
 
-        return view('admin.userSubcrptions.show', compact('userSubcrption', 'subscriptionDays', 'allMeals', 'mealLimit', 'snackLimit'));
+        $weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+        // Current meals per day, split by type, so the bulk form can pre-fill each slot.
+        $existingByDay = [];
+        foreach ($subscriptionDays as $sd) {
+            $existingByDay[$sd->day] = [
+                'is meal'  => $sd->subscription_meals->where('type', 'is meal')->pluck('meal_id')->values()->all(),
+                'is snack' => $sd->subscription_meals->where('type', 'is snack')->pluck('meal_id')->values()->all(),
+            ];
+        }
+
+        // Days to render in the bulk form: the subscription's selected days, plus any
+        // day that already has meals. Fall back to the full week when none are set.
+        $selected = $userSubcrption->selected_days;
+        $selectedDays = $selected
+            ? (is_array($selected) ? $selected : explode(',', $selected))
+            : [];
+        $selectedDays = array_map(fn($d) => strtolower(trim($d)), $selectedDays);
+        $formDays = array_values(array_intersect(
+            $weekdays,
+            array_unique(array_merge($selectedDays, array_keys($existingByDay)))
+        ));
+        if (empty($formDays)) {
+            $formDays = $weekdays;
+        }
+
+        return view('admin.userSubcrptions.show', compact('userSubcrption', 'subscriptionDays', 'allMeals', 'mainMeals', 'snackMeals', 'mealLimit', 'snackLimit', 'formDays', 'existingByDay'));
     }
 
     public function destroy(UserSubcrption $userSubcrption)
@@ -163,7 +191,7 @@ class UserSubcrptionController extends Controller
 
         // Get subscription days with meals
         $subscriptionDays = SubscriptionDay::where('user_subcrptions_id', $userSubcrption->id)
-            ->with(['subscription_meals.meal'])
+            ->with(['subscription_meals.meal', 'subscription_meals.selectedIngredients.mealExtra'])
             ->orderByRaw("FIELD(day, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
             ->get();
 
@@ -360,5 +388,116 @@ class UserSubcrptionController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Meal added to ' . ucfirst($request->day) . ' successfully.');
+    }
+
+    /**
+     * Save meals & snacks for every day of the subscription in one submit.
+     *
+     * The form shows all days at once, each pre-filled with what's already
+     * assigned, so this acts as a full editor: for each submitted day the meals
+     * are replaced with exactly what the form contains (add new, drop cleared).
+     */
+    public function addMeals(Request $request, UserSubcrption $userSubcrption)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+        $request->validate([
+            'form_days'    => ['required', 'array'],
+            'form_days.*'  => ['in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
+            'meals'        => ['nullable', 'array'],
+            'meals.*'      => ['nullable', 'array'],
+            'meals.*.*'    => ['nullable', 'exists:meals,id'],
+            'snacks'       => ['nullable', 'array'],
+            'snacks.*'     => ['nullable', 'array'],
+            'snacks.*.*'   => ['nullable', 'exists:meals,id'],
+        ]);
+
+        $userSubcrption->load('subcrption_plans');
+        $plan = $userSubcrption->subcrption_plans;
+
+        $formDays = array_values(array_intersect($weekdays, array_map('strval', $request->input('form_days', []))));
+
+        // Build the desired meal/snack lists per day from the filled-in slots,
+        // capping each day at the plan's per-day limits.
+        $desired = [];
+        foreach ($formDays as $day) {
+            $mealsIn  = array_values(array_filter((array) $request->input("meals.$day", []),  fn($v) => $v !== null && $v !== ''));
+            $snacksIn = array_values(array_filter((array) $request->input("snacks.$day", []), fn($v) => $v !== null && $v !== ''));
+
+            if ($plan && $plan->meal_count !== null) {
+                $mealsIn = array_slice($mealsIn, 0, $plan->meal_count);
+            }
+            if ($plan && $plan->snack_count !== null) {
+                $snacksIn = array_slice($snacksIn, 0, $plan->snack_count);
+            }
+
+            $desired[$day] = ['is meal' => $mealsIn, 'is snack' => $snacksIn];
+        }
+
+        // Seed weekly meal-group counts from meals on days that this submit does NOT
+        // touch, so the weekly limit stays correct across the whole subscription.
+        $groupCounts = [];
+        $untouched = SubscriptionMeal::whereHas('subscription_days', function ($q) use ($userSubcrption, $formDays) {
+            $q->where('user_subcrptions_id', $userSubcrption->id)->whereNotIn('day', $formDays);
+        })->with('meal')->get();
+        foreach ($untouched as $sm) {
+            $gid = $sm->meal?->meal_group_id;
+            if ($gid) {
+                $groupCounts[$gid] = ($groupCounts[$gid] ?? 0) + 1;
+            }
+        }
+
+        // Enforce the weekly meal-group limit, skipping over-limit picks.
+        $skipped = [];
+        foreach ($desired as $day => &$slots) {
+            foreach (['is meal', 'is snack'] as $type) {
+                $accepted = [];
+                foreach ($slots[$type] as $mid) {
+                    $meal  = Meal::find($mid);
+                    $group = $meal?->mealGroup;
+                    if ($group) {
+                        if (($groupCounts[$group->id] ?? 0) >= $group->weekly_limit) {
+                            $skipped[] = "{$meal->title} on " . ucfirst($day) . " (weekly limit for \"{$group->name}\")";
+                            continue;
+                        }
+                        $groupCounts[$group->id] = ($groupCounts[$group->id] ?? 0) + 1;
+                    }
+                    $accepted[] = $mid;
+                }
+                $slots[$type] = $accepted;
+            }
+        }
+        unset($slots);
+
+        // Replace each submitted day's meals with the accepted picks.
+        \DB::transaction(function () use ($desired, $userSubcrption) {
+            foreach ($desired as $day => $slots) {
+                $subscriptionDay = SubscriptionDay::firstOrCreate([
+                    'user_subcrptions_id' => $userSubcrption->id,
+                    'day'                 => $day,
+                ]);
+
+                SubscriptionMeal::where('subscription_days_id', $subscriptionDay->id)->delete();
+
+                foreach (['is meal', 'is snack'] as $type) {
+                    foreach ($slots[$type] as $mid) {
+                        SubscriptionMeal::create([
+                            'subscription_days_id' => $subscriptionDay->id,
+                            'meal_id'              => $mid,
+                            'type'                 => $type,
+                        ]);
+                    }
+                }
+            }
+        });
+
+        $message = 'Meals saved successfully for all days.';
+        if (! empty($skipped)) {
+            $message .= ' Skipped: ' . implode('; ', $skipped) . '.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 }

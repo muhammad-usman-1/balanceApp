@@ -71,6 +71,8 @@ class SubscriptionMealApiController extends Controller
                 }
             }
 
+            $previousMealId = null;
+
             if ($request->filled('subscription_meal_id')) {
                 $subscriptionMeal = SubscriptionMeal::where('id', $request->subscription_meal_id)
                     ->where('subscription_days_id', $subscriptionDay->id)
@@ -83,6 +85,8 @@ class SubscriptionMealApiController extends Controller
                         'message' => 'Meal entry not found for this day.',
                     ], Response::HTTP_NOT_FOUND);
                 }
+
+                $previousMealId = $subscriptionMeal->meal_id;
 
                 $subscriptionMeal->update([
                     'meal_id' => $request->meal_id,
@@ -98,7 +102,22 @@ class SubscriptionMealApiController extends Controller
                 $message = 'Meal assigned successfully.';
             }
 
-            $subscriptionMeal->load('meal');
+            // Persist the customer's extra choices. If none are sent but the meal
+            // was changed, clear the stale choices that belonged to the old meal.
+            if ($request->has('extra_ingredient_ids')) {
+                $extrasError = $this->applySelectedExtras($subscriptionMeal, $meal, (array) $request->input('extra_ingredient_ids', []));
+                if ($extrasError) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => $extrasError,
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+            } elseif ($previousMealId !== null && $previousMealId != $request->meal_id) {
+                $subscriptionMeal->selectedIngredients()->sync([]);
+            }
+
+            $subscriptionMeal->load(['meal.mealExtras', 'meal.availableIngredients', 'selectedIngredients.mealExtra']);
             DB::commit();
 
             return response()->json([
@@ -112,6 +131,7 @@ class SubscriptionMealApiController extends Controller
                         'meal_id'             => $subscriptionMeal->meal_id,
                         'type'                => $subscriptionMeal->type,
                         'meal'                => $this->formatMeal($subscriptionMeal->meal),
+                        'selected_extras'     => $this->formatSelectedExtras($subscriptionMeal),
                     ],
                 ],
             ]);
@@ -150,7 +170,9 @@ class SubscriptionMealApiController extends Controller
                 ->with([
                     'subcrption_plans',
                     'subscription_days' => fn ($q) => $q->orderByRaw("FIELD(day,'monday','tuesday','wednesday','thursday','friday','saturday','sunday')"),
-                    'subscription_days.subscription_meals.meal',
+                    'subscription_days.subscription_meals.meal.mealExtras',
+                    'subscription_days.subscription_meals.meal.availableIngredients',
+                    'subscription_days.subscription_meals.selectedIngredients.mealExtra',
                 ])
                 ->latest()
                 ->first();
@@ -168,10 +190,11 @@ class SubscriptionMealApiController extends Controller
                 'subscription_day_id' => $day->id,
                 'day'                 => $day->day,
                 'meals'               => $day->subscription_meals->map(fn ($m) => [
-                    'id'      => $m->id,
-                    'meal_id' => $m->meal_id,
-                    'type'    => $m->type,
-                    'meal'    => $this->formatMeal($m->meal),
+                    'id'              => $m->id,
+                    'meal_id'         => $m->meal_id,
+                    'type'            => $m->type,
+                    'meal'            => $this->formatMeal($m->meal),
+                    'selected_extras' => $this->formatSelectedExtras($m),
                 ])->values(),
             ])->values();
 
@@ -205,13 +228,173 @@ class SubscriptionMealApiController extends Controller
         }
 
         return [
-            'id'          => $meal->id,
-            'title'       => $meal->title,
-            'description' => $meal->description ?? null,
-            'calories'    => $meal->calories ?? null,
-            'protein_g'   => $meal->protein_g ?? null,
-            'fat_g'       => $meal->fat_g ?? null,
-            'carbs_g'     => $meal->carbs_g ?? null,
+            'id'              => $meal->id,
+            'title'           => $meal->title,
+            'title_ar'        => $meal->title_ar ?? null,
+            'description'     => $meal->description ?? null,
+            'description_ar'  => $meal->description_ar ?? null,
+            'calories'        => $meal->calories ?? null,
+            'protein_g'       => $meal->protein_g ?? null,
+            'fat_g'           => $meal->fat_g ?? null,
+            'carbs_g'         => $meal->carbs_g ?? null,
+            'available_extras' => $this->formatAvailableExtras($meal),
         ];
+    }
+
+    /**
+     * The extras this meal offers, each with only the options enabled for it.
+     * Requires the meal to have mealExtras + availableIngredients loaded.
+     */
+    private function formatAvailableExtras(?object $meal): array
+    {
+        if (! $meal || ! $meal->relationLoaded('mealExtras')) {
+            return [];
+        }
+
+        $byExtra = $meal->availableIngredients->groupBy('meal_extra_id');
+
+        return $meal->mealExtras->map(function ($extra) use ($byExtra) {
+            return [
+                'id'             => $extra->id,
+                'name'           => $extra->name,
+                'name_ar'        => $extra->name_ar,
+                'selection_type' => $extra->selection_type,
+                'is_required'    => $extra->pivot->is_required !== null
+                    ? (bool) $extra->pivot->is_required
+                    : (bool) $extra->is_required,
+                // Max options the customer may pick: single => 1; multiple => per-meal cap or null (no limit).
+                'max_select'     => $extra->selection_type === 'single'
+                    ? 1
+                    : ($extra->pivot->max_select !== null ? (int) $extra->pivot->max_select : null),
+                'options'        => ($byExtra->get($extra->id) ?? collect())
+                    ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'name_ar' => $i->name_ar])
+                    ->values(),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * The customer's chosen extras for a subscription meal, grouped by extra.
+     */
+    private function formatSelectedExtras(SubscriptionMeal $subscriptionMeal): array
+    {
+        $subscriptionMeal->loadMissing('selectedIngredients.mealExtra');
+
+        return $subscriptionMeal->selectedIngredients
+            ->groupBy('meal_extra_id')
+            ->map(function ($ingredients) {
+                $extra = $ingredients->first()->mealExtra;
+
+                return [
+                    'extra_id'       => $extra?->id,
+                    'name'           => $extra?->name,
+                    'name_ar'        => $extra?->name_ar,
+                    'selection_type' => $extra?->selection_type,
+                    'options'        => $ingredients
+                        ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'name_ar' => $i->name_ar])
+                        ->values(),
+                ];
+            })->values()->all();
+    }
+
+    /**
+     * Validate and persist a customer's extra choices for a subscription meal.
+     * Returns an error message string on failure, or null on success.
+     */
+    private function applySelectedExtras(SubscriptionMeal $subscriptionMeal, ?Meal $meal, array $ingredientIds): ?string
+    {
+        $ingredientIds = array_values(array_unique(array_filter(
+            $ingredientIds,
+            fn ($v) => $v !== null && $v !== ''
+        )));
+
+        if (empty($ingredientIds)) {
+            $subscriptionMeal->selectedIngredients()->sync([]);
+            return null;
+        }
+
+        if (! $meal) {
+            return 'Meal not found for these options.';
+        }
+
+        // Every chosen option must be one this meal actually offers.
+        $available = $meal->availableIngredients()->with('mealExtra')->get()->keyBy('id');
+
+        foreach ($ingredientIds as $id) {
+            if (! $available->has($id)) {
+                return 'One or more selected options are not available for this meal.';
+            }
+        }
+
+        // Per-meal cap: single => 1; multiple => the meal's max_select (null = no cap).
+        $mealExtras = $meal->mealExtras()->get()->keyBy('id');
+        $byExtra    = collect($ingredientIds)->groupBy(fn ($id) => $available[$id]->meal_extra_id);
+
+        foreach ($byExtra as $iids) {
+            $extra = $available[$iids->first()]->mealExtra;
+            if (! $extra) {
+                continue;
+            }
+
+            $pivot   = $mealExtras->get($extra->id);
+            $allowed = $extra->selection_type === 'single'
+                ? 1
+                : (($pivot && $pivot->pivot->max_select) ? (int) $pivot->pivot->max_select : PHP_INT_MAX);
+
+            if ($iids->count() > $allowed) {
+                return "You can select at most {$allowed} option(s) for \"{$extra->name}\".";
+            }
+        }
+
+        $subscriptionMeal->selectedIngredients()->sync($ingredientIds);
+        return null;
+    }
+
+    /**
+     * Save (replace) the extra choices for an existing subscription meal.
+     * Use this when the customer edits extras without changing the meal itself.
+     */
+    public function saveMealExtras(Request $request)
+    {
+        $request->validate([
+            'user_id'                => 'required|integer|exists:users,id',
+            'subscription_meal_id'   => 'required|integer|exists:subscription_meals,id',
+            'extra_ingredient_ids'   => 'nullable|array',
+            'extra_ingredient_ids.*' => 'integer|exists:meal_extra_ingredients,id',
+        ]);
+
+        $subscriptionMeal = SubscriptionMeal::with(['subscription_days.user_subcrption', 'meal'])
+            ->find($request->subscription_meal_id);
+
+        $userSubscription = $subscriptionMeal?->subscription_days?->user_subcrption;
+
+        if (
+            ! $subscriptionMeal
+            || ! $userSubscription
+            || $userSubscription->user_id != $request->user_id
+            || $userSubscription->status !== 'active'
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Meal not found or does not belong to your active subscription.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $error = $this->applySelectedExtras($subscriptionMeal, $subscriptionMeal->meal, (array) $request->input('extra_ingredient_ids', []));
+        if ($error) {
+            return response()->json([
+                'success' => false,
+                'message' => $error,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Extras saved successfully.',
+            'data' => [
+                'subscription_meal_id' => $subscriptionMeal->id,
+                'selected_extras'      => $this->formatSelectedExtras($subscriptionMeal->fresh()),
+            ],
+        ]);
     }
 }

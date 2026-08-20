@@ -123,15 +123,27 @@
                         </div>
                     </div>
 
-                    <div class="mf-field">
-                        <label class="mf-label" for="description">Description</label>
-                        <textarea class="mf-input {{ $errors->has('description') ? 'is-err' : '' }}"
-                                  name="description" id="description"
-                                  rows="3" placeholder="Short description of the meal…"
-                                  style="resize:vertical;">{{ old('description') }}</textarea>
-                        @if($errors->has('description'))
-                            <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('description') }}</div>
-                        @endif
+                    <div class="mf-grid-2" style="margin-bottom:0;">
+                        <div class="mf-field">
+                            <label class="mf-label" for="description">Description</label>
+                            <textarea class="mf-input {{ $errors->has('description') ? 'is-err' : '' }}"
+                                      name="description" id="description"
+                                      rows="3" placeholder="Short description of the meal…"
+                                      style="resize:vertical;">{{ old('description') }}</textarea>
+                            @if($errors->has('description'))
+                                <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('description') }}</div>
+                            @endif
+                        </div>
+                        <div class="mf-field">
+                            <label class="mf-label" for="description_ar">Description (Arabic)</label>
+                            <textarea class="mf-input {{ $errors->has('description_ar') ? 'is-err' : '' }}"
+                                      name="description_ar" id="description_ar" dir="rtl"
+                                      rows="3" placeholder="وصف مختصر للوجبة…"
+                                      style="resize:vertical;">{{ old('description_ar') }}</textarea>
+                            @if($errors->has('description_ar'))
+                                <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('description_ar') }}</div>
+                            @endif
+                        </div>
                     </div>
 
                     <div class="mf-grid-2" style="margin-bottom:16px;">
@@ -273,6 +285,11 @@
                     @endif
                 </div>
 
+            </div>
+
+            {{-- Available Extras --}}
+            <div style="margin-top: 24px;">
+                @include('admin.meals._extras')
             </div>
 
             {{-- Actions --}}

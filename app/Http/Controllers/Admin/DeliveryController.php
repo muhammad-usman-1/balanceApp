@@ -38,6 +38,7 @@ class DeliveryController extends Controller
         $subscriptionDays = SubscriptionDay::where('day', $dayName)
             ->with([
                 'subscription_meals.meal',
+                'subscription_meals.selectedIngredients.mealExtra',
                 'user_subcrption.user',
                 'user_subcrption.address',
                 'user_subcrption.branch',
@@ -171,6 +172,16 @@ class DeliveryController extends Controller
     public function updateStatus(Request $request, DeliveryOrder $deliveryOrder)
     {
         $request->validate(['status' => 'required|in:pending,delivered']);
+
+        // Once an order is delivered it is locked — it can't be reverted.
+        if ($deliveryOrder->status === 'delivered') {
+            return response()->json([
+                'success' => false,
+                'locked'  => true,
+                'message' => 'This order is already delivered and can no longer be changed.',
+            ], 422);
+        }
+
         $deliveryOrder->update(['status' => $request->status]);
 
         return response()->json(['success' => true]);

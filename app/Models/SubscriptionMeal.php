@@ -42,4 +42,18 @@ class SubscriptionMeal extends Model
     {
         return $this->belongsTo(Meal::class, 'meal_id');
     }
+
+    /**
+     * The customer's chosen extra options for this meal (per-subscription-meal).
+     * The parent extra is derived from each ingredient's meal_extra_id.
+     */
+    public function selectedIngredients()
+    {
+        return $this->belongsToMany(
+            MealExtraIngredient::class,
+            'subscription_meal_extras',
+            'subscription_meal_id',
+            'meal_extra_ingredient_id'
+        )->withTimestamps();
+    }
 }

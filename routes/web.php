@@ -59,6 +59,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // User Subcrption
     Route::delete('user-subcrptions/destroy', 'UserSubcrptionController@massDestroy')->name('user-subcrptions.massDestroy');
     Route::post('user-subcrptions/{userSubcrption}/add-meal', 'UserSubcrptionController@addMeal')->name('user-subcrptions.add-meal');
+    Route::post('user-subcrptions/{userSubcrption}/add-meals', 'UserSubcrptionController@addMeals')->name('user-subcrptions.add-meals');
     Route::delete('user-subcrptions/{userSubcrption}/meals/{subscriptionMeal}', 'UserSubcrptionController@removeMeal')->name('user-subcrptions.remove-meal');
     Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');
     Route::post('user-subcrptions/{userSubcrption}/pause', 'UserSubcrptionController@pause')->name('user-subcrptions.pause');
@@ -77,6 +78,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // Meal Groups (weekly meal limits)
     Route::resource('meal-groups', 'MealGroupController')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+
+    // Meal Extras (extra categories + their ingredient options)
+    Route::resource('meal-extras', 'MealExtraController')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::post('meal-extra-ingredients', 'MealExtraIngredientController@store')->name('meal-extra-ingredients.store');
+    Route::put('meal-extra-ingredients/{mealExtraIngredient}', 'MealExtraIngredientController@update')->name('meal-extra-ingredients.update');
+    Route::delete('meal-extra-ingredients/{mealExtraIngredient}', 'MealExtraIngredientController@destroy')->name('meal-extra-ingredients.destroy');
 
     // Categories
     Route::post('categories/{id}/restore', 'CategoryController@restore')->name('categories.restore');

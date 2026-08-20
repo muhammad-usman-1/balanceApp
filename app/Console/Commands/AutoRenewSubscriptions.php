@@ -74,14 +74,20 @@ class AutoRenewSubscriptions extends Command
                         $dayMap[$day->id] = $newDay->id;
                     }
 
-                    // Copy meal assignments for each day
+                    // Copy meal assignments for each day, including the customer's
+                    // chosen extras so their selections carry into the renewal.
                     foreach ($subscription->subscription_days as $day) {
                         foreach ($day->subscription_meals as $meal) {
-                            SubscriptionMeal::create([
+                            $newMeal = SubscriptionMeal::create([
                                 'subscription_days_id' => $dayMap[$day->id],
                                 'meal_id'              => $meal->meal_id,
                                 'type'                 => $meal->type,
                             ]);
+
+                            $ingredientIds = $meal->selectedIngredients->pluck('id')->all();
+                            if (! empty($ingredientIds)) {
+                                $newMeal->selectedIngredients()->sync($ingredientIds);
+                            }
                         }
                     }
 

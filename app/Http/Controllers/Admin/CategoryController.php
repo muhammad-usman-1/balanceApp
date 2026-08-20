@@ -23,8 +23,9 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|unique:categories,name',
+            'name_ar' => 'nullable|string',
         ]);
-        Category::create($request->only('name'));
+        Category::create($request->only('name', 'name_ar'));
         return redirect()->route('admin.categories.index')->with('success', 'Category created successfully');
     }
 
@@ -37,8 +38,9 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|unique:categories,name,' . $category->id,
+            'name_ar' => 'nullable|string',
         ]);
-        $category->update($request->only('name'));
+        $category->update($request->only('name', 'name_ar'));
         return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully');
     }
 

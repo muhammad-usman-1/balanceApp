@@ -151,6 +151,11 @@
     padding: 2px 7px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px;
 }
 .sv-macro i { font-size: .62rem; }
+.sv-meal-extras { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.sv-extra-chip { font-size: .68rem; color: #0f766e; background: #f0fdfa; border: 1px solid #99f6e4;
+                 padding: 2px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
+.sv-extra-chip i { font-size: .6rem; }
+.sv-extra-chip strong { font-weight: 700; }
 .sv-meal-type-chip {
     font-size: .68rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0;
 }
@@ -210,6 +215,23 @@
 .am-modal-body  { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
 .am-group label { font-size: .78rem; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
 .am-group label .req { color: #ef4444; }
+.am-plan-note {
+    padding: 10px 14px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+    font-size: .82rem; color: #075985; display: flex; align-items: center; gap: 8px;
+}
+.am-day-block {
+    border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 10px; background: #fafafa;
+}
+.am-day-title {
+    font-size: .9rem; font-weight: 800; color: #1e293b; text-transform: capitalize;
+    display: flex; align-items: center; gap: 8px;
+}
+.am-day-dot { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; }
+.am-slot-heading {
+    font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+    color: #1d4ed8; display: flex; align-items: center; gap: 6px; margin: 0;
+}
 .am-select {
     width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 9px;
     font-size: .87rem; color: #111827; background: #fff;
@@ -328,7 +350,7 @@
             @endif
             @can('user_subcrption_edit')
                 <button type="button" class="sv-btn" style="background:#dcfce7;color:#15803d;" id="addMealBtn">
-                    <i class="fas fa-plus"></i> Add Meal
+                    <i class="fas fa-utensils"></i> Manage Meals
                 </button>
             @endcan
             <a href="{{ route('admin.user-subcrptions.index') }}" class="sv-btn sv-btn-back">
@@ -361,7 +383,7 @@
                     <span class="sv-kv-key">Plan</span>
                     <span class="sv-kv-val">{{ $userSubcrption->subcrption_plans->title ?? '—' }}</span>
                 </div>
-               
+
                 <div class="sv-kv-row">
                     <span class="sv-kv-key">Start Date</span>
                     <span class="sv-kv-val">{{ $userSubcrption->start_date ?? '—' }}</span>
@@ -484,6 +506,17 @@
                                             <span class="sv-macro"><i class="fas fa-tint"></i> {{ $sm->meal->fat_g }}g</span>
                                         @endif
                                     </div>
+                                    @if($sm->selectedIngredients->isNotEmpty())
+                                        <div class="sv-meal-extras">
+                                            @foreach($sm->selectedIngredients->groupBy('meal_extra_id') as $extraIngredients)
+                                                <span class="sv-extra-chip">
+                                                    <i class="fas fa-plus-circle"></i>
+                                                    <strong>{{ $extraIngredients->first()->mealExtra?->name ?? 'Extra' }}:</strong>
+                                                    {{ $extraIngredients->pluck('name')->implode(', ') }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
                                 <span class="sv-meal-type-chip {{ $sm->type === 'is meal' ? 'sv-type-meal' : 'sv-type-snack' }}">
                                     {{ $sm->type === 'is meal' ? 'Meal' : 'Snack' }}
@@ -567,72 +600,79 @@
 
 {{-- ── Add Meal Modal ── --}}
 <div class="am-modal-backdrop" id="addMealBackdrop">
-    <div class="am-modal">
+    <div class="am-modal" style="max-width:560px;">
         <div class="am-modal-header">
             <div class="am-modal-header-icon"><i class="fas fa-utensils"></i></div>
             <div>
-                <div class="am-modal-title">Add Meal to Day</div>
+                <div class="am-modal-title">Manage Meals, All Days</div>
                 <div class="am-modal-sub">{{ $userSubcrption->user->name ?? 'Customer' }}</div>
             </div>
         </div>
-        <form method="POST" action="{{ route('admin.user-subcrptions.add-meal', $userSubcrption->id) }}">
-            @csrf
-            <div class="am-modal-body">
-                {{-- Plan limits info --}}
-                @if($mealLimit || $snackLimit)
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    @if($mealLimit)
-                    <div style="flex:1;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;font-size:.8rem;color:#1d4ed8;">
-                        <i class="fas fa-utensils" style="margin-right:5px;"></i>
-                        <strong>{{ $mealLimit }}</strong> meal{{ $mealLimit > 1 ? 's' : '' }} per day allowed
-                    </div>
-                    @endif
-                    @if($snackLimit)
-                    <div style="flex:1;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;font-size:.8rem;color:#b45309;">
-                        <i class="fas fa-apple-alt" style="margin-right:5px;"></i>
-                        <strong>{{ $snackLimit }}</strong> snack{{ $snackLimit > 1 ? 's' : '' }} per day allowed
-                    </div>
-                    @endif
-                </div>
-                @endif
+        @php
+            // Slot count per day comes from the plan; fall back to one each when unset.
+            $mealSlots  = $mealLimit  ?: 1;
+            $snackSlots = $snackLimit ?: 1;
 
-                <div class="am-group">
-                    <label>Day <span class="req">*</span></label>
-                    <select name="day" class="am-select" required>
-                        <option value="">— Select day —</option>
-                        @foreach(['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as $d)
-                            <option value="{{ $d }}">{{ ucfirst($d) }}</option>
-                        @endforeach
-                    </select>
+            // Plain-language summary of what the plan includes.
+            $incParts = [];
+            if ($mealLimit)  { $incParts[] = $mealLimit  . ' meal'  . ($mealLimit  > 1 ? 's' : ''); }
+            if ($snackLimit) { $incParts[] = $snackLimit . ' snack' . ($snackLimit > 1 ? 's' : ''); }
+            $includesText = count($incParts) ? implode(' and ', $incParts) . ' per day' : 'meals and snacks';
+        @endphp
+        <form method="POST" action="{{ route('admin.user-subcrptions.add-meals', $userSubcrption->id) }}">
+            @csrf
+            <div class="am-modal-body" style="max-height:72vh;overflow-y:auto;">
+                {{-- Plan summary (plain text, no pill buttons) --}}
+                <div class="am-plan-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>This subscription includes only <strong>{{ $includesText }}</strong>.</span>
                 </div>
-                <div class="am-group">
-                    <label>Meal <span class="req">*</span></label>
-                    <select name="meal_id" class="am-select select2-meal" required>
-                        <option value="">— Search and select meal —</option>
-                        @foreach($allMeals as $id => $title)
-                            <option value="{{ $id }}">{{ $title }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="am-group">
-                    <label>Meal Type <span class="req">*</span></label>
-                    <div class="am-type-row">
-                        <label class="am-type-opt">
-                            <input type="radio" name="type" value="is meal" checked>
-                            <i class="fas fa-utensils"></i> Main Meal
-                            @if($mealLimit) <span style="font-size:.7rem;color:#6b7280;margin-left:auto;">max {{ $mealLimit }}</span> @endif
-                        </label>
-                        <label class="am-type-opt">
-                            <input type="radio" name="type" value="is snack">
-                            <i class="fas fa-apple-alt"></i> Snack
-                            @if($snackLimit) <span style="font-size:.7rem;color:#6b7280;margin-left:auto;">max {{ $snackLimit }}</span> @endif
-                        </label>
+
+                {{-- One block per day, pre-filled with what's already assigned --}}
+                @foreach($formDays as $day)
+                    @php
+                        $dayMealIds  = $existingByDay[$day]['is meal']  ?? [];
+                        $daySnackIds = $existingByDay[$day]['is snack'] ?? [];
+                        $dMealSlots  = max($mealSlots,  count($dayMealIds));
+                        $dSnackSlots = max($snackSlots, count($daySnackIds));
+                    @endphp
+                    <div class="am-day-block">
+                        <div class="am-day-title"><span class="am-day-dot"></span>{{ ucfirst($day) }}</div>
+                        <input type="hidden" name="form_days[]" value="{{ $day }}">
+
+                        <div class="am-slot-heading"><i class="fas fa-utensils"></i> Main Meals</div>
+                        @for($i = 0; $i < $dMealSlots; $i++)
+                        <div class="am-group">
+                            <select name="meals[{{ $day }}][]" class="am-select select2-meal">
+                                <option value="">— Meal {{ $i + 1 }} (optional) —</option>
+                                @foreach($mainMeals as $id => $title)
+                                    <option value="{{ $id }}" {{ (isset($dayMealIds[$i]) && $dayMealIds[$i] == $id) ? 'selected' : '' }}>{{ $title }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endfor
+
+                        <div class="am-slot-heading" style="color:#b45309;margin-top:4px;"><i class="fas fa-apple-alt"></i> Snacks</div>
+                        @for($i = 0; $i < $dSnackSlots; $i++)
+                        <div class="am-group">
+                            <select name="snacks[{{ $day }}][]" class="am-select select2-meal">
+                                <option value="">— Snack {{ $i + 1 }} (optional) —</option>
+                                @foreach($snackMeals as $id => $title)
+                                    <option value="{{ $id }}" {{ (isset($daySnackIds[$i]) && $daySnackIds[$i] == $id) ? 'selected' : '' }}>{{ $title }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endfor
                     </div>
-                </div>
+                @endforeach
+
+                <p style="font-size:.75rem;color:#9ca3af;margin:0;">
+                    <i class="fas fa-info-circle"></i> Slots already assigned are pre-selected. Saving replaces each day with exactly what's shown here, clear a slot to remove that meal.
+                </p>
             </div>
             <div class="am-modal-footer">
                 <button type="button" class="am-btn-cancel" id="amCancelBtn"><i class="fas fa-times"></i> Cancel</button>
-                <button type="submit" class="am-btn-submit"><i class="fas fa-plus"></i> Add Meal</button>
+                <button type="submit" class="am-btn-submit"><i class="fas fa-save"></i> Save Meals</button>
             </div>
         </form>
     </div>

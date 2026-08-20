@@ -263,11 +263,71 @@ class SubscriptionService
                 'type'                 => $mealData['type'] ?? null,
             ]);
 
+            // Persist the customer's extra choices picked at checkout (if any).
+            $this->attachSelectedExtras(
+                $subscriptionMeal,
+                (int) $mealData['meal_id'],
+                (array) ($mealData['extra_ingredient_ids'] ?? [])
+            );
+
             $subscriptionMeal->loadMissing(['meal', 'subscription_days']);
             $subscriptionMeals->push($subscriptionMeal);
         }
 
         return $subscriptionMeals;
+    }
+
+    /**
+     * Validate and persist a customer's extra choices for a subscription meal
+     * created at checkout. Throws if an option isn't offered by the meal or a
+     * per-meal max_select cap is exceeded (keeps checkout consistent).
+     *
+     * @param array<int, int|string> $ingredientIds meal_extra_ingredients ids
+     */
+    protected function attachSelectedExtras(SubscriptionMeal $subscriptionMeal, int $mealId, array $ingredientIds): void
+    {
+        $ingredientIds = array_values(array_unique(array_filter(
+            $ingredientIds,
+            fn ($v) => $v !== null && $v !== ''
+        )));
+
+        if (empty($ingredientIds)) {
+            return;
+        }
+
+        $meal = Meal::with(['mealExtras', 'availableIngredients.mealExtra'])->find($mealId);
+        if (! $meal) {
+            return;
+        }
+
+        $available = $meal->availableIngredients->keyBy('id');
+
+        foreach ($ingredientIds as $id) {
+            if (! $available->has($id)) {
+                throw new \InvalidArgumentException('One or more selected options are not available for the chosen meal.');
+            }
+        }
+
+        $mealExtras = $meal->mealExtras->keyBy('id');
+        $byExtra    = collect($ingredientIds)->groupBy(fn ($id) => $available[$id]->meal_extra_id);
+
+        foreach ($byExtra as $iids) {
+            $extra = $available[$iids->first()]->mealExtra;
+            if (! $extra) {
+                continue;
+            }
+
+            $pivot   = $mealExtras->get($extra->id);
+            $allowed = $extra->selection_type === 'single'
+                ? 1
+                : (($pivot && $pivot->pivot->max_select) ? (int) $pivot->pivot->max_select : PHP_INT_MAX);
+
+            if ($iids->count() > $allowed) {
+                throw new \InvalidArgumentException("You can select at most {$allowed} option(s) for \"{$extra->name}\".");
+            }
+        }
+
+        $subscriptionMeal->selectedIngredients()->sync($ingredientIds);
     }
 
     /**

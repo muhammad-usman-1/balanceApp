@@ -69,25 +69,48 @@
             {{-- Basic Info --}}
             <p class="mf-section"><i class="fas fa-info-circle mr-1"></i> Basic Info</p>
 
-            <div class="mf-field">
-                <label class="mf-label" for="title">Plan Name</label>
-                <input class="mf-input {{ $errors->has('title') ? 'is-err' : '' }}"
-                       type="text" name="title" id="title"
-                       value="{{ old('title', $subcrptionPlan->title) }}" placeholder="e.g. Standard Plan">
-                @if($errors->has('title'))
-                    <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('title') }}</div>
-                @endif
+            <div class="mf-grid-2">
+                <div class="mf-field">
+                    <label class="mf-label" for="title">Plan Name</label>
+                    <input class="mf-input {{ $errors->has('title') ? 'is-err' : '' }}"
+                           type="text" name="title" id="title"
+                           value="{{ old('title', $subcrptionPlan->title) }}" placeholder="e.g. Standard Plan">
+                    @if($errors->has('title'))
+                        <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('title') }}</div>
+                    @endif
+                </div>
+                <div class="mf-field">
+                    <label class="mf-label" for="title_ar">Plan Name (Arabic)</label>
+                    <input class="mf-input {{ $errors->has('title_ar') ? 'is-err' : '' }}"
+                           type="text" name="title_ar" id="title_ar" dir="rtl"
+                           value="{{ old('title_ar', $subcrptionPlan->title_ar) }}" placeholder="مثال: الخطة القياسية">
+                    @if($errors->has('title_ar'))
+                        <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('title_ar') }}</div>
+                    @endif
+                </div>
             </div>
 
-            <div class="mf-field">
-                <label class="mf-label" for="description">Description</label>
-                <textarea class="mf-input {{ $errors->has('description') ? 'is-err' : '' }}"
-                          name="description" id="description"
-                          rows="3" placeholder="Briefly describe what this plan includes…"
-                          style="resize:vertical;">{{ old('description', $subcrptionPlan->description) }}</textarea>
-                @if($errors->has('description'))
-                    <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('description') }}</div>
-                @endif
+            <div class="mf-grid-2">
+                <div class="mf-field">
+                    <label class="mf-label" for="description">Description</label>
+                    <textarea class="mf-input {{ $errors->has('description') ? 'is-err' : '' }}"
+                              name="description" id="description"
+                              rows="3" placeholder="Briefly describe what this plan includes…"
+                              style="resize:vertical;">{{ old('description', $subcrptionPlan->description) }}</textarea>
+                    @if($errors->has('description'))
+                        <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('description') }}</div>
+                    @endif
+                </div>
+                <div class="mf-field">
+                    <label class="mf-label" for="description_ar">Description (Arabic)</label>
+                    <textarea class="mf-input {{ $errors->has('description_ar') ? 'is-err' : '' }}"
+                              name="description_ar" id="description_ar" dir="rtl"
+                              rows="3" placeholder="وصف مختصر لما تتضمنه هذه الخطة…"
+                              style="resize:vertical;">{{ old('description_ar', $subcrptionPlan->description_ar) }}</textarea>
+                    @if($errors->has('description_ar'))
+                        <div class="mf-err"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('description_ar') }}</div>
+                    @endif
+                </div>
             </div>
 
             {{-- Pricing & Duration --}}

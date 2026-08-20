@@ -20,7 +20,15 @@ class StoreSubcrptionPlanRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'title_ar' => [
+                'string',
+                'nullable',
+            ],
             'description' => [
+                'string',
+                'nullable',
+            ],
+            'description_ar' => [
                 'string',
                 'nullable',
             ],

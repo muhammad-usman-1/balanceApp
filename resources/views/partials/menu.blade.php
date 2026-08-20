@@ -101,6 +101,12 @@
                 <span class="app-sb__txt">Categories</span>
             </a>
 
+            <a href="{{ route('admin.meal-extras.index') }}"
+               class="app-sb__link {{ request()->is('admin/meal-extras*') ? 'is-active' : '' }}">
+                <span class="app-sb__ic si-teal"><i class="fas fa-plus-square"></i></span>
+                <span class="app-sb__txt">Meal Extras</span>
+            </a>
+
             @can('subcrption_plan_access')
             <a href="{{ route('admin.subcrption-plans.index') }}"
                class="app-sb__link {{ request()->is('admin/subcrption-plans*') ? 'is-active' : '' }}">

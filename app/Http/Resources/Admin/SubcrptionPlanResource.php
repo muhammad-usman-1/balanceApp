@@ -11,7 +11,9 @@ class SubcrptionPlanResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'title_ar' => $this->title_ar,
             'description' => $this->description,
+            'description_ar' => $this->description_ar,
             'price' => $this->price,
             'meal_count' => $this->meal_count,
             'snack_count' => $this->snack_count,

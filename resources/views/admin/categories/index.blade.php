@@ -27,6 +27,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
+                        <th>Name (Arabic)</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -40,6 +41,7 @@
                                 <span class="idx-chip chip-red ml-1">Deleted</span>
                             @endif
                         </td>
+                        <td dir="rtl" style="font-weight:600;">{{ $category->name_ar ?? '—' }}</td>
                         <td style="white-space:nowrap;">
                             @if(!$category->trashed())
                                 <a href="{{ route('admin.categories.edit', $category->id) }}" class="idx-btn ib-edit">
@@ -68,7 +70,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="3" class="idx-empty"><i class="fas fa-tags"></i><br>No categories found</td></tr>
+                    <tr><td colspan="4" class="idx-empty"><i class="fas fa-tags"></i><br>No categories found</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -35,6 +35,7 @@ class Meal extends Model implements HasMedia
         'title',
         'title_ar',
         'description',
+        'description_ar',
         'category_id',
         'meal_group_id',
         'calories',
@@ -57,6 +58,26 @@ class Meal extends Model implements HasMedia
     public function mealGroup()
     {
         return $this->belongsTo(MealGroup::class);
+    }
+
+    /**
+     * Extra categories (Bread, Sauce…) this meal offers.
+     */
+    public function mealExtras()
+    {
+        return $this->belongsToMany(MealExtra::class, 'meal_meal_extra')
+            ->withPivot('is_required', 'max_select', 'sort_order')
+            ->withTimestamps();
+    }
+
+    /**
+     * The specific ingredient options enabled for this meal (per-meal subset).
+     * The parent extra is derived from each ingredient's meal_extra_id.
+     */
+    public function availableIngredients()
+    {
+        return $this->belongsToMany(MealExtraIngredient::class, 'meal_meal_extra_ingredient')
+            ->withTimestamps();
     }
 
     protected function serializeDate(DateTimeInterface $date)

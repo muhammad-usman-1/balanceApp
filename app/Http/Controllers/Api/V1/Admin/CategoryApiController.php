@@ -18,6 +18,7 @@ class CategoryApiController extends Controller
     {
         $category = Category::create($request->validate([
             'name' => 'required|string|unique:categories,name',
+            'name_ar' => 'nullable|string',
         ]));
         return response()->json($category, Response::HTTP_CREATED);
     }
@@ -31,6 +32,7 @@ class CategoryApiController extends Controller
     {
         $category->update($request->validate([
             'name' => 'required|string|unique:categories,name,' . $category->id,
+            'name_ar' => 'nullable|string',
         ]));
         return response()->json($category, Response::HTTP_OK);
     }

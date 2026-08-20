@@ -138,6 +138,9 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
     Route::get('users', 'UserApiController@index')->name('users.index');
     Route::get('users/{user}', 'UserApiController@show')->name('users.show');
     Route::get('users/mobile/{mobile}', 'UserApiController@findByMobile')->name('users.findByMobile');
+    // Meal Extras catalog (all extra categories with their options)
+    Route::get('meal-extras', 'MealExtraApiController@index')->name('meal-extras.index');
+
     // Meal
     Route::post('meals/media', 'MealApiController@storeMedia')->name('meals.storeMedia');
     Route::apiResource('meals', 'MealApiController');
@@ -178,6 +181,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'namespace' => 'Api\V1\Admin'], 
     // Subscription Meals - Update meal for any day
     Route::post('subscription/meals/update', 'SubscriptionMealApiController@updateMeal')->name('subscription.meals.update');
     Route::get('subscription/meals', 'SubscriptionMealApiController@getMeals')->name('subscription.meals.get');
+    // Save (replace) a customer's extra choices for an existing subscription meal
+    Route::post('subscription/meals/extras', 'SubscriptionMealApiController@saveMealExtras')->name('subscription.meals.extras');
 
     // Coupon validation
     Route::post('coupons/validate', 'CouponApiController@validateCoupon')->name('coupons.validate');

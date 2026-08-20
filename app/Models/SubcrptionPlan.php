@@ -21,7 +21,9 @@ class SubcrptionPlan extends Model
 
     protected $fillable = [
         'title',
+        'title_ar',
         'description',
+        'description_ar',
         'price',
         'meal_count',
         'snack_count',

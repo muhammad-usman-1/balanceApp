@@ -42,8 +42,15 @@ class MealController extends Controller
         abort_if(Gate::denies('meal_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $categories = \App\Models\Category::all();
+        $mealExtras = \App\Models\MealExtra::where('is_active', true)
+            ->with('activeIngredients')
+            ->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.meals.create', compact('categories'));
+        $selectedExtraIds      = old('meal_extras', []);
+        $selectedIngredientIds = old('extra_ingredients', []);
+        $selectedMaxSelect     = old('max_select', []);
+
+        return view('admin.meals.create', compact('categories', 'mealExtras', 'selectedExtraIds', 'selectedIngredientIds', 'selectedMaxSelect'));
     }
 
     public function store(StoreMealRequest $request)
@@ -52,6 +59,7 @@ class MealController extends Controller
             'title' => $request->input('title'),
             'title_ar' => $request->input('title_ar'),
             'description' => $request->input('description'),
+            'description_ar' => $request->input('description_ar'),
             'category_id' => $request->input('category_id'),
             'calories' => $request->input('calories'),
             'protein_g' => $request->input('protein_g'),
@@ -73,6 +81,8 @@ class MealController extends Controller
             Media::whereIn('id', $media)->update(['model_id' => $meal->id]);
         }
 
+        $this->syncMealExtras($meal, $request);
+
         return redirect()->route('admin.meals.index');
     }
 
@@ -80,10 +90,17 @@ class MealController extends Controller
     {
         abort_if(Gate::denies('meal_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $meal->load('category');
+        $meal->load('category', 'mealExtras', 'availableIngredients');
         $categories = \App\Models\Category::all();
+        $mealExtras = \App\Models\MealExtra::where('is_active', true)
+            ->with('activeIngredients')
+            ->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.meals.edit', compact('meal', 'categories'));
+        $selectedExtraIds      = old('meal_extras', $meal->mealExtras->pluck('id')->all());
+        $selectedIngredientIds = old('extra_ingredients', $meal->availableIngredients->pluck('id')->all());
+        $selectedMaxSelect     = old('max_select', $meal->mealExtras->mapWithKeys(fn ($e) => [$e->id => $e->pivot->max_select])->all());
+
+        return view('admin.meals.edit', compact('meal', 'categories', 'mealExtras', 'selectedExtraIds', 'selectedIngredientIds', 'selectedMaxSelect'));
     }
 
     public function update(UpdateMealRequest $request, Meal $meal)
@@ -92,6 +109,7 @@ class MealController extends Controller
             'title' => $request->input('title'),
             'title_ar' => $request->input('title_ar'),
             'description' => $request->input('description'),
+            'description_ar' => $request->input('description_ar'),
             'category_id' => $request->input('category_id'),
             'calories' => $request->input('calories'),
             'protein_g' => $request->input('protein_g'),
@@ -112,7 +130,43 @@ class MealController extends Controller
                 ->toMediaCollection('image', 'meals');
         }
 
+        $this->syncMealExtras($meal, $request);
+
         return redirect()->route('admin.meals.index');
+    }
+
+    /**
+     * Sync a meal's available extras and the enabled ingredient options.
+     * Ingredients are kept only when their parent extra is enabled for the meal.
+     */
+    private function syncMealExtras(Meal $meal, Request $request): void
+    {
+        $extraIds      = array_filter((array) $request->input('meal_extras', []));
+        $ingredientIds = array_filter((array) $request->input('extra_ingredients', []));
+        $maxInput      = (array) $request->input('max_select', []);
+
+        // Build pivot data per extra. max_select only applies to "multiple" extras;
+        // "single" extras are always capped at 1 (stored as NULL, interpreted as 1).
+        $extras = \App\Models\MealExtra::whereIn('id', $extraIds)->get()->keyBy('id');
+        $pivotData = [];
+        foreach ($extraIds as $extraId) {
+            $extra   = $extras->get($extraId);
+            $max     = null;
+            if ($extra && $extra->selection_type === 'multiple') {
+                $val = isset($maxInput[$extraId]) ? (int) $maxInput[$extraId] : 0;
+                $max = $val > 0 ? $val : null; // null = no cap
+            }
+            $pivotData[$extraId] = ['max_select' => $max];
+        }
+
+        $meal->mealExtras()->sync($pivotData);
+
+        $validIngredientIds = empty($ingredientIds) ? [] : \App\Models\MealExtraIngredient::whereIn('id', $ingredientIds)
+            ->whereIn('meal_extra_id', $extraIds ?: [0])
+            ->pluck('id')
+            ->all();
+
+        $meal->availableIngredients()->sync($validIngredientIds);
     }
 
     public function show(Meal $meal)

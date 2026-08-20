@@ -18,13 +18,13 @@ class MealApiController extends Controller
     // Endpoint to get all categories for meal creation dropdown
     public function categories()
     {
-        $categories = \App\Models\Category::all(['id', 'name']);
+        $categories = \App\Models\Category::all(['id', 'name', 'name_ar']);
         return response()->json(['categories' => $categories]);
     }
 
     public function index()
     {
-        $meals = Meal::with(['category', 'media', 'mealGroup'])->get();
+        $meals = Meal::with(['category', 'media', 'mealGroup', 'mealExtras', 'availableIngredients'])->get();
         return MealResource::collection($meals);
     }
 
@@ -36,7 +36,7 @@ class MealApiController extends Controller
             $meal->addMedia(storage_path('tmp/uploads/' . basename($request->input('image'))))->toMediaCollection('image', 'meals');
         }
         
-        $meal->load(['category', 'media']);
+        $meal->load(['category', 'media', 'mealGroup', 'mealExtras', 'availableIngredients']);
 
         return (new MealResource($meal))
             ->response()
@@ -45,14 +45,14 @@ class MealApiController extends Controller
 
     public function show(Meal $meal)
     {
-        $meal->load(['category', 'media']);
+        $meal->load(['category', 'media', 'mealGroup', 'mealExtras', 'availableIngredients']);
         return new MealResource($meal);
     }
 
     public function update(UpdateMealRequest $request, Meal $meal)
     {
         $meal->update($request->all());
-        $meal->load(['category', 'media']);
+        $meal->load(['category', 'media', 'mealGroup', 'mealExtras', 'availableIngredients']);
 
         if ($request->input('image', false)) {
             if (! $meal->image || $request->input('image') !== $meal->image->file_name) {

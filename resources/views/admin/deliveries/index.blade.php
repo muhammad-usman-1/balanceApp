@@ -15,6 +15,12 @@
 .meal-name { font-size: .83rem; font-weight: 600; line-height: 1.3; color: #111827; }
 .meal-sub  { font-size: .72rem; color: #9ca3af; }
 .no-items  { color: #d1d5db; font-size: .78rem; font-style: italic; }
+.meal-extras { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.extra-chip {
+    font-size: .66rem; color: #0f766e; background: #f0fdfa; border: 1px solid #99f6e4;
+    padding: 1px 7px; border-radius: 20px; display: inline-flex; gap: 3px; line-height: 1.5;
+}
+.extra-chip strong { font-weight: 700; }
 
 .slot-badge {
     display: inline-block; background: #f3f4f6; color: #374151;
@@ -33,6 +39,15 @@
 }
 .status-pending   { border-color: #fbbf24; color: #92400e; background-color: #fef3c7; }
 .status-delivered { border-color: #34d399; color: #065f46; background-color: #d1fae5; }
+
+/* Locked (delivered) status — read-only pill */
+.status-locked {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; border-radius: 20px; padding: 4px 12px;
+    font-size: .78rem; font-weight: 700; cursor: not-allowed;
+    border: 1.5px solid #34d399; color: #065f46; background-color: #d1fae5;
+}
+.status-locked .fa-lock { font-size: .66rem; opacity: .8; }
 
 .del-filter-bar {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
@@ -165,6 +180,7 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
                                         @if($sm->meal?->extras)
                                             <div class="meal-sub">{{ $sm->meal->extras }}</div>
                                         @endif
+                                        @include('admin.deliveries._extras', ['sm' => $sm])
                                     </div>
                                 </div>
                             @empty
@@ -181,6 +197,7 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
                                     @endif
                                     <div>
                                         <div class="meal-name">{{ $sm->meal->title ?? '—' }}</div>
+                                        @include('admin.deliveries._extras', ['sm' => $sm])
                                     </div>
                                 </div>
                             @empty
@@ -213,11 +230,17 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
                             @endif
                         </td>
                         <td>
-                            <select class="status-select status-{{ $order->status }}"
-                                    data-order-id="{{ $order->id }}">
-                                <option value="pending"   {{ $order->status === 'pending'   ? 'selected' : '' }}>Pending</option>
-                                <option value="delivered" {{ $order->status === 'delivered' ? 'selected' : '' }}>Delivered</option>
-                            </select>
+                            @if($order->status === 'delivered')
+                                <span class="status-locked" title="Delivered — locked">
+                                    <i class="fas fa-lock"></i> Delivered
+                                </span>
+                            @else
+                                <select class="status-select status-{{ $order->status }}"
+                                        data-order-id="{{ $order->id }}">
+                                    <option value="pending"   {{ $order->status === 'pending'   ? 'selected' : '' }}>Pending</option>
+                                    <option value="delivered" {{ $order->status === 'delivered' ? 'selected' : '' }}>Delivered</option>
+                                </select>
+                            @endif
                         </td>
                         <td style="text-align:center;">
                             <a href="{{ route('admin.delivery-orders.print', $order->id) }}"
@@ -267,6 +290,14 @@ $(function () {
         $sel.removeClass('status-pending status-delivered').addClass('status-' + status);
         $.post('/admin/delivery-orders/' + orderId + '/status', {
             _token: csrfToken, status: status
+        }).done(function () {
+            // Once delivered, lock the row so it can't be changed back.
+            if (status === 'delivered') {
+                $sel.replaceWith(
+                    '<span class="status-locked" title="Delivered — locked">' +
+                    '<i class="fas fa-lock"></i> Delivered</span>'
+                );
+            }
         }).fail(function () { alert('Failed to update status.'); });
     });
 
@@ -275,8 +306,8 @@ $(function () {
         $.post('{{ route("admin.delivery-orders.make-all-delivered") }}', {
             _token: csrfToken, date: deliveryDate
         }).done(function () {
-            $('.status-select').val('delivered')
-                .removeClass('status-pending').addClass('status-delivered');
+            // Reload so every newly-delivered order renders in its locked state.
+            location.reload();
         }).fail(function () { alert('Failed to update.'); });
     });
 });

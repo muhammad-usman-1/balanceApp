@@ -29,6 +29,10 @@ class StoreMealRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'description_ar' => [
+                'string',
+                'nullable',
+            ],
             'category_id' => [
                 'nullable',
                 'integer',

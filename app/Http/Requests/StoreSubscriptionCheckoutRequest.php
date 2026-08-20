@@ -124,6 +124,16 @@ class StoreSubscriptionCheckoutRequest extends FormRequest
                 'string',
                 'in:is meal,is snack',
             ],
+            // Optional: the customer's chosen extra options for this meal
+            // (meal_extra_ingredients ids). Validated per-meal at save time.
+            'meals.*.extra_ingredient_ids' => [
+                'nullable',
+                'array',
+            ],
+            'meals.*.extra_ingredient_ids.*' => [
+                'integer',
+                'exists:meal_extra_ingredients,id',
+            ],
             'coupon_code' => [
                 'nullable',
                 'string',
