@@ -26,6 +26,16 @@
     border: 1px solid #bfdbfe; border-radius: 8px; font-size: .78rem; color: #1e40af;
 }
 .us-info-note i { margin-top: 1px; }
+
+/* Week days mini-view: which days are selected vs. off */
+.us-days-row { display: flex; flex-wrap: wrap; gap: 3px; }
+.us-day-dot {
+    width: 22px; height: 20px; border-radius: 5px; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: .62rem; font-weight: 700;
+}
+.us-day-on  { background: #dcfce7; color: #15803d; }
+.us-day-off { background: #f3f4f6; color: #b0b6c0; }
 </style>
 
 <div class="card idx-card">
@@ -83,6 +93,7 @@
                         <th>ID</th>
                         <th>Customer</th>
                         <th>Plan</th>
+                        <th>Days</th>
                         <th>Start</th>
                         <th>End</th>
                         <th>Payment</th>
@@ -106,6 +117,26 @@
                         </td>
                         <td>
                             <span class="idx-chip chip-violet">{{ $sub->subcrption_plans->title ?? '—' }}</span>
+                        </td>
+                        <td style="min-width:170px;">
+                            @php
+                                $weekdays = ['monday'=>'Mo','tuesday'=>'Tu','wednesday'=>'We','thursday'=>'Th','friday'=>'Fr','saturday'=>'Sa','sunday'=>'Su'];
+                                $selectedDays = $sub->selected_days
+                                    ? array_map(fn($d) => strtolower(trim($d)), explode(',', $sub->selected_days))
+                                    : [];
+                            @endphp
+                            @if(count($selectedDays))
+                                <div class="us-days-row">
+                                    @foreach($weekdays as $key => $abbr)
+                                        <span class="us-day-dot {{ in_array($key, $selectedDays) ? 'us-day-on' : 'us-day-off' }}"
+                                              title="{{ ucfirst($key) }} — {{ in_array($key, $selectedDays) ? 'delivery day' : 'off day' }}">
+                                            {{ $abbr }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span style="font-size:.78rem; color:#9ca3af;">—</span>
+                            @endif
                         </td>
                         <td style="white-space:nowrap; font-size:.8rem;">{{ $sub->start_date ?? '—' }}</td>
                         <td style="white-space:nowrap; font-size:.8rem;">{{ $sub->end_date ?? '—' }}</td>
@@ -182,7 +213,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="idx-empty">
+                        <td colspan="11" class="idx-empty">
                             <i class="fas fa-clipboard-list" style="font-size:2rem; color:#d1d5db;"></i><br>
                             No subscriptions found.
                             @if($search)
