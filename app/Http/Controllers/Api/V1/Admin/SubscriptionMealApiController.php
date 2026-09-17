@@ -32,10 +32,12 @@ class SubscriptionMealApiController extends Controller
 
             $userSubscription = $subscriptionDay?->user_subcrption;
 
+            // Allow either the customer's active subscription or a queued
+            // renewal — both can have their meals picked/edited.
             if (
                 ! $userSubscription
                 || $userSubscription->user_id != $request->user_id
-                || $userSubscription->status !== 'active'
+                || ! in_array($userSubscription->status, ['active', 'queued'], true)
             ) {
                 DB::rollBack();
                 return response()->json([
@@ -372,11 +374,11 @@ class SubscriptionMealApiController extends Controller
             ! $subscriptionMeal
             || ! $userSubscription
             || $userSubscription->user_id != $request->user_id
-            || $userSubscription->status !== 'active'
+            || ! in_array($userSubscription->status, ['active', 'queued'], true)
         ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Meal not found or does not belong to your active subscription.',
+                'message' => 'Meal not found or does not belong to your subscription.',
             ], Response::HTTP_NOT_FOUND);
         }
 

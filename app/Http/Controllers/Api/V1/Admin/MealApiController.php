@@ -18,7 +18,7 @@ class MealApiController extends Controller
     // Endpoint to get all categories for meal creation dropdown
     public function categories()
     {
-        $categories = \App\Models\Category::all(['id', 'name', 'name_ar']);
+        $categories = \App\Models\Category::orderBy('sort_order')->orderBy('id')->get(['id', 'name', 'name_ar']);
         return response()->json(['categories' => $categories]);
     }
 

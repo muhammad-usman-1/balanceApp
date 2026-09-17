@@ -50,6 +50,7 @@
         .meal-title { font-weight: 600; }
         .meal-macros { color: #555; font-size: 11px; margin-top: 2px; }
         .meal-topping { color: #777; font-size: 11px; }
+        .meal-extras-line { color: #222; font-size: 11px; font-weight: 600; margin-top: 2px; }
 
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -150,9 +151,7 @@
             <tr>
                 <td>
                     <div class="meal-title">{{ $sm->meal->title ?? '—' }}</div>
-                    @if($sm->meal && $sm->meal->extras)
-                        <div class="meal-topping">Toppings:: {{ $sm->meal->extras }}</div>
-                    @endif
+                    @include('admin.deliveries._print_extras', ['sm' => $sm])
                     @if($sm->meal)
                     <div class="meal-macros">
                         Macros:
@@ -177,6 +176,7 @@
             <tr>
                 <td>
                     <div class="meal-title">{{ $sm->meal->title ?? '—' }}</div>
+                    @include('admin.deliveries._print_extras', ['sm' => $sm])
                     @if($sm->meal)
                     <div class="meal-macros">
                         Macros:

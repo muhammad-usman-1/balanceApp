@@ -64,8 +64,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('user-subcrptions/{userSubcrption}/details', 'UserSubcrptionController@details')->name('user-subcrptions.details');
     Route::post('user-subcrptions/{userSubcrption}/pause', 'UserSubcrptionController@pause')->name('user-subcrptions.pause');
     Route::post('user-subcrptions/{userSubcrption}/resume', 'UserSubcrptionController@resume')->name('user-subcrptions.resume');
+    Route::post('user-subcrptions/{userSubcrption}/pause-requests/{pauseRequest}/resume', 'UserSubcrptionController@resumePauseDay')->name('user-subcrptions.resume-pause-day');
     Route::post('user-subcrptions/{userSubcrption}/mark-paid', 'UserSubcrptionController@markPaid')->name('user-subcrptions.mark-paid');
-    Route::get('user-subcrptions/{userSubcrption}/pause-logs', 'UserSubcrptionController@pauseLogs')->name('user-subcrptions.pause-logs');
     Route::resource('user-subcrptions', 'UserSubcrptionController');
 
     // Subscription Plan Days (now shows subscription_days data)
@@ -88,6 +88,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // Categories
     Route::post('categories/{id}/restore', 'CategoryController@restore')->name('categories.restore');
     Route::delete('categories/{id}/force-delete', 'CategoryController@forceDelete')->name('categories.force-delete');
+    // Drag-and-drop reorder — controls the order categories appear in the app
+    Route::post('categories/reorder', 'CategoryController@reorder')->name('categories.reorder');
     Route::resource('categories', 'CategoryController');
 
     // Areas

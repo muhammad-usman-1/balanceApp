@@ -231,11 +231,21 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']
     Route::get('my-subscriptions', 'Api\V1\Admin\UserSubscriptionApiController@index')->name('my-subscriptions.index');
     Route::get('my-subscriptions/{id}', 'Api\V1\Admin\UserSubscriptionApiController@show')->name('my-subscriptions.show');
     Route::get('my-subscriptions/{id}/calendar', 'Api\V1\Admin\UserSubscriptionApiController@calendar')->name('my-subscriptions.calendar');
+    // One-time delivery-day change per subscription cycle
+    Route::post('my-subscriptions/{id}/update-days', 'Api\V1\Admin\UserSubscriptionApiController@updateDays')->name('my-subscriptions.update-days');
 
-    // Renewal management — view, cancel, or change plan for queued renewal
+    // Renewal management — view, cancel, or edit a queued renewal before it's paid
     Route::get('my-subscriptions/{id}/renewal', 'Api\V1\SubscriptionRenewalApiController@show')->name('my-subscriptions.renewal.show');
     Route::post('my-subscriptions/{id}/cancel-renewal', 'Api\V1\SubscriptionRenewalApiController@cancel')->name('my-subscriptions.renewal.cancel');
     Route::put('my-subscriptions/{id}/renewal-plan', 'Api\V1\SubscriptionRenewalApiController@changePlan')->name('my-subscriptions.renewal.change-plan');
+    Route::put('my-subscriptions/{id}/renewal-days', 'Api\V1\SubscriptionRenewalApiController@updateDays')->name('my-subscriptions.renewal.update-days');
+    Route::put('my-subscriptions/{id}/renewal-address', 'Api\V1\SubscriptionRenewalApiController@updateAddress')->name('my-subscriptions.renewal.update-address');
+    Route::put('my-subscriptions/{id}/renewal-start-date', 'Api\V1\SubscriptionRenewalApiController@updateStartDate')->name('my-subscriptions.renewal.update-start-date');
+
+    // Renewal payment — same 3 methods as first-time checkout (cash / card / KNET hosted)
+    Route::post('my-subscriptions/{id}/renewal/pay-cash', 'Api\V1\SubscriptionRenewalApiController@payCash')->name('my-subscriptions.renewal.pay-cash');
+    Route::post('my-subscriptions/{id}/renewal/pay-card', 'Api\V1\SubscriptionRenewalApiController@payCard')->name('my-subscriptions.renewal.pay-card');
+    Route::post('my-subscriptions/{id}/renewal/pay-knet', 'Api\V1\SubscriptionRenewalApiController@payKnet')->name('my-subscriptions.renewal.pay-knet');
 
     // App Inquiries — authenticated user submits and views their own
     Route::post('inquiries', 'Api\V1\InquiryController@store')->name('inquiries.store');

@@ -18,12 +18,14 @@ class PaymentOrder extends Model
         'hesabe_order_reference',
         'hesabe_response',
         'subscription_id',
+        'is_renewal',
     ];
 
     protected $casts = [
         'subscription_data' => 'array',
         'hesabe_response'   => 'array',
         'amount'            => 'decimal:3',
+        'is_renewal'        => 'boolean',
     ];
 
     public function user()

@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::withTrashed()->get();
+        $categories = Category::withTrashed()->orderBy('sort_order')->orderBy('id')->get();
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -25,8 +26,32 @@ class CategoryController extends Controller
             'name' => 'required|string|unique:categories,name',
             'name_ar' => 'nullable|string',
         ]);
-        Category::create($request->only('name', 'name_ar'));
+        // New categories go to the end of the display order.
+        $nextSortOrder = (Category::withTrashed()->max('sort_order') ?? -1) + 1;
+        Category::create($request->only('name', 'name_ar') + ['sort_order' => $nextSortOrder]);
         return redirect()->route('admin.categories.index')->with('success', 'Category created successfully');
+    }
+
+    /**
+     * Persist a new display order from dragging rows in the admin table.
+     * This order is exactly what the app shows customers (category tabs,
+     * meals/categories dropdown, etc.) — see CategoryApiController@index
+     * and MealApiController@categories.
+     */
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'order'   => 'required|array|min:1',
+            'order.*' => 'integer|exists:categories,id',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            foreach ($request->order as $index => $id) {
+                Category::where('id', $id)->update(['sort_order' => $index]);
+            }
+        });
+
+        return response()->json(['success' => true, 'message' => 'Category order updated.']);
     }
 
     public function edit(Category $category)

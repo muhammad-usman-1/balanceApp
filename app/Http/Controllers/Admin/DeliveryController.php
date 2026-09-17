@@ -51,10 +51,16 @@ class DeliveryController extends Controller
                   ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
                   ->when($search, fn($q2) => $q2->whereHas('user', fn($q3) => $q3->where('name', 'like', '%'.$search.'%')))
                   ->where(function ($q2) use ($date) {
+                      // Exclude only if $date actually falls inside [paused_at, paused_until].
+                      // A pause scheduled for a future day must not cancel delivery on
+                      // earlier days that come before it even starts.
                       $q2->where('is_paused', false)
                          ->orWhere(function ($q3) use ($date) {
                              $q3->where('is_paused', true)
-                                ->whereDate('paused_until', '<', $date->toDateString());
+                                ->where(function ($q4) use ($date) {
+                                    $q4->whereDate('paused_until', '<', $date->toDateString())
+                                       ->orWhereDate('paused_at', '>', $date->toDateString());
+                                });
                          });
                   })
                   ->whereDoesntHave('pause_requests', function ($q2) use ($date) {
@@ -106,6 +112,7 @@ class DeliveryController extends Controller
             'subscription.branch',
             'subscription.area',
             'subscriptionDay.subscription_meals.meal',
+            'subscriptionDay.subscription_meals.selectedIngredients.mealExtra',
         ]);
 
         $slotLabels = DeliveryTimeSlot::pluck('label_en', 'value')->all();
@@ -126,6 +133,7 @@ class DeliveryController extends Controller
         $subscriptionDays = SubscriptionDay::where('day', $dayName)
             ->with([
                 'subscription_meals.meal',
+                'subscription_meals.selectedIngredients.mealExtra',
                 'user_subcrption.user',
                 'user_subcrption.address',
                 'user_subcrption.branch',
@@ -137,10 +145,16 @@ class DeliveryController extends Controller
                   ->whereDate('end_date', '>=', $date)
                   ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
                   ->where(function ($q2) use ($date) {
+                      // Exclude only if $date actually falls inside [paused_at, paused_until].
+                      // A pause scheduled for a future day must not cancel delivery on
+                      // earlier days that come before it even starts.
                       $q2->where('is_paused', false)
                          ->orWhere(function ($q3) use ($date) {
                              $q3->where('is_paused', true)
-                                ->whereDate('paused_until', '<', $date->toDateString());
+                                ->where(function ($q4) use ($date) {
+                                    $q4->whereDate('paused_until', '<', $date->toDateString())
+                                       ->orWhereDate('paused_at', '>', $date->toDateString());
+                                });
                          });
                   })
                   ->whereDoesntHave('pause_requests', function ($q2) use ($date) {

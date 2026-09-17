@@ -12,10 +12,13 @@ use App\Models\SubcrptionPlan;
 use App\Models\SubscriptionDay;
 use App\Models\SubscriptionMeal;
 use App\Models\SubscriptionPauseLog;
+use App\Models\SubscriptionPauseRequest;
 use App\Models\User;
 use App\Models\UserSubcrption;
+use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class UserSubcrptionController extends Controller
@@ -149,7 +152,13 @@ class UserSubcrptionController extends Controller
             $formDays = $weekdays;
         }
 
-        return view('admin.userSubcrptions.show', compact('userSubcrption', 'subscriptionDays', 'allMeals', 'mainMeals', 'snackMeals', 'mealLimit', 'snackLimit', 'formDays', 'existingByDay'));
+        [$availableDaysToPause, $upcomingPausedDays] = $this->pauseOptionsFor($userSubcrption, $selectedDays);
+
+        return view('admin.userSubcrptions.show', compact(
+            'userSubcrption', 'subscriptionDays', 'allMeals', 'mainMeals', 'snackMeals',
+            'mealLimit', 'snackLimit', 'formDays', 'existingByDay',
+            'availableDaysToPause', 'upcomingPausedDays'
+        ));
     }
 
     public function destroy(UserSubcrption $userSubcrption)
@@ -199,43 +208,145 @@ class UserSubcrptionController extends Controller
     }
 
     /**
-     * Pause a subscription
-     * 
-     * @param Request $request
-     * @param UserSubcrption $userSubcrption
-     * @return \Illuminate\Http\RedirectResponse
+     * Pause one specific upcoming delivery day, admin-chosen from the
+     * subscription's own scheduled days — no reason/notes needed.
+     *
+     * Creates an already-approved SubscriptionPauseRequest for that single
+     * date and extends end_date by 1 day — the exact same mechanism as a
+     * customer-submitted pause request that admin approves. It deliberately
+     * does NOT touch is_paused/paused_at/paused_until: only that date is
+     * skipped for delivery, the subscription itself keeps showing "Active".
      */
     public function pause(Request $request, UserSubcrption $userSubcrption)
     {
         abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $request->validate([
-            'days' => 'required|integer|min:1|max:365',
-            'reason' => 'nullable|string|max:1000',
-            'notes' => 'nullable|string|max:1000',
+            'pause_date' => 'required|date|after_or_equal:today',
         ]);
 
-        $performedByName = auth()->user()->name ?? 'Admin';
-        $performedById = auth()->id();
-
-        $result = $userSubcrption->pause(
-            $request->days,
-            $request->reason,
-            'admin',
-            $performedById,
-            $performedByName,
-            $request->notes
-        );
-
-        if (is_array($result) && $result['success']) {
-            return redirect()->back()->with('success', $result['message']);
+        if ($userSubcrption->status !== 'active') {
+            return redirect()->back()->with('error', 'Can only pause active subscriptions.');
         }
 
-        $errorMessage = is_array($result) && isset($result['message']) 
-            ? $result['message'] 
-            : 'Unable to pause subscription. It may already be paused or inactive.';
-        
-        return redirect()->back()->with('error', $errorMessage);
+        $selectedDays = $userSubcrption->selected_days
+            ? array_map(fn ($d) => strtolower(trim($d)), explode(',', $userSubcrption->selected_days))
+            : [];
+        [$availableDaysToPause] = $this->pauseOptionsFor($userSubcrption, $selectedDays);
+
+        if (! in_array($request->pause_date, array_column($availableDaysToPause, 'date'), true)) {
+            return redirect()->back()->with('error', 'That date is not an available delivery day for this plan.');
+        }
+
+        $date = Carbon::parse($request->pause_date);
+
+        DB::transaction(function () use ($userSubcrption, $date) {
+            SubscriptionPauseRequest::create([
+                'user_subcrption_id' => $userSubcrption->id,
+                'user_id'            => $userSubcrption->user_id,
+                'pause_start_date'   => $date->toDateString(),
+                'pause_end_date'     => $date->toDateString(),
+                'pause_days'         => 1,
+                'status'             => 'approved',
+                'reviewed_by'        => auth()->id(),
+                'reviewed_at'        => now(),
+            ]);
+
+            $newEndDate = Carbon::parse($userSubcrption->getRawOriginal('end_date'))
+                ->addDay()
+                ->format('Y-m-d');
+
+            DB::table('user_subcrptions')->where('id', $userSubcrption->id)->update([
+                'total_paused_days' => $userSubcrption->total_paused_days + 1,
+                'end_date'          => $newEndDate,
+                'updated_at'        => now(),
+            ]);
+        });
+
+        return redirect()->back()->with(
+            'success',
+            "{$date->format('l, d M Y')} paused — delivery skipped that day and the plan end date pushed out by 1 day."
+        );
+    }
+
+    /**
+     * Undo one specific admin-created pause (e.g. wrong day picked by
+     * mistake): puts the day back on the delivery schedule and rewinds
+     * end_date by the day(s) that pause had added.
+     */
+    public function resumePauseDay(UserSubcrption $userSubcrption, SubscriptionPauseRequest $pauseRequest)
+    {
+        abort_if(Gate::denies('user_subcrption_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if ($pauseRequest->user_subcrption_id !== $userSubcrption->id || $pauseRequest->status !== 'approved') {
+            return redirect()->back()->with('error', 'This pause can no longer be resumed.');
+        }
+
+        DB::transaction(function () use ($userSubcrption, $pauseRequest) {
+            $newEndDate = Carbon::parse($userSubcrption->getRawOriginal('end_date'))
+                ->subDays($pauseRequest->pause_days)
+                ->format('Y-m-d');
+
+            DB::table('user_subcrptions')->where('id', $userSubcrption->id)->update([
+                'total_paused_days' => max(0, $userSubcrption->total_paused_days - $pauseRequest->pause_days),
+                'end_date'          => $newEndDate,
+                'updated_at'        => now(),
+            ]);
+
+            $pauseRequest->update([
+                'status'      => 'resumed',
+                'admin_notes' => 'Resumed by admin on ' . now()->format('Y-m-d H:i'),
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Pause removed — that day is back on the delivery schedule.');
+    }
+
+    /**
+     * Build the picker options for the pause modal: upcoming dates that
+     * match the subscription's own scheduled days, within its remaining
+     * period, excluding dates already paused. Also returns the currently
+     * scheduled (not-yet-passed) admin pauses, for the per-day Resume list.
+     *
+     * @return array{0: array<int, array{date:string, label:string}>, 1: \Illuminate\Support\Collection}
+     */
+    private function pauseOptionsFor(UserSubcrption $userSubcrption, array $selectedDays): array
+    {
+        $today     = Carbon::today();
+        $planStart = Carbon::parse($userSubcrption->getRawOriginal('start_date'));
+        $planEnd   = Carbon::parse($userSubcrption->getRawOriginal('end_date'));
+        // Never offer a date before the plan actually starts — there's no
+        // real delivery scheduled that early regardless of what "today" is.
+        $rangeStart = $planStart->gt($today) ? $planStart : $today;
+
+        $upcomingPausedDays = SubscriptionPauseRequest::where('user_subcrption_id', $userSubcrption->id)
+            ->where('status', 'approved')
+            ->whereDate('pause_end_date', '>=', $today->toDateString())
+            ->orderBy('pause_start_date')
+            ->get();
+
+        $pausedDates = $upcomingPausedDays->pluck('pause_start_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->all();
+
+        $availableDaysToPause = [];
+        if (! empty($selectedDays) && $planEnd->gte($rangeStart)) {
+            $cursor = $rangeStart->copy();
+            $iterations = 0;
+            while ($cursor->lte($planEnd) && $iterations < 180) {
+                $dayName = strtolower($cursor->format('l'));
+                if (in_array($dayName, $selectedDays, true) && ! in_array($cursor->toDateString(), $pausedDates, true)) {
+                    $availableDaysToPause[] = [
+                        'date'  => $cursor->toDateString(),
+                        'label' => $cursor->format('l, d M Y'),
+                    ];
+                }
+                $cursor->addDay();
+                $iterations++;
+            }
+        }
+
+        return [$availableDaysToPause, $upcomingPausedDays];
     }
 
     /**
@@ -292,19 +403,6 @@ class UserSubcrptionController extends Controller
         $userSubcrption->save();
 
         return redirect()->back()->with('success', 'Payment recorded as received for this subscription.');
-    }
-
-    /**
-     * Show pause/resume logs for a subscription
-     */
-    public function pauseLogs(UserSubcrption $userSubcrption)
-    {
-        abort_if(Gate::denies('user_subcrption_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
-        $userSubcrption->load('user', 'subcrption_plans');
-        $pauseLogs = $userSubcrption->pause_logs()->orderBy('action_timestamp', 'desc')->get();
-
-        return view('admin.userSubcrptions.pause-logs', compact('userSubcrption', 'pauseLogs'));
     }
 
     /**

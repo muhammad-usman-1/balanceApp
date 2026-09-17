@@ -85,6 +85,22 @@
 .sv-pause-banner-body { font-size: .83rem; color: #92400e; }
 .sv-pause-banner-body strong { display: block; margin-bottom: 4px; }
 
+/* ── Upcoming paused days ── */
+.sv-paused-days {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;
+}
+.sv-paused-day-pill {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+    padding: 8px 10px 8px 14px; font-size: .82rem; color: #9a3412;
+}
+.sv-paused-day-pill i.fa-ban { color: #ea580c; font-size: .8rem; }
+.sv-paused-day-pill form button {
+    background: #fff; border: 1px solid #fed7aa; color: #c2410c;
+    font-size: .74rem; font-weight: 600; padding: 4px 10px; border-radius: 7px; cursor: pointer;
+}
+.sv-paused-day-pill form button:hover { background: #ffedd5; }
+
 /* ── Action buttons ── */
 .sv-btn {
     display: inline-flex; align-items: center; gap: 6px;
@@ -342,11 +358,12 @@
                 <button type="button" class="sv-btn sv-btn-resume" data-toggle="modal" data-target="#resumeModal">
                     <i class="fas fa-play"></i> Resume
                 </button>
-            @endif
-            @if($userSubcrption->pause_logs()->count() > 0)
-                <a href="{{ route('admin.user-subcrptions.pause-logs', $userSubcrption->id) }}" class="sv-btn sv-btn-logs">
-                    <i class="fas fa-history"></i> Pause Logs
-                </a>
+            @elseif($isActive)
+                @can('user_subcrption_edit')
+                <button type="button" class="sv-btn sv-btn-pause" data-toggle="modal" data-target="#pauseModal">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                @endcan
             @endif
             @can('user_subcrption_edit')
                 <button type="button" class="sv-btn" style="background:#dcfce7;color:#15803d;" id="addMealBtn">
@@ -369,6 +386,24 @@
             @if($pausedUntil) · Scheduled to resume {{ $pausedUntil->format('d M Y') }} @endif
             · {{ $userSubcrption->total_paused_days ?? 0 }} total paused days
         </div>
+    </div>
+    @endif
+
+    {{-- ── Upcoming paused days (admin-picked, per-day) ── --}}
+    @if($upcomingPausedDays->isNotEmpty())
+    <div class="sv-paused-days">
+        @foreach($upcomingPausedDays as $pr)
+            <div class="sv-paused-day-pill">
+                <i class="fas fa-ban"></i>
+                <span>{{ \Carbon\Carbon::parse($pr->pause_start_date)->format('l, d M Y') }} — paused</span>
+                @can('user_subcrption_edit')
+                <form action="{{ route('admin.user-subcrptions.resume-pause-day', [$userSubcrption->id, $pr->id]) }}" method="POST">
+                    @csrf
+                    <button type="submit">Resume</button>
+                </form>
+                @endcan
+            </div>
+        @endforeach
     </div>
     @endif
 
@@ -553,6 +588,50 @@
     @endif
 
 </div>
+
+{{-- ── Pause Modal ── --}}
+@can('user_subcrption_edit')
+@if($isActive)
+<div class="modal fade" id="pauseModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius:14px; border:none; box-shadow:0 20px 60px rgba(0,0,0,.15);">
+            <div class="modal-header" style="border-bottom:1px solid #f3f4f6; padding:18px 22px;">
+                <h5 class="modal-title" style="font-weight:700; color:#111827;">
+                    <i class="fas fa-pause-circle mr-2" style="color:#b45309;"></i> Pause a Day
+                </h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <form action="{{ route('admin.user-subcrptions.pause', $userSubcrption->id) }}" method="POST">
+                @csrf
+                <div class="modal-body" style="padding:20px 22px;">
+                    @if(count($availableDaysToPause))
+                        <div class="form-group mb-0">
+                            <label style="font-size:.82rem; font-weight:600; color:#374151;">Select a day</label>
+                            <select class="form-control" name="pause_date" required>
+                                <option value="">— Choose a delivery day —</option>
+                                @foreach($availableDaysToPause as $d)
+                                    <option value="{{ $d['date'] }}">{{ $d['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @else
+                        <p style="font-size:.83rem;color:#6b7280;margin:0;">
+                            No upcoming delivery days available to pause.
+                        </p>
+                    @endif
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f3f4f6; padding:14px 22px;">
+                    <button type="button" class="sv-btn sv-btn-back" data-dismiss="modal">Cancel</button>
+                    @if(count($availableDaysToPause))
+                        <button type="submit" class="sv-btn sv-btn-pause"><i class="fas fa-pause"></i> Pause</button>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+@endcan
 
 {{-- ── Resume Modal ── --}}
 @if($isPaused)

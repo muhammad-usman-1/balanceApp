@@ -372,33 +372,58 @@ class HesabePaymentController extends Controller
             return response('OK', 200);
         }
 
-        // Payment approved — create the subscription
+        // Payment approved — create the subscription, or if this order was
+        // paying for an existing queued renewal, mark that renewal paid instead.
         try {
             $paymentId = $callbackData['paymentId']
                 ?? $callbackData['orderReferenceNumber']
                 ?? $paymentOrder->hesabe_order_reference;
 
-            $subscriptionResult = $this->subscriptionService->createSubscription(
-                $paymentOrder->subscription_data,
-                [
-                    'status'    => 'paid',
-                    'reference' => $paymentId,
-                    'gateway'   => 'hesabe_' . ($paymentOrder->payment_method ?? 'knet'),
-                    'currency'  => $paymentOrder->currency,
-                    'meta'      => $callbackData,
-                ]
-            );
+            if ($paymentOrder->is_renewal) {
+                $renewal = $paymentOrder->subscription_id
+                    ? UserSubcrption::find($paymentOrder->subscription_id)
+                    : null;
 
-            $paymentOrder->update([
-                'status'          => 'paid',
-                'hesabe_response' => $callbackData,
-                'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
-            ]);
+                if ($renewal) {
+                    $renewal->payment              = 'paid';
+                    $renewal->payment_reference    = $paymentId;
+                    $renewal->payment_gateway      = 'hesabe_' . ($paymentOrder->payment_method ?? 'knet');
+                    $renewal->renewal_confirmed_at = now();
+                    $renewal->save();
+                }
 
-            Log::info('KNET CALLBACK: subscription created', [
-                'order_token'     => $paymentOrder->order_token,
-                'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
-            ]);
+                $paymentOrder->update([
+                    'status'          => 'paid',
+                    'hesabe_response' => $callbackData,
+                ]);
+
+                Log::info('KNET CALLBACK: renewal marked paid', [
+                    'order_token'     => $paymentOrder->order_token,
+                    'subscription_id' => $paymentOrder->subscription_id,
+                ]);
+            } else {
+                $subscriptionResult = $this->subscriptionService->createSubscription(
+                    $paymentOrder->subscription_data,
+                    [
+                        'status'    => 'paid',
+                        'reference' => $paymentId,
+                        'gateway'   => 'hesabe_' . ($paymentOrder->payment_method ?? 'knet'),
+                        'currency'  => $paymentOrder->currency,
+                        'meta'      => $callbackData,
+                    ]
+                );
+
+                $paymentOrder->update([
+                    'status'          => 'paid',
+                    'hesabe_response' => $callbackData,
+                    'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
+                ]);
+
+                Log::info('KNET CALLBACK: subscription created', [
+                    'order_token'     => $paymentOrder->order_token,
+                    'subscription_id' => $subscriptionResult['user_subscription']->id ?? null,
+                ]);
+            }
 
         } catch (\Throwable $e) {
             Log::error('KNET CALLBACK: subscription creation failed', [

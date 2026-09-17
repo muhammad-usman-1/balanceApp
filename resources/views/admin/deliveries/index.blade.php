@@ -177,9 +177,6 @@ $formatSlot = fn($slot) => $slotLabels[$slot] ?? ($slot ? ucwords(str_replace('_
                                     @endif
                                     <div>
                                         <div class="meal-name">{{ $sm->meal->title ?? '—' }}</div>
-                                        @if($sm->meal?->extras)
-                                            <div class="meal-sub">{{ $sm->meal->extras }}</div>
-                                        @endif
                                         @include('admin.deliveries._extras', ['sm' => $sm])
                                     </div>
                                 </div>

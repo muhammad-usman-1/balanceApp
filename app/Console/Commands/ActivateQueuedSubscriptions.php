@@ -26,24 +26,26 @@ class ActivateQueuedSubscriptions extends Command
         foreach ($queued as $subscription) {
             $parent = $subscription->queuedAfter;
 
-            // Activate if: parent is gone, parent is inactive, or parent's end_date has passed
-            $shouldActivate = ! $parent
+            // Parent must be done: gone, inactive, or its end_date has passed
+            $parentDone = ! $parent
                 || $parent->status === 'inactive'
                 || Carbon::parse($parent->getRawOriginal('end_date'))->lt($today);
 
-            if (! $shouldActivate) {
+            if (! $parentDone) {
                 continue;
             }
 
-            $plan     = $subscription->subcrption_plans;
-            $newStart = $today->copy();
-            $newEnd   = $newStart->copy()->addWeeks((int) $plan->no_of_weeks);
+            // Respect the renewal's own start_date (default: day after the parent
+            // ends, or a later date the customer explicitly chose via
+            // renewal-start-date). Don't force it to "today" — only activate once
+            // that date has actually arrived, so a customer-delayed start works.
+            $storedStart = Carbon::parse($subscription->getRawOriginal('start_date'));
+            if ($storedStart->gt($today)) {
+                continue;
+            }
 
-            // Bypass mutators — write raw dates directly
-            $subscription->attributes['start_date'] = $newStart->format('Y-m-d');
-            $subscription->attributes['end_date']   = $newEnd->format('Y-m-d');
-            $subscription->status                          = 'active';
-            $subscription->queued_after_subscription_id   = null;
+            $subscription->status                        = 'active';
+            $subscription->queued_after_subscription_id  = null;
             $subscription->save();
 
             // Mark the parent inactive if it's still flagged active
@@ -53,7 +55,7 @@ class ActivateQueuedSubscriptions extends Command
             }
 
             $activated++;
-            Log::info("subscriptions:activate-queued: activated #{$subscription->id} for user #{$subscription->user_id}, new end_date {$newEnd->format('Y-m-d')}");
+            Log::info("subscriptions:activate-queued: activated #{$subscription->id} for user #{$subscription->user_id}, start_date {$storedStart->toDateString()}");
         }
 
         $this->info("Activated {$activated} queued subscription(s).");

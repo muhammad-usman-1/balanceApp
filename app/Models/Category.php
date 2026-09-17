@@ -13,5 +13,6 @@ class Category extends Model
     protected $fillable = [
         'name',
         'name_ar',
+        'sort_order',
     ];
 }

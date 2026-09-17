@@ -35,6 +35,8 @@ class UserSubcrption extends Model
         'paused_at',
         'paused_until',
         'renewal_notified_at',
+        'days_changed_at',
+        'renewal_confirmed_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -42,6 +44,8 @@ class UserSubcrption extends Model
 
     protected $fillable = [
         'selected_days',
+        'days_changed_at',
+        'renewal_confirmed_at',
         'user_address_id',
         'branch_id',
         'area_id',

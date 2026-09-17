@@ -11,7 +11,7 @@ class CategoryApiController extends Controller
 {
     public function index()
     {
-        return Category::all();
+        return Category::orderBy('sort_order')->orderBy('id')->get();
     }
 
     public function store(Request $request)

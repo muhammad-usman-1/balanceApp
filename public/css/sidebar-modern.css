@@ -45,6 +45,11 @@
 /* Remove AdminLTE elevation */
 .main-sidebar.app-sb.elevation-4 { box-shadow: 2px 0 16px rgba(0,0,0,.05) !important; }
 
+/* Keep Bootstrap modal backdrops above the sidebar (1045) so a modal dims
+   the whole page — sidebar included — instead of leaving it looking active
+   while everything else is disabled. Stays below the modal dialog (1050). */
+.modal-backdrop { z-index: 1046 !important; }
+
 /* ── Content push — desktop ── */
 @media (min-width: 769px) {
     .content-wrapper,
