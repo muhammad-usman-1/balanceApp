@@ -15,11 +15,12 @@ class Kernel extends ConsoleKernel
         // Expire subscriptions whose end_date has passed
         $schedule->command('subscriptions:expire')->dailyAt('00:00');
 
+        // Renewal queueing is disabled for now (feature isn't ready to ship yet —
+        // re-enable these two once it is):
         // Activate queued subscriptions whose parent plan ended yesterday
-        $schedule->command('subscriptions:activate-queued')->dailyAt('00:05');
-
+        // $schedule->command('subscriptions:activate-queued')->dailyAt('00:05');
         // Queue auto-renewal for plans expiring within 3 days
-        $schedule->command('subscriptions:auto-renew')->dailyAt('00:10');
+        // $schedule->command('subscriptions:auto-renew')->dailyAt('00:10');
 
         // Auto-resume subscriptions whose single-day or multi-day pause has ended
         $schedule->command('subscriptions:auto-resume')->dailyAt('00:01');

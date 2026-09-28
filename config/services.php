@@ -31,11 +31,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'twilio' => [
-        'account_sid' => env('TWILIO_ACCOUNT_SID'),
-        'auth_token' => env('TWILIO_AUTH_TOKEN'),
-        'from_number' => env('TWILIO_FROM_NUMBER', env('TWILIO_PHONE_NUMBER')),
-        'messaging_service_sid' => env('TWILIO_MESSAGING_SERVICE_SID'),
+    'kwtsms' => [
+        'username' => env('KWTSMS_USERNAME'),
+        'password' => env('KWTSMS_PASSWORD'),
+        'sender' => env('KWTSMS_SENDER'),
+        // true = kwtSMS queues but does NOT deliver/charge (dev only)
+        'test' => env('KWTSMS_TEST', false),
+        // Only set to false on a local machine with a broken CA bundle
+        'verify_ssl' => env('KWTSMS_VERIFY_SSL', true),
     ],
 
     'hesabe' => [

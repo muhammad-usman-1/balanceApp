@@ -10,11 +10,11 @@ use Exception;
 class OtpService
 {
     protected $expirationMinutes = 10;
-    protected $twilioService;
+    protected $smsService;
 
-    public function __construct(TwilioService $twilioService)
+    public function __construct(KwtSmsService $smsService)
     {
-        $this->twilioService = $twilioService;
+        $this->smsService = $smsService;
     }
 
     /**
@@ -90,12 +90,12 @@ class OtpService
                 ]);
             }
 
-            // Send OTP through Twilio (skipped for test account)
+            // Send OTP through kwtSMS (skipped for test account)
             if (!$isTestNumber) {
-                $this->twilioService->sendOtp($e164Phone, (string) $otpCode);
+                $this->smsService->sendOtp($e164Phone, (string) $otpCode);
             }
 
-            Log::info('OTP generated and sent via Twilio', [
+            Log::info('OTP generated and sent via kwtSMS', [
                 'phone_number' => $e164Phone,
                 'country_code' => $normalizedCountryCode,
                 'mobile' => $mobileNumber,
