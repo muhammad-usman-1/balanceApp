@@ -15,10 +15,15 @@ class Kernel extends ConsoleKernel
         // Expire subscriptions whose end_date has passed
         $schedule->command('subscriptions:expire')->dailyAt('00:00');
 
-        // Renewal queueing is disabled for now (feature isn't ready to ship yet —
-        // re-enable these two once it is):
-        // Activate queued subscriptions whose parent plan ended yesterday
-        // $schedule->command('subscriptions:activate-queued')->dailyAt('00:05');
+        // Activate queued subscriptions (reorders/renewals) once their parent plan
+        // has ended and their own start_date has arrived. Must stay on even while
+        // auto-renew is disabled — customers can still reorder manually, and
+        // without this those subscriptions stay "queued" forever. Runs hourly
+        // (idempotent) so a missed midnight run doesn't leave a customer waiting.
+        $schedule->command('subscriptions:activate-queued')->hourlyAt(5);
+
+        // Auto-renew is disabled for now (feature isn't ready to ship yet —
+        // re-enable once it is):
         // Queue auto-renewal for plans expiring within 3 days
         // $schedule->command('subscriptions:auto-renew')->dailyAt('00:10');
 
