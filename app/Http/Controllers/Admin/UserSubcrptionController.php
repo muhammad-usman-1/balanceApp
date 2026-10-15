@@ -32,7 +32,7 @@ class UserSubcrptionController extends Controller
         $statusFilter = $request->get('status_filter', 'active');
         $today        = now()->toDateString();
 
-        $userSubcrptions = UserSubcrption::with(['user', 'subcrption_plans'])
+        $userSubcrptions = UserSubcrption::with(['user', 'subcrption_plans', 'area', 'address'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($search, function ($q) use ($search) {
                 $q->whereHas('user', function ($q2) use ($search) {

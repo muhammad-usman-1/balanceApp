@@ -426,6 +426,9 @@ class HesabePaymentController extends Controller
             }
 
         } catch (\Throwable $e) {
+            // Hesabe already captured the money — never label this "failed".
+            // "paid_unfulfilled" keeps it findable and lets a Hesabe retry (or
+            // `php artisan payments:fulfill`) create the subscription later.
             Log::error('KNET CALLBACK: subscription creation failed', [
                 'error'       => $e->getMessage(),
                 'file'        => $e->getFile(),
@@ -433,7 +436,7 @@ class HesabePaymentController extends Controller
                 'order_token' => $paymentOrder->order_token,
             ]);
             $paymentOrder->update([
-                'status'          => 'failed',
+                'status'          => 'paid_unfulfilled',
                 'hesabe_response' => $callbackData,
             ]);
         }
