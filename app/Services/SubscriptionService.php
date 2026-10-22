@@ -42,50 +42,18 @@ class SubscriptionService
             // end_date is calculated from the plan's no_of_weeks — no external duration table needed
             $endDate   = $startDate->copy()->addWeeks((int) $plan->no_of_weeks);
 
-            $basePrice = (float) $plan->price;
+            $isPersonalized = $payload['is_personalized'] ?? false;
+            $currency       = $paymentContext['currency'] ?? ($payload['currency'] ?? 'KWD');
 
-            // Add protein surcharge when this is a personalized plan with a protein selection
-            $proteinSurcharge = 0.0;
-            $isPersonalized   = $payload['is_personalized'] ?? false;
-            if ($isPersonalized && ! empty($payload['protein'])) {
-                $proteinOption = ProteinOption::where('protein_grams', (int) $payload['protein'])
-                    ->where('is_active', true)
-                    ->first();
-
-                if ($proteinOption) {
-                    $selectedDaysCount = is_array($payload['selected_days'] ?? [])
-                        ? count($payload['selected_days'])
-                        : count(array_filter(explode(',', $payload['selected_days'] ?? '')));
-
-                    $totalMeals       = (int) $plan->meal_count * $selectedDaysCount;
-                    $proteinSurcharge = (float) $proteinOption->extra_price_per_meal * $totalMeals;
-                }
-            }
-
-            $price    = round($basePrice + $proteinSurcharge, 3);
-            $currency = $paymentContext['currency'] ?? ($payload['currency'] ?? 'KWD');
-
-            // Apply coupon discount if provided
-            $couponCode     = ! empty($payload['coupon_code']) ? strtoupper(trim($payload['coupon_code'])) : null;
-            $couponId       = null;
-            $discountAmount = 0.0;
-            $coupon         = null;
-
-            if ($couponCode) {
-                $coupon = Coupon::where('coupon_code', $couponCode)->first();
-                if ($coupon) {
-                    $check = $coupon->canUserUse($payload['user_id']);
-                    if ($check['can_use']) {
-                        if ($coupon->type === 'percentage') {
-                            $discountAmount = round($price * ($coupon->value / 100), 3);
-                        } else {
-                            $discountAmount = min((float) $coupon->value, $price);
-                        }
-                        $couponId = $coupon->id;
-                        $price    = round(max(0, $price - $discountAmount), 3);
-                    }
-                }
-            }
+            [
+                'price'             => $price,
+                'base_price'        => $basePrice,
+                'protein_surcharge' => $proteinSurcharge,
+                'discount_amount'   => $discountAmount,
+                'coupon'            => $coupon,
+                'coupon_id'         => $couponId,
+                'coupon_code'       => $couponCode,
+            ] = $this->calculatePrice($payload, $plan);
 
             $selectedDaysRaw = $payload['selected_days'] ?? [];
             $selectedDaysStr = is_array($selectedDaysRaw)
@@ -160,6 +128,70 @@ class SubscriptionService
                 'subscription_meals' => $subscriptionMeals,
             ];
         });
+    }
+
+    /**
+     * Server-side price for a new subscription: plan price + protein surcharge
+     * (personalized plans) − coupon discount. This is the single source of
+     * truth — payment amounts must come from here, never from the app.
+     */
+    public function calculatePrice(array $payload, ?SubcrptionPlan $plan = null): array
+    {
+        $plan ??= SubcrptionPlan::findOrFail($payload['subcrption_plans_id']);
+
+        $basePrice = (float) $plan->price;
+
+        // Add protein surcharge when this is a personalized plan with a protein selection
+        $proteinSurcharge = 0.0;
+        $isPersonalized   = $payload['is_personalized'] ?? false;
+        if ($isPersonalized && ! empty($payload['protein'])) {
+            $proteinOption = ProteinOption::where('protein_grams', (int) $payload['protein'])
+                ->where('is_active', true)
+                ->first();
+
+            if ($proteinOption) {
+                $selectedDaysCount = is_array($payload['selected_days'] ?? [])
+                    ? count($payload['selected_days'])
+                    : count(array_filter(explode(',', $payload['selected_days'] ?? '')));
+
+                $totalMeals       = (int) $plan->meal_count * $selectedDaysCount;
+                $proteinSurcharge = (float) $proteinOption->extra_price_per_meal * $totalMeals;
+            }
+        }
+
+        $price = round($basePrice + $proteinSurcharge, 3);
+
+        // Apply coupon discount if provided
+        $couponCode     = ! empty($payload['coupon_code']) ? strtoupper(trim($payload['coupon_code'])) : null;
+        $couponId       = null;
+        $discountAmount = 0.0;
+        $coupon         = null;
+
+        if ($couponCode) {
+            $coupon = Coupon::where('coupon_code', $couponCode)->first();
+            if ($coupon) {
+                $check = $coupon->canUserUse($payload['user_id']);
+                if ($check['can_use']) {
+                    if ($coupon->type === 'percentage') {
+                        $discountAmount = round($price * ($coupon->value / 100), 3);
+                    } else {
+                        $discountAmount = min((float) $coupon->value, $price);
+                    }
+                    $couponId = $coupon->id;
+                    $price    = round(max(0, $price - $discountAmount), 3);
+                }
+            }
+        }
+
+        return [
+            'price'             => $price,
+            'base_price'        => $basePrice,
+            'protein_surcharge' => $proteinSurcharge,
+            'discount_amount'   => $discountAmount,
+            'coupon'            => $coupon,
+            'coupon_id'         => $couponId,
+            'coupon_code'       => $couponCode,
+        ];
     }
 
     protected function createAddress(int $userId, array $addressData): UserAddress

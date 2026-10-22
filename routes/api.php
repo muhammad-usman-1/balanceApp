@@ -229,6 +229,8 @@ Route::group(['prefix' => 'v1', 'as' => 'api.', 'middleware' => ['auth:sanctum']
 
     // User Subscriptions
     Route::get('my-subscriptions', 'Api\V1\Admin\UserSubscriptionApiController@index')->name('my-subscriptions.index');
+    // Ended subscriptions (must stay above my-subscriptions/{id})
+    Route::get('my-subscriptions/history', 'Api\V1\Admin\UserSubscriptionApiController@history')->name('my-subscriptions.history');
     Route::get('my-subscriptions/{id}', 'Api\V1\Admin\UserSubscriptionApiController@show')->name('my-subscriptions.show');
     Route::get('my-subscriptions/{id}/calendar', 'Api\V1\Admin\UserSubscriptionApiController@calendar')->name('my-subscriptions.calendar');
     // One-time delivery-day change per subscription cycle

@@ -46,6 +46,43 @@ class UserSubscriptionApiController extends Controller
         ]);
     }
 
+    /**
+     * GET /api/v1/my-subscriptions/history
+     *
+     * The customer's ended subscriptions, newest first: status "inactive", or
+     * still flagged "active" but past their end_date (before the nightly
+     * expire job has run). Queued and running plans are never included.
+     */
+    public function history(Request $request)
+    {
+        $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $today = now()->toDateString();
+
+        $subscriptions = UserSubcrption::where('user_id', $request->user()->id)
+            ->where(function ($q) use ($today) {
+                $q->where('status', 'inactive')
+                  ->orWhere(fn ($q2) => $q2->where('status', 'active')->whereDate('end_date', '<', $today));
+            })
+            ->with(['subcrption_plans', 'address', 'area'])
+            ->orderByDesc('end_date')
+            ->orderByDesc('id')
+            ->paginate($request->integer('per_page', 10));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $subscriptions->items(),
+            'meta'    => [
+                'current_page' => $subscriptions->currentPage(),
+                'last_page'    => $subscriptions->lastPage(),
+                'per_page'     => $subscriptions->perPage(),
+                'total'        => $subscriptions->total(),
+            ],
+        ]);
+    }
+
     public function show($id, Request $request)
     {
         $user = $request->user();

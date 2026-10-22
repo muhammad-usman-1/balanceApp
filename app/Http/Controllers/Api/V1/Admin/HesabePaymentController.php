@@ -123,7 +123,6 @@ class HesabePaymentController extends Controller
         try {
             $plan      = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
             $user      = User::findOrFail($request->user_id);
-            $amount    = $request->amount ?? $plan->price;
             $currency  = strtoupper($request->currency ?? 'KWD');
 
             $prefix         = strtoupper(str_replace('_', '', $paymentMethod)); // KNET / CREDITCARD / DEBITCARD
@@ -131,6 +130,7 @@ class HesabePaymentController extends Controller
             $orderReference = $prefix . '-' . now()->timestamp . '-' . strtoupper(Str::random(6));
 
             $subscriptionData = $request->safe()->except(['payment_method', 'amount', 'currency']);
+            $amount           = $this->serverAmount($subscriptionData, $plan, $request->amount, 'HOSTED INITIATE');
 
             $paymentOrder = PaymentOrder::create([
                 'order_token'            => $orderToken,
@@ -523,7 +523,6 @@ class HesabePaymentController extends Controller
         try {
             $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
 
-            $amount    = $request->amount ?? $plan->price;
             $currency  = strtoupper($request->currency ?? 'KWD');
             $reference = 'CASH-' . now()->timestamp . '-' . strtoupper(Str::random(6));
 
@@ -533,6 +532,8 @@ class HesabePaymentController extends Controller
                 'card_expiry_month', 'card_expiry_year',
                 'card_cvv', 'save_card',
             ]);
+
+            $amount = $this->serverAmount($subscriptionPayload, $plan, $request->amount, 'CHECKOUT [cash]');
 
             $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
@@ -592,7 +593,13 @@ class HesabePaymentController extends Controller
             $plan = SubcrptionPlan::findOrFail($request->subcrption_plans_id);
             $user = User::findOrFail($request->user_id);
 
-            $amount    = $request->amount ?? $plan->price;
+            $subscriptionPayload = $request->safe()->except([
+                'payment_method', 'card_holder_name', 'card_number',
+                'card_expiry_month', 'card_expiry_year',
+                'card_cvv', 'save_card', 'amount', 'currency',
+            ]);
+
+            $amount    = $this->serverAmount($subscriptionPayload, $plan, $request->amount, 'CHECKOUT [card]');
             $currency  = strtoupper($request->currency ?? 'KWD');
             $reference = 'SUB-' . now()->timestamp . '-' . strtoupper(Str::random(6));
 
@@ -655,12 +662,6 @@ class HesabePaymentController extends Controller
                     ]
                 );
             }
-
-            $subscriptionPayload = $request->safe()->except([
-                'payment_method', 'card_holder_name', 'card_number',
-                'card_expiry_month', 'card_expiry_year',
-                'card_cvv', 'save_card', 'amount', 'currency',
-            ]);
 
             $subscriptionPayload['price']    = $amount;
             $subscriptionPayload['currency'] = $currency;
@@ -727,6 +728,30 @@ class HesabePaymentController extends Controller
                 'message' => 'Payment processing failed. Please try again.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * The amount to charge, computed on the server (plan + protein − coupon).
+     * The app's own `amount` is ignored for charging — only logged when it
+     * differs, so mismatched app-side pricing can be spotted and fixed.
+     */
+    private function serverAmount(array $payload, SubcrptionPlan $plan, $appAmount, string $context): float
+    {
+        $amount = $this->subscriptionService->calculatePrice($payload, $plan)['price'];
+
+        if ($appAmount !== null && abs((float) $appAmount - $amount) > 0.001) {
+            Log::warning("{$context}: app amount differs from server price — charging server price", [
+                'user_id'      => $payload['user_id'] ?? null,
+                'plan_id'      => $plan->id,
+                'app_amount'   => (float) $appAmount,
+                'server_price' => $amount,
+                'coupon_code'  => $payload['coupon_code'] ?? null,
+                'protein'      => $payload['protein'] ?? null,
+                'personalized' => $payload['is_personalized'] ?? false,
+            ]);
+        }
+
+        return $amount;
     }
 
     protected function detectCardBrand(?string $cardNumber): ?string
