@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\MediaUploadingTrait;
 use App\Http\Requests\StoreMealRequest;
 use App\Http\Requests\UpdateMealRequest;
+use App\Http\Resources\Admin\MealListResource;
 use App\Http\Resources\Admin\MealResource;
 use App\Models\Meal;
+use App\Support\MealMenuCache;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,10 +24,47 @@ class MealApiController extends Controller
         return response()->json(['categories' => $categories]);
     }
 
-    public function index()
+    /**
+     * Menu list — active meals only, served from cache (see MealMenuCache).
+     * Supports ETag / Last-Modified (304 when unchanged) and gzip.
+     */
+    public function index(Request $request)
     {
-        $meals = Meal::with(['category', 'media', 'mealGroup', 'mealExtras', 'availableIngredients'])->get();
-        return MealResource::collection($meals);
+        $menu = MealMenuCache::remember(function () {
+            $meals = Meal::with(['category', 'media', 'mealGroup', 'mealExtras', 'availableIngredients'])
+                ->where('is_active', 1)
+                ->get();
+
+            return MealListResource::collection($meals)->response()->getContent();
+        });
+
+        $response = response('', Response::HTTP_OK, [
+            'Content-Type' => 'application/json',
+            'Vary'         => 'Accept-Encoding',
+        ]);
+
+        // Clients must revalidate each time, but get an empty 304 when nothing changed.
+        $response->setCache([
+            'public'          => true,
+            'max_age'         => 0,
+            'must_revalidate' => true,
+            'etag'            => $menu['etag'],
+            'last_modified'   => \Carbon\Carbon::createFromTimestamp($menu['generated_at']),
+        ]);
+
+        if ($response->isNotModified($request)) {
+            return $response;
+        }
+
+        // Compress here so it works even if the web server doesn't (nginx won't re-compress).
+        if ($menu['gzip'] !== null && str_contains((string) $request->header('Accept-Encoding'), 'gzip')) {
+            $response->setContent($menu['gzip']);
+            $response->headers->set('Content-Encoding', 'gzip');
+        } else {
+            $response->setContent($menu['json']);
+        }
+
+        return $response;
     }
 
     public function store(StoreMealRequest $request)
