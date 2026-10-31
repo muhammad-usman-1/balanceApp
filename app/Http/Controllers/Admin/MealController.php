@@ -167,9 +167,6 @@ class MealController extends Controller
             ->all();
 
         $meal->availableIngredients()->sync($validIngredientIds);
-
-        // Pivot sync() fires no model events — clear the app menu cache explicitly.
-        \App\Support\MealMenuCache::flush();
     }
 
     public function show(Meal $meal)
