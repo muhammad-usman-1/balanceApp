@@ -20,6 +20,12 @@ class Coupon extends Model
         'usage_limit_per_user',
     ];
 
+    // Coupon codes are always stored uppercase (e.g. "farah10 " -> "FARAH10")
+    public function setCouponCodeAttribute($value)
+    {
+        $this->attributes['coupon_code'] = $value !== null ? mb_strtoupper(trim($value)) : null;
+    }
+
     protected $casts = [
         'value' => 'decimal:2',
         'start_date' => 'date',

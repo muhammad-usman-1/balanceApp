@@ -87,6 +87,7 @@
                         <label for="coupon_code">Coupon Code <span class="req">*</span></label>
                         <input type="text" name="coupon_code" id="coupon_code"
                                class="cp-input @error('coupon_code') is-invalid @enderror"
+                               style="text-transform:uppercase;" oninput="this.value = this.value.toUpperCase()"
                                placeholder="e.g. SUMMER20" value="{{ old('coupon_code') }}" required>
                         @error('coupon_code')<div class="cp-error">{{ $message }}</div>@enderror
                     </div>
