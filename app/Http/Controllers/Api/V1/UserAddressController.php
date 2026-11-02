@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryTimeSlot;
 use App\Models\UserAddress;
+use App\Models\UserSubcrption;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -124,6 +125,28 @@ class UserAddressController extends Controller
                 'success' => false,
                 'message' => 'Address not found.',
             ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Running/queued plans delivering to this address must keep a valid one,
+        // otherwise deliveries and printed bills lose the customer's address.
+        $runningSubs = UserSubcrption::where('user_address_id', $address->id)
+            ->whereIn('status', ['active', 'queued']);
+
+        if ($runningSubs->exists()) {
+            $replacement = UserAddress::where('user_id', Auth::id())
+                ->where('id', '!=', $address->id)
+                ->orderByDesc('is_primary')
+                ->latest('id')
+                ->first();
+
+            if (! $replacement) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This address is used by your current plan. Add a new address first, then delete this one.',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $runningSubs->update(['user_address_id' => $replacement->id]);
         }
 
         $address->delete();

@@ -130,7 +130,9 @@ class UserSubcrption extends Model
 
     public function address()
     {
-        return $this->belongsTo(UserAddress::class, 'user_address_id');
+        // Include soft-deleted addresses: a customer deleting an address in the
+        // app must not leave past/printed deliveries without one.
+        return $this->belongsTo(UserAddress::class, 'user_address_id')->withTrashed();
     }
 
     public function branch()
