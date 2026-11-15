@@ -676,9 +676,9 @@
         <div class="tbl-hdr">
             <div>
                 <h6>Recent Subscriptions</h6>
-                <p>Latest subscription registrations</p>
+                <p>Latest active subscriptions</p>
             </div>
-            <a href="{{ route('admin.user-subcrptions.index') }}" class="view-all">
+            <a href="{{ route('admin.user-subcrptions.index', ['status_filter' => 'active']) }}" class="view-all">
                 View All <i class="fas fa-arrow-right"></i>
             </a>
         </div>

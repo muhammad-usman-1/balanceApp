@@ -104,7 +104,10 @@ class HomeController extends Controller
         $totalAreas      = Area::count();
         $totalBranches   = Branch::count();
 
+        // Only currently running plans (same rule as the "Active" filter on the subscriptions page)
         $recentSubscriptions = UserSubcrption::with(['user', 'subcrption_plans'])
+            ->where('status', 'active')
+            ->whereDate('end_date', '>=', now()->toDateString())
             ->latest()->take(6)->get();
 
         return view('home', compact(
