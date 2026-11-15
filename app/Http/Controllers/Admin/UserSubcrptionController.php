@@ -154,10 +154,13 @@ class UserSubcrptionController extends Controller
 
         [$availableDaysToPause, $upcomingPausedDays] = $this->pauseOptionsFor($userSubcrption, $selectedDays);
 
+        // Day-by-day delivery calendar (same rules as the delivery orders page)
+        $schedule = $userSubcrption->deliverySchedule();
+
         return view('admin.userSubcrptions.show', compact(
             'userSubcrption', 'subscriptionDays', 'allMeals', 'mainMeals', 'snackMeals',
             'mealLimit', 'snackLimit', 'formDays', 'existingByDay',
-            'availableDaysToPause', 'upcomingPausedDays'
+            'availableDaysToPause', 'upcomingPausedDays', 'schedule'
         ));
     }
 

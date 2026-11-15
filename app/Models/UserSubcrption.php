@@ -164,6 +164,85 @@ class UserSubcrption extends Model
         return ($weeks > 0 && $days > 0) ? $weeks * $days : null;
     }
 
+    /**
+     * Day-by-day delivery plan from start_date to end_date, using the same rules
+     * as the delivery orders page: only selected weekdays, paused days skipped,
+     * capped at totalDeliveries().
+     *
+     * Returns ['dates' => ['Y-m-d' => ['type' => delivery|paused, 'number' => n,
+     * 'status' => delivered|pending|not_recorded|today|upcoming]], 'total',
+     * 'planned', 'delivered', 'last_delivery'].
+     */
+    public function deliverySchedule(): array
+    {
+        $start = Carbon::parse($this->getRawOriginal('start_date'))->startOfDay();
+        $end   = Carbon::parse($this->getRawOriginal('end_date'))->startOfDay();
+        $today = Carbon::today();
+
+        $weekdays = $this->subscription_days()->pluck('day')->map(fn ($d) => strtolower($d))->all();
+        $total    = $this->totalDeliveries();
+
+        $pausedRanges = $this->pause_requests()->where('status', 'approved')->get()
+            ->map(fn ($p) => [Carbon::parse($p->pause_start_date)->startOfDay(), Carbon::parse($p->pause_end_date)->startOfDay()]);
+        if ($this->is_paused && $this->paused_at && $this->paused_until) {
+            $pausedRanges->push([Carbon::parse($this->paused_at)->startOfDay(), Carbon::parse($this->paused_until)->startOfDay()]);
+        }
+
+        $orders = DeliveryOrder::where('user_subcrption_id', $this->id)
+            ->get(['delivery_date', 'status'])
+            ->keyBy(fn ($o) => $o->delivery_date->toDateString());
+
+        $dates     = [];
+        $number    = 0;
+        $delivered = 0;
+        $last      = null;
+
+        for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
+            if (! in_array(strtolower($day->format('l')), $weekdays, true)) {
+                continue;
+            }
+
+            $key = $day->toDateString();
+
+            if ($pausedRanges->contains(fn ($r) => $day->between($r[0], $r[1]))) {
+                $dates[$key] = ['type' => 'paused'];
+                continue;
+            }
+
+            if ($total !== null && $number >= $total) {
+                break;
+            }
+
+            $number++;
+            $order = $orders->get($key);
+
+            if ($order && $order->status === 'delivered') {
+                $status = 'delivered';
+                $delivered++;
+            } elseif ($day->isSameDay($today)) {
+                $status = 'today';
+            } elseif ($day->lt($today)) {
+                $status = $order ? 'pending' : 'not_recorded';
+            } else {
+                $status = 'upcoming';
+            }
+
+            $dates[$key] = ['type' => 'delivery', 'number' => $number, 'status' => $status];
+            $last = $key;
+        }
+
+        return [
+            'dates'         => $dates,
+            'total'         => $total,
+            'planned'       => $number,
+            'delivered'     => $delivered,
+            'last_delivery' => $last,
+            'start'         => $start,
+            'end'           => $end,
+            'weekdays'      => $weekdays,
+        ];
+    }
+
     public function pause_logs()
     {
         return $this->hasMany(SubscriptionPauseLog::class, 'user_subcrption_id');

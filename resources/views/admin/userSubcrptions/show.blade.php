@@ -45,6 +45,34 @@
 .sv-chip-red    { background: #fee2e2; color: #dc2626; }
 .sv-chip-orange { background: #ffedd5; color: #c2410c; }
 
+/* ── Delivery calendar ── */
+.sv-cal-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+@media(max-width:640px){ .sv-cal-summary { grid-template-columns: repeat(2, 1fr); } }
+.sv-cal-stat { background: #f9fafb; border: 1px solid #f0f0f0; border-radius: 10px; padding: 10px 16px; }
+.sv-cal-stat b { display: block; font-size: 1.05rem; color: #111827; }
+.sv-cal-stat span { font-size: .72rem; color: #6b7280; }
+.sv-cal-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: .74rem; color: #6b7280; margin-bottom: 14px; }
+.sv-cal-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.sv-cal-months { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+.sv-cal-month h6 { font-size: .82rem; font-weight: 700; color: #111827; margin: 0 0 8px; }
+.sv-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.sv-cal-head { font-size: .64rem; font-weight: 700; color: #9ca3af; text-align: center; padding-bottom: 2px; }
+.sv-cal-cell {
+    height: 44px; border-radius: 8px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-size: .78rem; color: #d1d5db;
+}
+.sv-cal-cell small { font-size: .55rem; line-height: 1; margin-top: 1px; opacity: .85; }
+.sv-cal-in        { color: #9ca3af; background: #fafafa; }
+.cal-delivered    { background: #dcfce7; color: #15803d; font-weight: 700; }
+.cal-today        { background: #2563eb; color: #fff; font-weight: 700; }
+.cal-upcoming     { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
+.cal-pending      { background: #fef3c7; color: #b45309; font-weight: 700; }
+.cal-not_recorded { background: #f3f4f6; color: #6b7280; font-weight: 700; border: 1px dashed #d1d5db; }
+.cal-paused       { background: #fee2e2; color: #dc2626; font-weight: 700; }
+.lg-delivered { background: #dcfce7; } .lg-today { background: #2563eb; } .lg-upcoming { background: #dbeafe; }
+.lg-pending { background: #fef3c7; } .lg-not_recorded { background: #f3f4f6; border: 1px dashed #d1d5db; }
+.lg-paused { background: #fee2e2; } .lg-off { background: #fafafa; border: 1px solid #eee; }
+
 /* ── Section label ── */
 .sv-section-title {
     font-size: .7rem; font-weight: 700; text-transform: uppercase;
@@ -490,6 +518,87 @@
             </div>
         </div>
 
+    </div>
+
+    {{-- ── Delivery Calendar ── --}}
+    @php
+        $calLabels = [
+            'delivered'    => 'Delivered',
+            'today'        => 'Today',
+            'upcoming'     => 'Upcoming',
+            'pending'      => 'Not marked delivered',
+            'not_recorded' => 'No delivery order',
+            'paused'       => 'Paused',
+        ];
+        $calStart = $schedule['start']->copy()->startOfMonth();
+        $calEnd   = $schedule['end']->copy()->endOfMonth();
+    @endphp
+    <div class="sv-section-title"><i class="fas fa-calendar-check mr-1"></i> Delivery Calendar</div>
+    <div class="sv-card" style="margin-bottom:24px;">
+        <div class="sv-cal-summary">
+            <div class="sv-cal-stat"><b>{{ $schedule['total'] ?? '—' }}</b><span>Deliveries in plan</span></div>
+            <div class="sv-cal-stat"><b>{{ $schedule['delivered'] }}</b><span>Delivered</span></div>
+            <div class="sv-cal-stat"><b>{{ $schedule['total'] !== null ? max(0, $schedule['total'] - $schedule['delivered']) : '—' }}</b><span>Remaining</span></div>
+            <div class="sv-cal-stat"><b>{{ $schedule['last_delivery'] ? \Carbon\Carbon::parse($schedule['last_delivery'])->format('D, d M Y') : '—' }}</b><span>Last delivery</span></div>
+        </div>
+
+        @if($schedule['total'] !== null && $schedule['planned'] < $schedule['total'])
+            <div class="sv-alert" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.82rem;">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                Only {{ $schedule['planned'] }} of {{ $schedule['total'] }} deliveries fit before the end date
+                ({{ $schedule['end']->format('d M Y') }}) — check the end date or paused days.
+            </div>
+        @endif
+
+        <div class="sv-cal-legend">
+            @foreach($calLabels as $k => $label)
+                <span><i class="lg-{{ $k }}"></i>{{ $label }}</span>
+            @endforeach
+            <span><i class="lg-off"></i>Off day (not selected)</span>
+        </div>
+
+        @if(empty($schedule['weekdays']))
+            <div class="sv-empty" style="padding:20px;">No delivery days selected for this subscription.</div>
+        @else
+        <div class="sv-cal-months">
+            @for($m = $calStart->copy(); $m->lte($calEnd); $m->addMonth())
+                <div class="sv-cal-month">
+                    <h6>{{ $m->format('F Y') }}</h6>
+                    <div class="sv-cal-grid">
+                        @foreach(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as $wd)
+                            <div class="sv-cal-head">{{ $wd }}</div>
+                        @endforeach
+                        @for($i = 0; $i < $m->copy()->startOfMonth()->dayOfWeek; $i++)
+                            <div></div>
+                        @endfor
+                        @for($d = $m->copy()->startOfMonth(); $d->lte($m->copy()->endOfMonth()); $d->addDay())
+                            @php
+                                $key    = $d->toDateString();
+                                $info   = $schedule['dates'][$key] ?? null;
+                                $inPlan = $d->between($schedule['start'], $schedule['end']);
+                                if ($info && $info['type'] === 'paused') {
+                                    $cls = 'cal-paused'; $tip = 'Paused';
+                                } elseif ($info) {
+                                    $cls = 'cal-' . $info['status'];
+                                    $tip = 'Delivery #' . $info['number'] . ' — ' . $calLabels[$info['status']];
+                                } elseif ($inPlan) {
+                                    $cls = 'sv-cal-in'; $tip = 'Off day';
+                                } else {
+                                    $cls = ''; $tip = '';
+                                }
+                            @endphp
+                            <div class="sv-cal-cell {{ $cls }}" @if($tip) title="{{ $d->format('D, d M Y') }} — {{ $tip }}" @endif>
+                                {{ $d->day }}
+                                @if($info && $info['type'] === 'delivery')
+                                    <small>#{{ $info['number'] }}</small>
+                                @endif
+                            </div>
+                        @endfor
+                    </div>
+                </div>
+            @endfor
+        </div>
+        @endif
     </div>
 
     {{-- ── Subscription Days & Meals ── --}}
