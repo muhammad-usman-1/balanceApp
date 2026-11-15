@@ -133,6 +133,7 @@ class DeliveryController extends Controller
                 'subscription_meals.meal',
                 'subscription_meals.selectedIngredients.mealExtra',
                 'user_subcrption' => fn ($q) => $q->withCount('subscription_days'),
+                'user_subcrption.subscription_days',
                 'user_subcrption.user',
                 'user_subcrption.address',
                 'user_subcrption.branch',
@@ -166,19 +167,21 @@ class DeliveryController extends Controller
             })
             ->get();
 
-        // Deliveries each subscription already used before this date (one query).
-        $usedBefore = DeliveryOrder::whereIn('user_subcrption_id', $subscriptionDays->pluck('user_subcrptions_id')->unique())
+        // Order dates each subscription already had before this date (one query);
+        // counted per plan by countUsedDeliveries() so duplicates / unselected days don't count.
+        $pastOrderDates = DeliveryOrder::whereIn('user_subcrption_id', $subscriptionDays->pluck('user_subcrptions_id')->unique())
             ->whereDate('delivery_date', '<', $date->toDateString())
-            ->selectRaw('user_subcrption_id, COUNT(*) as used')
-            ->groupBy('user_subcrption_id')
-            ->pluck('used', 'user_subcrption_id');
+            ->get(['user_subcrption_id', 'delivery_date'])
+            ->groupBy('user_subcrption_id');
 
         $orders = collect();
         foreach ($subscriptionDays as $subDay) {
             $sub   = $subDay->user_subcrption;
             $total = $sub->totalDeliveries();
 
-            if ($total !== null && (int) ($usedBefore[$sub->id] ?? 0) >= $total) {
+            $used = $sub->countUsedDeliveries(($pastOrderDates[$sub->id] ?? collect())->pluck('delivery_date'));
+
+            if ($total !== null && $used >= $total) {
                 // Plan already got all its deliveries — drop any untouched order
                 // that was created for this date earlier (e.g. by viewing ahead).
                 DeliveryOrder::where('user_subcrption_id', $sub->id)

@@ -165,6 +165,28 @@ class UserSubcrption extends Model
     }
 
     /**
+     * How many of this plan's deliveries the given order dates account for.
+     * Counts each date once (duplicate order rows for the same day — e.g. after
+     * the customer changed days — don't count twice), and only dates from
+     * start_date onward that fall on a currently selected weekday, so the
+     * result matches the delivery calendar.
+     *
+     * @param  iterable<string|\DateTimeInterface>  $orderDates
+     */
+    public function countUsedDeliveries(iterable $orderDates): int
+    {
+        $start    = Carbon::parse($this->getRawOriginal('start_date'))->toDateString();
+        $weekdays = ($this->relationLoaded('subscription_days') ? $this->subscription_days : $this->subscription_days()->get())
+            ->pluck('day')->map(fn ($d) => strtolower($d))->all();
+
+        return collect($orderDates)
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->unique()
+            ->filter(fn ($d) => $d >= $start && in_array(strtolower(Carbon::parse($d)->format('l')), $weekdays, true))
+            ->count();
+    }
+
+    /**
      * Day-by-day delivery plan from start_date to end_date, using the same rules
      * as the delivery orders page: only selected weekdays, paused days skipped,
      * capped at totalDeliveries().

@@ -50,15 +50,16 @@ class ExpireSubscriptions extends Command
                 continue;
             }
 
-            $past = fn () => DeliveryOrder::where('user_subcrption_id', $subscription->id)
-                ->whereDate('delivery_date', '<', $today);
+            $pastDates = DeliveryOrder::where('user_subcrption_id', $subscription->id)
+                ->whereDate('delivery_date', '<', $today)
+                ->pluck('delivery_date');
 
-            if ($past()->count() < $total) {
+            if ($subscription->countUsedDeliveries($pastDates) < $total) {
                 continue;
             }
 
             $subscription->timestamps = false;
-            $subscription->end_date   = Carbon::parse($past()->max('delivery_date'))->format(config('panel.date_format'));
+            $subscription->end_date   = Carbon::parse($pastDates->max())->format(config('panel.date_format'));
             $subscription->status     = 'inactive';
             $subscription->save();
             $completed++;
