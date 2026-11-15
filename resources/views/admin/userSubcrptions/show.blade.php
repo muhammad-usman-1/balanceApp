@@ -61,17 +61,17 @@
     height: 44px; border-radius: 8px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; font-size: .78rem; color: #d1d5db;
 }
-.sv-cal-cell small { font-size: .55rem; line-height: 1; margin-top: 1px; opacity: .85; }
-.sv-cal-in        { color: #9ca3af; background: #fafafa; }
-.cal-delivered    { background: #dcfce7; color: #15803d; font-weight: 700; }
-.cal-today        { background: #2563eb; color: #fff; font-weight: 700; }
-.cal-upcoming     { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
-.cal-pending      { background: #fef3c7; color: #b45309; font-weight: 700; }
-.cal-not_recorded { background: #f3f4f6; color: #6b7280; font-weight: 700; border: 1px dashed #d1d5db; }
-.cal-paused       { background: #fee2e2; color: #dc2626; font-weight: 700; }
-.lg-delivered { background: #dcfce7; } .lg-today { background: #2563eb; } .lg-upcoming { background: #dbeafe; }
-.lg-pending { background: #fef3c7; } .lg-not_recorded { background: #f3f4f6; border: 1px dashed #d1d5db; }
-.lg-paused { background: #fee2e2; } .lg-off { background: #fafafa; border: 1px solid #eee; }
+.sv-cal-cell small { font-size: .55rem; line-height: 1; margin-top: 1px; opacity: .9; }
+.sv-cal-in        { color: #6b7280; background: #e5e7eb; }
+.cal-delivered    { background: #16a34a; color: #fff; font-weight: 700; }
+.cal-today        { background: #1e3a8a; color: #fff; font-weight: 700; box-shadow: 0 0 0 2px #93c5fd; }
+.cal-upcoming     { background: #2563eb; color: #fff; font-weight: 700; }
+.cal-pending      { background: #d97706; color: #fff; font-weight: 700; }
+.cal-not_recorded { background: #6b7280; color: #fff; font-weight: 700; }
+.cal-paused       { background: #dc2626; color: #fff; font-weight: 700; }
+.lg-delivered { background: #16a34a; } .lg-today { background: #1e3a8a; } .lg-upcoming { background: #2563eb; }
+.lg-pending { background: #d97706; } .lg-not_recorded { background: #6b7280; }
+.lg-paused { background: #dc2626; } .lg-off { background: #e5e7eb; }
 
 /* ── Section label ── */
 .sv-section-title {
