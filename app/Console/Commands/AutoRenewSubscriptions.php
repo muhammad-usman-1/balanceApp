@@ -39,7 +39,7 @@ class AutoRenewSubscriptions extends Command
                 DB::transaction(function () use ($subscription) {
                     $plan     = $subscription->subcrption_plans;
                     $newStart = Carbon::parse($subscription->getRawOriginal('end_date'))->addDay();
-                    $newEnd   = $newStart->copy()->addWeeks((int) $plan->no_of_weeks);
+                    $newEnd   = $newStart->copy()->addWeeks((int) $plan->no_of_weeks)->subDay(); // inclusive end
 
                     $renewal = new UserSubcrption();
                     $renewal->user_id                      = $subscription->user_id;

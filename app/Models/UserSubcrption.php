@@ -150,6 +150,20 @@ class UserSubcrption extends Model
         return $this->hasMany(SubscriptionDay::class, 'user_subcrptions_id');
     }
 
+    /**
+     * Total deliveries this plan includes: selected days per week x plan weeks
+     * (e.g. 5 days x 4 weeks = 20). Null when it can't be determined (no plan
+     * weeks / no days), meaning "no cap". Uses subscription_days_count when
+     * loaded via withCount() to avoid an extra query.
+     */
+    public function totalDeliveries(): ?int
+    {
+        $weeks = (int) ($this->subcrption_plans->no_of_weeks ?? 0);
+        $days  = $this->subscription_days_count ?? $this->subscription_days()->count();
+
+        return ($weeks > 0 && $days > 0) ? $weeks * $days : null;
+    }
+
     public function pause_logs()
     {
         return $this->hasMany(SubscriptionPauseLog::class, 'user_subcrption_id');

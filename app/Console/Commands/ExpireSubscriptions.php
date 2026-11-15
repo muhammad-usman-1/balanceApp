@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DeliveryOrder;
 use App\Models\UserSubcrption;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -30,7 +32,39 @@ class ExpireSubscriptions extends Command
             $count++;
         }
 
-        Log::info("ExpireSubscriptions: marked {$count} subscription(s) as inactive.");
-        $this->info("Expired {$count} subscription(s).");
+        // Also end plans that already received every delivery they include
+        // (days per week x weeks) even if end_date is later — e.g. older plans
+        // whose end_date ran one day too long. end_date is moved back to the
+        // last delivery so the app and renewals show the real end.
+        $completed = 0;
+        $running = UserSubcrption::where('status', 'active')
+            ->where('is_paused', false)
+            ->whereDate('end_date', '>=', $today)
+            ->with('subcrption_plans')
+            ->withCount('subscription_days')
+            ->get();
+
+        foreach ($running as $subscription) {
+            $total = $subscription->totalDeliveries();
+            if ($total === null) {
+                continue;
+            }
+
+            $past = fn () => DeliveryOrder::where('user_subcrption_id', $subscription->id)
+                ->whereDate('delivery_date', '<', $today);
+
+            if ($past()->count() < $total) {
+                continue;
+            }
+
+            $subscription->timestamps = false;
+            $subscription->end_date   = Carbon::parse($past()->max('delivery_date'))->format(config('panel.date_format'));
+            $subscription->status     = 'inactive';
+            $subscription->save();
+            $completed++;
+        }
+
+        Log::info("ExpireSubscriptions: marked {$count} subscription(s) as inactive, {$completed} completed all deliveries.");
+        $this->info("Expired {$count} subscription(s); {$completed} completed all deliveries.");
     }
 }

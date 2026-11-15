@@ -39,8 +39,9 @@ class SubscriptionService
                 $startDate = Carbon::parse($payload['start_date']);
             }
 
-            // end_date is calculated from the plan's no_of_weeks — no external duration table needed
-            $endDate   = $startDate->copy()->addWeeks((int) $plan->no_of_weeks);
+            // end_date is calculated from the plan's no_of_weeks and is inclusive, so the
+            // plan covers exactly N x 7 days (each selected weekday delivered N times).
+            $endDate   = $startDate->copy()->addWeeks((int) $plan->no_of_weeks)->subDay();
 
             $isPersonalized = $payload['is_personalized'] ?? false;
             $currency       = $paymentContext['currency'] ?? ($payload['currency'] ?? 'KWD');

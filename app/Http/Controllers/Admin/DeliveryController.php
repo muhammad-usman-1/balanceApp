@@ -10,6 +10,7 @@ use App\Models\UserSubcrption;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class DeliveryController extends Controller
@@ -35,54 +36,7 @@ class DeliveryController extends Controller
             'url'             => $request->fullUrl(),
         ]);
 
-        $subscriptionDays = SubscriptionDay::where('day', $dayName)
-            ->with([
-                'subscription_meals.meal',
-                'subscription_meals.selectedIngredients.mealExtra',
-                'user_subcrption.user',
-                'user_subcrption.address',
-                'user_subcrption.branch',
-                'user_subcrption.area',
-            ])
-            ->whereHas('user_subcrption', function ($q) use ($date, $branchId, $search) {
-                $q->where('status', 'active')
-                  ->whereDate('start_date', '<=', $date)
-                  ->whereDate('end_date', '>=', $date)
-                  ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
-                  ->when($search, fn($q2) => $q2->whereHas('user', fn($q3) => $q3->where('name', 'like', '%'.$search.'%')))
-                  ->where(function ($q2) use ($date) {
-                      // Exclude only if $date actually falls inside [paused_at, paused_until].
-                      // A pause scheduled for a future day must not cancel delivery on
-                      // earlier days that come before it even starts.
-                      $q2->where('is_paused', false)
-                         ->orWhere(function ($q3) use ($date) {
-                             $q3->where('is_paused', true)
-                                ->where(function ($q4) use ($date) {
-                                    $q4->whereDate('paused_until', '<', $date->toDateString())
-                                       ->orWhereDate('paused_at', '>', $date->toDateString());
-                                });
-                         });
-                  })
-                  ->whereDoesntHave('pause_requests', function ($q2) use ($date) {
-                      $q2->where('status', 'approved')
-                         ->whereDate('pause_start_date', '<=', $date->toDateString())
-                         ->whereDate('pause_end_date', '>=', $date->toDateString());
-                  });
-            })
-            ->get();
-
-        $allOrders = collect();
-        foreach ($subscriptionDays as $subDay) {
-            $order = DeliveryOrder::firstOrCreate([
-                'user_subcrption_id'  => $subDay->user_subcrptions_id,
-                'subscription_day_id' => $subDay->id,
-                'delivery_date'       => $date->toDateString(),
-            ], ['status' => 'pending']);
-
-            $order->setRelation('subscriptionDay', $subDay);
-            $order->setRelation('subscription', $subDay->user_subcrption);
-            $allOrders->push($order);
-        }
+        $allOrders = $this->ordersForDate($date, $branchId, $search);
 
         Log::info('DeliveryOrders.index result', [
             'orders_count' => $allOrders->count(),
@@ -128,55 +82,8 @@ class DeliveryController extends Controller
         $date = ($dateInput && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateInput))
             ? Carbon::createFromFormat('Y-m-d', $dateInput)->startOfDay()
             : Carbon::today();
-        $dayName = strtolower($date->format('l'));
 
-        $subscriptionDays = SubscriptionDay::where('day', $dayName)
-            ->with([
-                'subscription_meals.meal',
-                'subscription_meals.selectedIngredients.mealExtra',
-                'user_subcrption.user',
-                'user_subcrption.address',
-                'user_subcrption.branch',
-                'user_subcrption.area',
-            ])
-            ->whereHas('user_subcrption', function ($q) use ($date, $branchId) {
-                $q->where('status', 'active')
-                  ->whereDate('start_date', '<=', $date)
-                  ->whereDate('end_date', '>=', $date)
-                  ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
-                  ->where(function ($q2) use ($date) {
-                      // Exclude only if $date actually falls inside [paused_at, paused_until].
-                      // A pause scheduled for a future day must not cancel delivery on
-                      // earlier days that come before it even starts.
-                      $q2->where('is_paused', false)
-                         ->orWhere(function ($q3) use ($date) {
-                             $q3->where('is_paused', true)
-                                ->where(function ($q4) use ($date) {
-                                    $q4->whereDate('paused_until', '<', $date->toDateString())
-                                       ->orWhereDate('paused_at', '>', $date->toDateString());
-                                });
-                         });
-                  })
-                  ->whereDoesntHave('pause_requests', function ($q2) use ($date) {
-                      $q2->where('status', 'approved')
-                         ->whereDate('pause_start_date', '<=', $date->toDateString())
-                         ->whereDate('pause_end_date', '>=', $date->toDateString());
-                  });
-            })
-            ->get();
-
-        $deliveryOrders = collect();
-        foreach ($subscriptionDays as $subDay) {
-            $order = DeliveryOrder::firstOrCreate([
-                'user_subcrption_id' => $subDay->user_subcrptions_id,
-                'subscription_day_id' => $subDay->id,
-                'delivery_date' => $date->toDateString(),
-            ], ['status' => 'pending']);
-
-            $order->setRelation('subscriptionDay', $subDay);
-            $order->setRelation('subscription', $subDay->user_subcrption);
-            $deliveryOrders->push($order);
-        }
+        $deliveryOrders = $this->ordersForDate($date, $branchId);
 
         $slotLabels = DeliveryTimeSlot::pluck('label_en', 'value')->all();
 
@@ -209,5 +116,90 @@ class DeliveryController extends Controller
             ->update(['status' => 'delivered']);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Delivery orders for one date: every active, un-paused subscription that
+     * has this weekday selected — capped so a plan never gets more deliveries
+     * than it includes (selected days per week x plan weeks). Orders on earlier
+     * dates count as used; once the plan has used them all it no longer appears.
+     */
+    private function ordersForDate(Carbon $date, ?int $branchId, string $search = ''): Collection
+    {
+        $dayName = strtolower($date->format('l'));
+
+        $subscriptionDays = SubscriptionDay::where('day', $dayName)
+            ->with([
+                'subscription_meals.meal',
+                'subscription_meals.selectedIngredients.mealExtra',
+                'user_subcrption' => fn ($q) => $q->withCount('subscription_days'),
+                'user_subcrption.user',
+                'user_subcrption.address',
+                'user_subcrption.branch',
+                'user_subcrption.area',
+                'user_subcrption.subcrption_plans',
+            ])
+            ->whereHas('user_subcrption', function ($q) use ($date, $branchId, $search) {
+                $q->where('status', 'active')
+                  ->whereDate('start_date', '<=', $date)
+                  ->whereDate('end_date', '>=', $date)
+                  ->when($branchId, fn($q2) => $q2->where('branch_id', $branchId))
+                  ->when($search, fn($q2) => $q2->whereHas('user', fn($q3) => $q3->where('name', 'like', '%'.$search.'%')))
+                  ->where(function ($q2) use ($date) {
+                      // Exclude only if $date actually falls inside [paused_at, paused_until].
+                      // A pause scheduled for a future day must not cancel delivery on
+                      // earlier days that come before it even starts.
+                      $q2->where('is_paused', false)
+                         ->orWhere(function ($q3) use ($date) {
+                             $q3->where('is_paused', true)
+                                ->where(function ($q4) use ($date) {
+                                    $q4->whereDate('paused_until', '<', $date->toDateString())
+                                       ->orWhereDate('paused_at', '>', $date->toDateString());
+                                });
+                         });
+                  })
+                  ->whereDoesntHave('pause_requests', function ($q2) use ($date) {
+                      $q2->where('status', 'approved')
+                         ->whereDate('pause_start_date', '<=', $date->toDateString())
+                         ->whereDate('pause_end_date', '>=', $date->toDateString());
+                  });
+            })
+            ->get();
+
+        // Deliveries each subscription already used before this date (one query).
+        $usedBefore = DeliveryOrder::whereIn('user_subcrption_id', $subscriptionDays->pluck('user_subcrptions_id')->unique())
+            ->whereDate('delivery_date', '<', $date->toDateString())
+            ->selectRaw('user_subcrption_id, COUNT(*) as used')
+            ->groupBy('user_subcrption_id')
+            ->pluck('used', 'user_subcrption_id');
+
+        $orders = collect();
+        foreach ($subscriptionDays as $subDay) {
+            $sub   = $subDay->user_subcrption;
+            $total = $sub->totalDeliveries();
+
+            if ($total !== null && (int) ($usedBefore[$sub->id] ?? 0) >= $total) {
+                // Plan already got all its deliveries — drop any untouched order
+                // that was created for this date earlier (e.g. by viewing ahead).
+                DeliveryOrder::where('user_subcrption_id', $sub->id)
+                    ->where('subscription_day_id', $subDay->id)
+                    ->whereDate('delivery_date', $date->toDateString())
+                    ->where('status', 'pending')
+                    ->delete();
+                continue;
+            }
+
+            $order = DeliveryOrder::firstOrCreate([
+                'user_subcrption_id'  => $subDay->user_subcrptions_id,
+                'subscription_day_id' => $subDay->id,
+                'delivery_date'       => $date->toDateString(),
+            ], ['status' => 'pending']);
+
+            $order->setRelation('subscriptionDay', $subDay);
+            $order->setRelation('subscription', $sub);
+            $orders->push($order);
+        }
+
+        return $orders;
     }
 }

@@ -195,7 +195,7 @@ class SubscriptionRenewalApiController extends Controller
         }
 
         $plan   = $queued->subcrption_plans;
-        $newEnd = $newStart->copy()->addWeeks((int) $plan->no_of_weeks);
+        $newEnd = $newStart->copy()->addWeeks((int) $plan->no_of_weeks)->subDay(); // inclusive end
 
         $queued->start_date = $newStart->format('Y-m-d');
         $queued->end_date   = $newEnd->format('Y-m-d');
@@ -347,7 +347,7 @@ class SubscriptionRenewalApiController extends Controller
         }
 
         $newStart = Carbon::parse($queued->getRawOriginal('start_date'));
-        $newEnd   = $newStart->copy()->addWeeks((int) $newPlan->no_of_weeks);
+        $newEnd   = $newStart->copy()->addWeeks((int) $newPlan->no_of_weeks)->subDay(); // inclusive end
 
         $queued->subcrption_plans_id = $newPlan->id;
         $queued->price               = $newPlan->price;
